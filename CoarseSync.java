@@ -58,8 +58,15 @@ public class CoarseSync {
 
 			// 1 send a request to all known peers
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
-				// TODO: compose Message String
-				String msg = "";
+				int type = UDPSyncMessageHandler.TYPE_COARSE_REQ;
+				String myIP = SessionManager.getInstance().getMySelf()
+						.getAddress().toString();
+				int myPort = SessionManager.getInstance().getMySelf().getPort();
+				int myId = SessionManager.getInstance().getMySelf().getId();
+
+				String msg = Utils.buildMessage(DELIM, type, myIP, myPort, 0,
+						Utils.getTimestamp(), myId);
+
 				try {
 					UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
 							p.getAddress(), p.getPort());
@@ -78,21 +85,22 @@ public class CoarseSync {
 
 			long avgPTS = 0;
 
-			// lock the request queue for other threads
-			synchronized (requestQueue) {
-				// 3a parse and process responses
+			// 3 parse and process responses
 
-				for (String response : requestQueue) {
-					String[] responseFields = response.split(DELIM);
-					long pts = Long.parseLong(responseFields[3]);
-					long nts = Long.parseLong(responseFields[4]);
-					avgPTS += pts + (Utils.getTimestamp() - nts);
-				}
-				avgPTS /= requestQueue.size();
+			// TODO lock the request queue for other threads?
 
-				// empty request queue
-				requestQueue.clear();
-			}// unlock the request Queue
+			for (String response : requestQueue) {
+				String[] responseFields = response.split(DELIM);
+				long pts = Long.parseLong(responseFields[3]);
+				long nts = Long.parseLong(responseFields[4]);
+				avgPTS += pts + (Utils.getTimestamp() - nts);
+			}
+			avgPTS /= requestQueue.size();
+
+			// empty request queue
+			requestQueue.clear();
+			
+			//TODO unlock the request Queue?
 
 			// TODO: set playback to avgPTS
 			Log.d(TAG, "calculated average from coarse synchronization: "
@@ -123,18 +131,19 @@ public class CoarseSync {
 
 			}
 			int senderPort = Integer.parseInt(responseFields[2]);
-			
-			//FIXME playback timestamp
+
+			// FIXME playback timestamp
 			long myPts = 1;
-			//FIXME network timestamp
-			long myNts = 123541412;
-			
-			String msg = UDPSyncMessageHandler.TYPE_COARSE_RESP + DELIM
-					+ SessionManager.getInstance().getMySelf().getAddress()
-					+ DELIM
-					+ SessionManager.getInstance().getMySelf().getPort()
-					+ DELIM + myPts + DELIM + myNts + DELIM
-					+ SessionManager.getInstance().getMySelf().getId();
+
+			long myNts = Utils.getTimestamp();
+
+			int type = UDPSyncMessageHandler.TYPE_COARSE_REQ;
+			String myIP = SessionManager.getInstance().getMySelf().getAddress()
+					.toString();
+			int myPort = SessionManager.getInstance().getMySelf().getPort();
+			int myId = SessionManager.getInstance().getMySelf().getId();
+			String msg = Utils.buildMessage(DELIM, type, myIP, myPort, myPts,
+					myNts, myId);
 
 			// send message
 			try {

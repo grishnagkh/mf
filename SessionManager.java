@@ -147,7 +147,7 @@ public class SessionManager {
 
 			Peer p = new Peer(id, InetAddress.getByName(ipS), port);
 
-			if (p.getAddress().equals(myAddr)) {
+			if (p.getAddress().equals(myAddr) && p.getPort() == port) {
 				mySelf = p;
 			} else {
 				peers.put(id, p);
@@ -186,7 +186,7 @@ public class SessionManager {
 				sock.close();
 				gotResult = true;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
+				// TODO exception handling
 			}
 		}
 	}
@@ -200,7 +200,7 @@ public class SessionManager {
  * 
  * @Override public void run() {
  * while(!at.itec.mf.SessionInfoListener.getInstance().gotResult()){ try {
- * Thread.sleep(1000); } catch (InterruptedException e) { // TODO Auto-generated
+ * Thread.sleep(1000); } catch (InterruptedException e) { 
  * catch block e.printStackTrace(); } } Log.d("vlc mf",
  * at.itec.mf.SessionInfoListener.getInstance().getInfo());
  * 

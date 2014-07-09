@@ -1,5 +1,6 @@
 package at.itec.mf;
 
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -24,14 +25,8 @@ public class UDPSyncMessageHandler {
 	public static final int RCF_BUF_LEN = 4096; // we start with a 4k buffer
 
 	public static final int PORT = 12346;
-
-	/*
-	 * test
-	 */
-	public static void main(String[] args) {
-		getInstance().startHandling();
-	}
-
+	private int port;
+	
 	private static UDPSyncMessageHandler instance;
 
 	public static UDPSyncMessageHandler getInstance() {
@@ -39,9 +34,18 @@ public class UDPSyncMessageHandler {
 			instance = new UDPSyncMessageHandler();
 		return instance;
 	}
+	public static UDPSyncMessageHandler getInstance(int port) {
+		if (instance == null)
+			instance = new UDPSyncMessageHandler(port);
+		return instance;
+	}
+
 
 	private UDPSyncMessageHandler() {
-
+		this(PORT);
+	}
+	private UDPSyncMessageHandler(int port){
+		this.port = port;
 	}
 
 	public synchronized void sendUDPMessage(String msg, InetAddress address, int port) throws SocketException, IOException{
@@ -68,7 +72,7 @@ public class UDPSyncMessageHandler {
 
 		public void run() {
 			try {
-				serverSocket = new DatagramSocket(PORT);
+				serverSocket = new DatagramSocket(port);
 			} catch (SocketException e) {
 				e.printStackTrace();
 			}
