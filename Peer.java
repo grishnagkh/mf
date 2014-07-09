@@ -53,5 +53,7 @@ class Peer{
 		public void setAddress(InetAddress address) {
 			this.address = address;
 		}
-
+		public String toString(){
+			return id + "," + address + "," + port;
+		}
 	}

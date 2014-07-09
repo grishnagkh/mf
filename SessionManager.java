@@ -46,8 +46,7 @@ public class SessionManager {
 	}
 
 	public static SessionManager getInstance() {
-		instance = instance == null ? new SessionManager() : instance;
-		return instance;
+		return getInstance(PORT);
 	}
 
 	Context c;

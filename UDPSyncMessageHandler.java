@@ -29,10 +29,8 @@ public class UDPSyncMessageHandler {
 	
 	private static UDPSyncMessageHandler instance;
 
-	public static UDPSyncMessageHandler getInstance() {
-		if (instance == null)
-			instance = new UDPSyncMessageHandler();
-		return instance;
+	public static UDPSyncMessageHandler getInstance() {		
+		return getInstance(PORT);
 	}
 	public static UDPSyncMessageHandler getInstance(int port) {
 		if (instance == null)

@@ -42,6 +42,7 @@ public class CoarseSync {
 	}
 
 	public void coarseResponse(String msg) {
+		
 		requestQueue.add(msg);
 	}
 
@@ -60,7 +61,7 @@ public class CoarseSync {
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
 				int type = UDPSyncMessageHandler.TYPE_COARSE_REQ;
 				String myIP = SessionManager.getInstance().getMySelf()
-						.getAddress().toString();
+						.getAddress().getHostAddress();
 				int myPort = SessionManager.getInstance().getMySelf().getPort();
 				int myId = SessionManager.getInstance().getMySelf().getId();
 
@@ -88,7 +89,9 @@ public class CoarseSync {
 			// 3 parse and process responses
 
 			// TODO lock the request queue for other threads?
-
+			
+			//System.out.println("requestQueue: " + requestQueue);
+			
 			for (String response : requestQueue) {
 				String[] responseFields = response.split(DELIM);
 				long pts = Long.parseLong(responseFields[3]);
@@ -115,11 +118,11 @@ public class CoarseSync {
 		public CSyncProcessRequestRunnable(String req) {
 			this.req = req;
 		}
-
+		
 		public void run() {
 			// parse request
 			String[] responseFields = req.split("|");
-			if (responseFields.length != 5) { // simplest check available^^
+			if (responseFields.length != 6) { // simplest check available^^
 				return; // invalid message
 			}
 			String senderIP = responseFields[1];
@@ -137,7 +140,7 @@ public class CoarseSync {
 
 			long myNts = Utils.getTimestamp();
 
-			int type = UDPSyncMessageHandler.TYPE_COARSE_REQ;
+			int type = UDPSyncMessageHandler.TYPE_COARSE_RESP;
 			String myIP = SessionManager.getInstance().getMySelf().getAddress()
 					.toString();
 			int myPort = SessionManager.getInstance().getMySelf().getPort();
