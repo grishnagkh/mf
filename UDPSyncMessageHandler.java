@@ -93,7 +93,7 @@ public class UDPSyncMessageHandler {
 						CoarseSync.getInstance().coarseResponse(msg);
 
 					} else if (msg.startsWith("" + TYPE_FINE)) {
-						FineSync.getInstance().processRequest();
+						FineSync.getInstance().processRequest(msg);
 					} else {
 						// other requests, really?
 						Log.d(TAG, "We received some other request: " + msg);
