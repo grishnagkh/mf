@@ -20,6 +20,10 @@ import android.util.Log;
  * Socket Server listening to a specific port for session info from the vlc dash
  * plugin. A singleton.
  * 
+ * Start this whenever a mpd file is requested After successfully parsing the
+ * session info, this plugin starts the messagehandler and the coarse sync
+ * (fine sync should be started by coarse sync)
+ * 
  * @author stefan petscharnig
  *
  */
@@ -39,7 +43,7 @@ public class SessionManager {
 	private boolean gotResult = false;
 
 	private Peer mySelf;
-	
+
 	public static SessionManager getInstance(int port) {
 		instance = instance == null ? new SessionManager(port) : instance;
 		return instance;
@@ -102,10 +106,6 @@ public class SessionManager {
 	 *         DANGER: in case of unknown host exception, malformed string or no
 	 *         results from dash plugin, nothing will be done or we could even
 	 *         crash, i dont know, maybe we would kill a kitten... how sad :/
-	 * 
-	 *         TODO: have something for myself like whoami, i would need my own
-	 *         peer id and such things , maybe a local variable
-	 * 
 	 */
 	public Map<Integer, Peer> getPeers() {
 		if (peers == null) {
@@ -184,24 +184,14 @@ public class SessionManager {
 				}
 				sock.close();
 				gotResult = true;
+
+				// we got a result, start message handler and coarse sync
+				UDPSyncMessageHandler.getInstance().startHandling();
+				CoarseSync.getInstance().startCoarseSync();
+
 			} catch (Exception e) {
 				// TODO exception handling
 			}
 		}
 	}
 }
-/*
- * sample call (at startup start the session listener, or better, when starting
- * to open the dash plugin):
- * at.itec.mf.SessionInfoListener.getInstance().startListener();
- * 
- * sample test: (new Thread(new Runnable() {
- * 
- * @Override public void run() {
- * while(!at.itec.mf.SessionInfoListener.getInstance().gotResult()){ try {
- * Thread.sleep(1000); } catch (InterruptedException e) { 
- * catch block e.printStackTrace(); } } Log.d("vlc mf",
- * at.itec.mf.SessionInfoListener.getInstance().getInfo());
- * 
- * } })).start();
- */

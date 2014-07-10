@@ -7,6 +7,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
+import android.util.Log;
+
 /**
  * 
  * a message handler which forwards the received udp packages either to the fine
@@ -18,6 +20,8 @@ import java.net.SocketException;
 
 public class UDPSyncMessageHandler {
 
+	public static final String TAG = "message handler";
+	
 	public static final int TYPE_COARSE_REQ = 1;
 	public static final int TYPE_COARSE_RESP = 2;
 	public static final int TYPE_FINE = 3;
@@ -91,7 +95,7 @@ public class UDPSyncMessageHandler {
 						// TODO fill fine sync queue
 					} else {
 						// other requests, really?
-						// TODO: just print them atm
+						Log.d(TAG, "We received some other request: " + msg);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();

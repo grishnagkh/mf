@@ -7,6 +7,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.videolan.libvlc.LibVLC;
+import org.videolan.libvlc.LibVlcException;
+
 import android.util.Log;
 
 /**
@@ -42,7 +45,7 @@ public class CoarseSync {
 	}
 
 	public void coarseResponse(String msg) {
-		
+
 		requestQueue.add(msg);
 	}
 
@@ -88,10 +91,10 @@ public class CoarseSync {
 
 			// 3 parse and process responses
 
-			// TODO lock the request queue for other threads?
+			// XXX lock the request queue for other threads?
 			
-			//System.out.println("requestQueue: " + requestQueue);
-			
+			// System.out.println("requestQueue: " + requestQueue);
+
 			for (String response : requestQueue) {
 				String[] responseFields = response.split(DELIM);
 				long pts = Long.parseLong(responseFields[3]);
@@ -102,15 +105,28 @@ public class CoarseSync {
 
 			// empty request queue
 			requestQueue.clear();
-			
-			//TODO unlock the request Queue?
 
-			// TODO: set playback to avgPTS
+			// XXX unlock the request Queue?
+
 			Log.d(TAG, "calculated average from coarse synchronization: "
 					+ avgPTS);
 
+			try {
+				LibVLC.getInstance().setTime(avgPTS);
+			} catch (LibVlcException e) {
+				/*
+				 * hmm.. did not work, but here we already should have the
+				 * playback... suspicios... may someone has trained a kitten to
+				 * sabotage us...
+				 * ignore this: we cannot cope with a super intelligent trained kitten!
+				 */
+								
+			}
+
 		}
 	}
+
+	boolean doSync = true;
 
 	private class CSyncProcessRequestRunnable implements Runnable {
 		String req;
@@ -118,7 +134,7 @@ public class CoarseSync {
 		public CSyncProcessRequestRunnable(String req) {
 			this.req = req;
 		}
-		
+
 		public void run() {
 			// parse request
 			String[] responseFields = req.split("|");
@@ -135,8 +151,12 @@ public class CoarseSync {
 			}
 			int senderPort = Integer.parseInt(responseFields[2]);
 
-			// FIXME playback timestamp
-			long myPts = 1;
+			long myPts = 0;
+			try {
+				myPts = LibVLC.getInstance().getTime();
+			} catch (LibVlcException e1) {
+				Log.e(TAG, "unable to get media information");
+			}
 
 			long myNts = Utils.getTimestamp();
 
