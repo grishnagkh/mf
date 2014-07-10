@@ -92,7 +92,7 @@ public class CoarseSync {
 			// 3 parse and process responses
 
 			// XXX lock the request queue for other threads?
-			
+
 			// System.out.println("requestQueue: " + requestQueue);
 
 			for (String response : requestQueue) {
@@ -117,10 +117,10 @@ public class CoarseSync {
 				/*
 				 * hmm.. did not work, but here we already should have the
 				 * playback... suspicios... may someone has trained a kitten to
-				 * sabotage us...
-				 * ignore this: we cannot cope with a super intelligent trained kitten!
+				 * sabotage us... ignore this: we cannot cope with a super
+				 * intelligent trained kitten!
 				 */
-								
+
 			}
 
 		}
@@ -137,7 +137,7 @@ public class CoarseSync {
 
 		public void run() {
 			// parse request
-			String[] responseFields = req.split("|");
+			String[] responseFields = req.split("\\" + DELIM);
 			if (responseFields.length != 6) { // simplest check available^^
 				return; // invalid message
 			}
