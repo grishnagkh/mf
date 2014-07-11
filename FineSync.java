@@ -10,27 +10,18 @@ import org.videolan.libvlc.LibVlcException;
 
 import at.itec.mf.bloomfilter.BloomFilter;
 
-public class FineSync {
-
-	public static final int N_HASHES = 4;
-	public static final int N_EXP_ELEM = 64;
-	public static final int BITS_PER_ELEM = 2;
-
-	public static final String DELIM = "|";
-	public static final int PERIOD_MS = 1000;
-	public static final String TAG = "fine sync mf";
+public class FineSync implements SyncI {
 
 	private BloomFilter<Integer> bloom;
 	private List<BloomFilter<Integer>> bloomList;
-	private long oldTs; // the time of the last avgts update
+
+	private long oldTs; // the time of the last avg ts update
 	private long avgTs;
+	private long pts;
+	private long nts;
+
 	private int maxId;
 	private int myId;
-	private long pts = 0;
-	private long nts = 0;
-
-	// difference in ms where we stop synchronizing
-	public static final long EPSILON = 20;
 
 	private static FineSync instance;
 
@@ -47,7 +38,7 @@ public class FineSync {
 		return instance;
 	}
 
-	public void startFineSync() {
+	public void startSync() {
 		new Thread(new FSWorker()).start();
 	}
 
@@ -55,7 +46,6 @@ public class FineSync {
 		new Thread(new FSResponseHandler(msg)).start();
 	}
 
-	// TODO: align times to old ts and nts
 	private class FSWorker implements Runnable {
 
 		public void run() {
@@ -77,19 +67,17 @@ public class FineSync {
 					return;
 				}
 				nts = Utils.getTimestamp();
-				
-				long delta = (pts - (avgTs + nts-oldTs));
-				
+				long uts = avgTs + nts - oldTs; // updated (average) timestamp
+				long delta = pts - uts;
+
 				if (delta * delta < EPSILON * EPSILON) {
 					return;
 				}
 
 				// broadcast to neighbors
 				for (Peer p : SessionManager.getInstance().getPeers().values()) {
-					String msg = Utils.buildMessage(DELIM,
-							UDPSyncMessageHandler.TYPE_FINE, (avgTs + nts-oldTs), nts,
-							myId,
-							Utils.toString(bloom.getBitSet()), maxId);
+					String msg = Utils.buildMessage(DELIM, TYPE_FINE, uts, nts,
+							myId, Utils.toString(bloom.getBitSet()), maxId);
 					try {
 						UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
 								p.getAddress(), p.getPort());
@@ -100,7 +88,7 @@ public class FineSync {
 					}
 				}
 				try {
-					Thread.sleep(PERIOD_MS);
+					Thread.sleep(PERIOD_FS_MS);
 				} catch (InterruptedException iex) {
 					// ignore
 				}
@@ -124,8 +112,7 @@ public class FineSync {
 				return;
 			}
 			nts = Utils.getTimestamp();
-			// TODO: unfortunately the delimiter is part of the reg expression
-			// language ... maybe we will change that sometime..
+
 			String[] msgA = msg.split("\\" + DELIM);
 
 			BloomFilter<Integer> rcvBF = new BloomFilter<Integer>(
@@ -158,6 +145,11 @@ public class FineSync {
 					bloom.add(myId);
 
 				} else if (!bloomList.contains(rcvBF) && nBloom1 < nBloom2) {
+					/*
+					 * TODO: does the list "contain" the bf when the same are
+					 * sent over the network? to test..,. if not, a comparison
+					 * method must be written
+					 */
 					// overlap and received bloom filter has more information
 					bloom = rcvBF;
 					if (bloom.contains(myId)) {
@@ -166,7 +158,7 @@ public class FineSync {
 						avgTs = (newTs - oldTs) + rAvg;
 						oldTs = newTs;
 					} else {
-						// take the received timestamp and add our own
+						// take the received time stamp and add our own
 						long newTs = Utils.getTimestamp();
 						long wSum = (nBloom2 * (rAvg + (newTs - rNtp)) + (avgTs + (newTs - oldTs)));
 						avgTs = wSum / (nBloom2 + 1);
@@ -175,8 +167,7 @@ public class FineSync {
 					}
 				}
 			} else {
-				// the same bloom filters; ignore: benj says that the timestamps
-				// must be equal in this case, and when benj says that, it
+				// the same bloom filters: ignore; time stamps must be equal
 			}
 
 			maxId = maxId < paketMax ? paketMax : maxId;

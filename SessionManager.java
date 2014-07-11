@@ -40,8 +40,6 @@ public class SessionManager {
 	private SessionRunnable r;
 	private Thread t;
 
-	private boolean gotResult = false;
-
 	private Peer mySelf;
 
 	public static SessionManager getInstance(int port) {
@@ -95,10 +93,7 @@ public class SessionManager {
 		return r.getSessionInfo();
 	}
 
-	public boolean gotResult() {
-		return gotResult;
-	}
-
+	
 	/**
 	 * 
 	 * @return a list of peers in the session
@@ -123,7 +118,7 @@ public class SessionManager {
 	private void convertPeers(String s) throws UnknownHostException {
 		// split the peers
 
-		if (s.length() < 4 || !gotResult)
+		if (s.length() < 4)
 			return;
 
 		s = s.substring(1, s.length() - 1);
@@ -183,11 +178,10 @@ public class SessionManager {
 					sessionInfo.append(tmp);
 				}
 				sock.close();
-				gotResult = true;
 
 				// we got a result, start message handler and coarse sync
 				UDPSyncMessageHandler.getInstance().startHandling();
-				CoarseSync.getInstance().startCoarseSync();
+				CoarseSync.getInstance().startSync();
 
 			} catch (Exception e) {
 				// TODO exception handling

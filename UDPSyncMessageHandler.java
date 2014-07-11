@@ -10,8 +10,8 @@ import android.util.Log;
 
 /**
  * 
- * a message handler which forwards the received udp packages either to the fine
- * or coarse sync
+ * a message handler which forwards the received udp packages to the
+ * synchronization modules
  * 
  * @author stefan petscharnig
  *
@@ -20,10 +20,6 @@ import android.util.Log;
 public class UDPSyncMessageHandler {
 
 	public static final String TAG = "message handler";
-
-	public static final int TYPE_COARSE_REQ = 1;
-	public static final int TYPE_COARSE_RESP = 2;
-	public static final int TYPE_FINE = 3;
 
 	public static final int RCF_BUF_LEN = 4096; // we start with a 4k buffer
 
@@ -59,13 +55,8 @@ public class UDPSyncMessageHandler {
 		clientSocket.close();
 	}
 
-	public boolean startHandling() {
-		if (!SessionManager.getInstance().gotResult()) {
-			// we have not received data about peers... TODO
-			return false;
-		}
+	public void startHandling() {
 		new Thread(new ServerRunnable()).start();
-		return true;
 	}
 
 	private class ServerRunnable implements Runnable {
@@ -87,12 +78,12 @@ public class UDPSyncMessageHandler {
 					serverSocket.receive(rcv);
 					String msg = new String(rcv.getData());
 
-					if (msg.startsWith("" + TYPE_COARSE_REQ)) {
+					if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
 						CoarseSync.getInstance().processRequest(msg);
-					} else if (msg.startsWith("" + TYPE_COARSE_RESP)) {
+					} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
 						CoarseSync.getInstance().coarseResponse(msg);
 
-					} else if (msg.startsWith("" + TYPE_FINE)) {
+					} else if (msg.startsWith("" + SyncI.TYPE_FINE)) {
 						FineSync.getInstance().processRequest(msg);
 					} else {
 						// other requests, really?

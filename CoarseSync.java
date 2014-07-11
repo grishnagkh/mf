@@ -24,15 +24,15 @@ import android.util.Log;
  *
  */
 
-public class CoarseSync {
-
-	public static final String DELIM = "|";
-	public static final int WAIT_TIME_MS = 1000;
-	public static final String TAG = "coarse sync mf";
+public class CoarseSync implements SyncI {
 
 	private List<String> requestQueue;
 
 	private static CoarseSync instance;
+
+	private CoarseSync() {
+		requestQueue = new ArrayList<String>();
+	}
 
 	public static CoarseSync getInstance() {
 		if (instance == null)
@@ -40,16 +40,12 @@ public class CoarseSync {
 		return instance;
 	}
 
-	private CoarseSync() {
-		requestQueue = new ArrayList<String>();
-	}
-
 	public void coarseResponse(String msg) {
 
 		requestQueue.add(msg);
 	}
 
-	public void startCoarseSync() {
+	public void startSync() {
 		new Thread(new CSyncRunnable()).start();
 	}
 
@@ -62,14 +58,13 @@ public class CoarseSync {
 
 			// 1 send a request to all known peers
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
-				int type = UDPSyncMessageHandler.TYPE_COARSE_REQ;
 				String myIP = SessionManager.getInstance().getMySelf()
 						.getAddress().getHostAddress();
 				int myPort = SessionManager.getInstance().getMySelf().getPort();
 				int myId = SessionManager.getInstance().getMySelf().getId();
 
-				String msg = Utils.buildMessage(DELIM, type, myIP, myPort, 0,
-						Utils.getTimestamp(), myId);
+				String msg = Utils.buildMessage(DELIM, TYPE_COARSE_REQ, myIP,
+						myPort, 0, Utils.getTimestamp(), myId);
 
 				try {
 					UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
@@ -82,7 +77,7 @@ public class CoarseSync {
 			}
 			// 2 wait some time tc
 			try {
-				Thread.sleep(WAIT_TIME_MS);
+				Thread.sleep(WAIT_TIME_CS_MS);
 			} catch (InterruptedException e) {
 				// TODO exception handling
 			}
@@ -90,10 +85,6 @@ public class CoarseSync {
 			long avgPTS = 0;
 
 			// 3 parse and process responses
-
-			// XXX lock the request queue for other threads?
-
-			// System.out.println("requestQueue: " + requestQueue);
 
 			for (String response : requestQueue) {
 				String[] responseFields = response.split(DELIM);
@@ -106,9 +97,7 @@ public class CoarseSync {
 			// empty request queue
 			requestQueue.clear();
 
-			// XXX unlock the request Queue?
-
-			Log.d(TAG, "calculated average from coarse synchronization: "
+			Log.d(TAG_CS, "calculated average from coarse synchronization: "
 					+ avgPTS);
 
 			try {
@@ -138,7 +127,7 @@ public class CoarseSync {
 		public void run() {
 			// parse request
 			String[] responseFields = req.split("\\" + DELIM);
-			if (responseFields.length != 6) { // simplest check available^^
+			if (responseFields.length != 6) { // simplest check available...
 				return; // invalid message
 			}
 			String senderIP = responseFields[1];
@@ -155,18 +144,17 @@ public class CoarseSync {
 			try {
 				myPts = LibVLC.getInstance().getTime();
 			} catch (LibVlcException e1) {
-				Log.e(TAG, "unable to get media information");
+				Log.e(TAG_CS, "unable to get media information");
 			}
 
 			long myNts = Utils.getTimestamp();
 
-			int type = UDPSyncMessageHandler.TYPE_COARSE_RESP;
 			String myIP = SessionManager.getInstance().getMySelf().getAddress()
-					.toString();
+					.getHostAddress();
 			int myPort = SessionManager.getInstance().getMySelf().getPort();
 			int myId = SessionManager.getInstance().getMySelf().getId();
-			String msg = Utils.buildMessage(DELIM, type, myIP, myPort, myPts,
-					myNts, myId);
+			String msg = Utils.buildMessage(DELIM, TYPE_COARSE_RESP, myIP,
+					myPort, myPts, myNts, myId);
 
 			// send message
 			try {
