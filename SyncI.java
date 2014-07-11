@@ -1,5 +1,12 @@
 package at.itec.mf;
 
+/**
+ * 
+ * Interface containing synchronization constants and methods
+ * 
+ * @author stefan petscharnig
+ *
+ */
 public interface SyncI {
 
 	/** Tags for android log */
@@ -12,7 +19,7 @@ public interface SyncI {
 	 */
 	public static final int WAIT_TIME_CS_MS = 1000;
 	/** fine sync period length */
-	public static final int PERIOD_FS_MS = 1000;
+	public static final int PERIOD_FS_MS = 250;
 
 	/*
 	 * TODO: unfortunately the delimiter is part of the reg expression language
@@ -21,7 +28,7 @@ public interface SyncI {
 	public static final String DELIM = "|";
 
 	/** bloom filter length: n_exp_elem * bits_per_elem */
-	public static final int N_EXP_ELEM = 128;
+	public static final int N_EXP_ELEM = 256;
 	public static final int BITS_PER_ELEM = 2;
 	/** number of used hash functions in the bloom filter **/
 	public static final int N_HASHES = 4;

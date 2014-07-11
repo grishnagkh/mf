@@ -10,42 +10,77 @@ import org.videolan.libvlc.LibVlcException;
 
 import at.itec.mf.bloomfilter.BloomFilter;
 
-public class FineSync implements SyncI {
+/**
+ * 
+ * Class handling the fine synchronization using mf algorithm
+ * 
+ * @author stefan petscharnig
+ *
+ */
+public class FSync implements SyncI {
 
+	/** actual bloom filter */
 	private BloomFilter<Integer> bloom;
+	/** a list of seen bloom filters */
 	private List<BloomFilter<Integer>> bloomList;
 
+	/** time when the last avgTs was received */
 	private long oldTs; // the time of the last avg ts update
+	/** average time stamp at time oldTs */
 	private long avgTs;
+	/** actual play back time stamp */
 	private long pts;
+	/** actual ntp time stamp */
 	private long nts;
-
+	/** maximum peer id seen so far */
 	private int maxId;
+	/** own peer id */
 	private int myId;
+	/** singleton instance */
+	private static FSync instance;
 
-	private static FineSync instance;
-
+	/** stop the message sending */
 	private boolean fineSyncNecessary = true;
 
-	private FineSync() {
+	/**
+	 * Constructor
+	 */
+	private FSync() {
 		bloomList = new ArrayList<BloomFilter<Integer>>();
 		maxId = SessionManager.getInstance().getMySelf().getId();
 		myId = SessionManager.getInstance().getMySelf().getId();
 	}
 
-	public static FineSync getInstance() {
-		instance = instance == null ? new FineSync() : instance;
+	/**
+	 * singleton method
+	 * 
+	 * @return
+	 */
+	public static FSync getInstance() {
+		instance = instance == null ? new FSync() : instance;
 		return instance;
 	}
 
+	/**
+	 * start fine sync message sending in a new thread
+	 */
 	public void startSync() {
 		new Thread(new FSWorker()).start();
 	}
 
+	/**
+	 * do process a fine sync request in a new thread
+	 */
 	public void processRequest(String msg) {
 		new Thread(new FSResponseHandler(msg)).start();
 	}
 
+	/**
+	 * sent a message periodically to the neighbour
+	 * 
+	 * @author stefan petscharnig
+	 *
+	 */
 	private class FSWorker implements Runnable {
 
 		public void run() {
@@ -79,7 +114,7 @@ public class FineSync implements SyncI {
 					String msg = Utils.buildMessage(DELIM, TYPE_FINE, uts, nts,
 							myId, Utils.toString(bloom.getBitSet()), maxId);
 					try {
-						UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
+						SyncMessageHandler.getInstance().sendMsg(msg,
 								p.getAddress(), p.getPort());
 					} catch (SocketException e) {
 						// ignore
@@ -97,6 +132,12 @@ public class FineSync implements SyncI {
 		}
 	}
 
+	/**
+	 * process fine sync responses
+	 * 
+	 * @author stefan petscharnig
+	 *
+	 */
 	private class FSResponseHandler implements Runnable {
 		private String msg;
 

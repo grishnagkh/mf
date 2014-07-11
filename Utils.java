@@ -1,6 +1,12 @@
 package at.itec.mf;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.BitSet;
+
+import android.content.Context;
+import android.net.wifi.WifiManager;
+import android.text.format.Formatter;
 import at.itec.mf.bloomfilter.BloomFilter;
 
 /**
@@ -128,5 +134,22 @@ public class Utils {
 				ctr++;
 		}
 		return ctr;
+	}
+
+	/**
+	 * @param c
+	 *            the application cotnext
+	 * @return the wifi address
+	 */
+	@SuppressWarnings("deprecation")
+	public static InetAddress getWifiAddress(Context c) {
+		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
+		try {
+			return InetAddress.getByName(Formatter.formatIpAddress(wm
+					.getConnectionInfo().getIpAddress()));
+		} catch (UnknownHostException e) {
+			// TODO exception handling
+		}
+		return null;
 	}
 }

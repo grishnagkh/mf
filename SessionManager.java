@@ -9,10 +9,9 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.net.wifi.WifiManager;
-import android.text.format.Formatter;
 import android.util.Log;
 
 /**
@@ -21,8 +20,8 @@ import android.util.Log;
  * plugin. A singleton.
  * 
  * Start this whenever a mpd file is requested After successfully parsing the
- * session info, this plugin starts the messagehandler and the coarse sync
- * (fine sync should be started by coarse sync)
+ * session info, this plugin starts the messagehandler and the coarse sync (fine
+ * sync should be started by coarse sync)
  * 
  * @author stefan petscharnig
  *
@@ -30,70 +29,72 @@ import android.util.Log;
 
 public class SessionManager {
 
+	/** tag for android log */
+	private static final String TAG = "session mf";
+	/** singleton instance */
 	private static SessionManager instance = null;
 
-	private static final String TAG = "session mf";
-	// coded in vlc dash plugin that port 12345 is used
+	/*
+	 * Attention, do not change: following port is hard coded into vlc dash
+	 * plugin!
+	 */
+	/** default port used for receiving session data */
 	private static final int PORT = 12345;
-
+	/** actual port used for receiving session data */
 	private int port;
-	private SessionRunnable r;
-	private Thread t;
 
+	/** used to store data about self */
 	private Peer mySelf;
+	/** Application Context, used for getting wifi address */
+	private Context c;
+	/** Map of known peers */
+	private Map<Integer, Peer> peers;
+	/** string representation of the session info */
+	private String sInfo;
 
+	/** Singleton constructor */
+	private SessionManager() {
+		this(PORT);
+	}
+
+	/** Singleton constructor */
+	private SessionManager(int port) {
+		this.port = port;
+	}
+
+	/**
+	 * singleton method, do not use (default port is hard coded into vlc, use
+	 * getInstance() instead)
+	 */
 	public static SessionManager getInstance(int port) {
 		instance = instance == null ? new SessionManager(port) : instance;
 		return instance;
 	}
 
+	/**
+	 * Singleton method
+	 * 
+	 * @return
+	 */
 	public static SessionManager getInstance() {
 		return getInstance(PORT);
 	}
 
-	Context c;
-
+	/**
+	 * init method which sets the application context used for getting wifi
+	 * address
+	 */
 	public void init(Activity a) {
 		c = a.getApplicationContext();
 	}
 
-	InetAddress myAddr;
-
-	private SessionManager() {
-		this(PORT);
-
-		myAddr = getWifiAddress(); // TODO: check for null
-
-	}
-
-	@SuppressWarnings("deprecation")
-	private InetAddress getWifiAddress() {
-		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
-
-		try {
-			return InetAddress.getByName(Formatter.formatIpAddress(wm
-					.getConnectionInfo().getIpAddress()));
-		} catch (UnknownHostException e) {
-			// TODO exception handling
-		}
-		return null;
-	}
-
-	private SessionManager(int port) {
-		this.port = port;
-	}
-
+	/**
+	 * start listening for session info
+	 */
 	public void startListener() {
-		r = new SessionRunnable();
-		t = new Thread(r);
-		t.start();
+		new Thread(new SessionRunnable()).start();
 	}
 
-	public String getInfoString() {
-		return r.getSessionInfo();
-	}
-
-	
 	/**
 	 * 
 	 * @return a list of peers in the session
@@ -102,11 +103,12 @@ public class SessionManager {
 	 *         results from dash plugin, nothing will be done or we could even
 	 *         crash, i dont know, maybe we would kill a kitten... how sad :/
 	 */
+	@SuppressLint("UseSparseArrays")
 	public Map<Integer, Peer> getPeers() {
 		if (peers == null) {
 			peers = new HashMap<Integer, Peer>();
 			try {
-				convertPeers(r.getSessionInfo());
+				convertPeers(sInfo);
 			} catch (UnknownHostException e) {
 				Log.e(TAG, "unknown host");
 			}
@@ -115,9 +117,14 @@ public class SessionManager {
 		return peers;
 	}
 
+	/**
+	 * converts the info string to a list of peers
+	 * 
+	 * @param s
+	 *            string representing session info
+	 * @throws UnknownHostException
+	 */
 	private void convertPeers(String s) throws UnknownHostException {
-		// split the peers
-
 		if (s.length() < 4)
 			return;
 
@@ -141,7 +148,8 @@ public class SessionManager {
 
 			Peer p = new Peer(id, InetAddress.getByName(ipS), port);
 
-			if (p.getAddress().equals(myAddr) && p.getPort() == port) {
+			if (p.getAddress().equals(Utils.getWifiAddress(c))
+					&& p.getPort() == port) {
 				mySelf = p;
 			} else {
 				peers.put(id, p);
@@ -149,24 +157,30 @@ public class SessionManager {
 		}
 	}
 
+	/**
+	 * 
+	 * @return information about this peer
+	 */
 	public Peer getMySelf() {
 		return mySelf;
 	}
 
-	Map<Integer, Peer> peers;
-
+	/**
+	 * actual class doing the receiving of the session data on the non-vlc side
+	 * 
+	 * @author stefan petscharnig
+	 *
+	 */
 	private class SessionRunnable implements Runnable {
 		StringBuffer sessionInfo;
 
-		public String getSessionInfo() {
-			return sessionInfo.toString();
-		}
-
+		/**
+		 * worker method: just store the received string and start the coarse
+		 * synchronization
+		 */
 		public void run() {
-			// Looper.prepare();
 			sessionInfo = new StringBuffer();
 			try {
-
 				ServerSocket sock = new ServerSocket(port);
 				Socket client = sock.accept();
 
@@ -178,10 +192,10 @@ public class SessionManager {
 					sessionInfo.append(tmp);
 				}
 				sock.close();
-
+				sInfo = sessionInfo.toString();
 				// we got a result, start message handler and coarse sync
-				UDPSyncMessageHandler.getInstance().startHandling();
-				CoarseSync.getInstance().startSync();
+				SyncMessageHandler.getInstance().startHandling();
+				CSync.getInstance().startSync();
 
 			} catch (Exception e) {
 				// TODO exception handling

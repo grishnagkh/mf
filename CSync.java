@@ -24,39 +24,51 @@ import android.util.Log;
  *
  */
 
-public class CoarseSync implements SyncI {
+public class CSync implements SyncI {
+	/** request queue filled by message handler while we are waiting */
+	private List<String> msgQueue;
+	/** singleton instance */
+	private static CSync instance;
 
-	private List<String> requestQueue;
-
-	private static CoarseSync instance;
-
-	private CoarseSync() {
-		requestQueue = new ArrayList<String>();
+	/** Singleton constructor */
+	private CSync() {
+		msgQueue = new ArrayList<String>();
 	}
 
-	public static CoarseSync getInstance() {
+	/** Singleton method */
+	public static CSync getInstance() {
 		if (instance == null)
-			instance = new CoarseSync();
+			instance = new CSync();
 		return instance;
 	}
 
+	/** method for filling the queue response */
 	public void coarseResponse(String msg) {
-
-		requestQueue.add(msg);
+		msgQueue.add(msg);
 	}
 
+	/** start the sync server */
 	public void startSync() {
 		new Thread(new CSyncRunnable()).start();
 	}
 
+	/** process a sync request message */
 	public void processRequest(String request) {
 		new Thread(new CSyncProcessRequestRunnable(request)).start();
 	}
 
+	/**
+	 * 
+	 * class handling the initial step of the coarse sync 1 send a request to
+	 * all known peers 2 wait some time 3 parse and process responses
+	 * 
+	 * @author stefan petscharnig
+	 *
+	 */
 	private class CSyncRunnable implements Runnable {
 		public void run() {
 
-			// 1 send a request to all known peers
+			/* 1 */
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
 				String myIP = SessionManager.getInstance().getMySelf()
 						.getAddress().getHostAddress();
@@ -67,7 +79,7 @@ public class CoarseSync implements SyncI {
 						myPort, 0, Utils.getTimestamp(), myId);
 
 				try {
-					UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
+					SyncMessageHandler.getInstance().sendMsg(msg,
 							p.getAddress(), p.getPort());
 				} catch (SocketException e) {
 					// TODO exception handling
@@ -75,7 +87,7 @@ public class CoarseSync implements SyncI {
 					// TODO exception handling
 				}
 			}
-			// 2 wait some time tc
+			/* 2 */
 			try {
 				Thread.sleep(WAIT_TIME_CS_MS);
 			} catch (InterruptedException e) {
@@ -84,18 +96,18 @@ public class CoarseSync implements SyncI {
 
 			long avgPTS = 0;
 
-			// 3 parse and process responses
+			/* 3 */
 
-			for (String response : requestQueue) {
+			for (String response : msgQueue) {
 				String[] responseFields = response.split(DELIM);
 				long pts = Long.parseLong(responseFields[3]);
 				long nts = Long.parseLong(responseFields[4]);
 				avgPTS += pts + (Utils.getTimestamp() - nts);
 			}
-			avgPTS /= requestQueue.size();
+			avgPTS /= msgQueue.size();
 
 			// empty request queue
-			requestQueue.clear();
+			msgQueue.clear();
 
 			Log.d(TAG_CS, "calculated average from coarse synchronization: "
 					+ avgPTS);
@@ -115,8 +127,11 @@ public class CoarseSync implements SyncI {
 		}
 	}
 
-	boolean doSync = true;
-
+	/**
+	 * class processing a coarse sync request
+	 * 
+	 * @author stefan petscharnig
+	 */
 	private class CSyncProcessRequestRunnable implements Runnable {
 		String req;
 
@@ -156,10 +171,10 @@ public class CoarseSync implements SyncI {
 			String msg = Utils.buildMessage(DELIM, TYPE_COARSE_RESP, myIP,
 					myPort, myPts, myNts, myId);
 
-			// send message
+			// send response
 			try {
-				UDPSyncMessageHandler.getInstance().sendUDPMessage(msg,
-						peerAddress, senderPort);
+				SyncMessageHandler.getInstance().sendMsg(msg, peerAddress,
+						senderPort);
 			} catch (SocketException e) {
 				// TODO exception handling, most likely ignore and log
 
