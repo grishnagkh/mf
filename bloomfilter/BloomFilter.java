@@ -451,7 +451,7 @@ public class BloomFilter<E> implements Serializable {
 	public BitSet getBitSet() {
 		return bitset;
 	}
-	
+
 	/**
 	 * set the bitset: adaptions
 	 * 
@@ -513,5 +513,4 @@ public class BloomFilter<E> implements Serializable {
 		return this.bitSetSize / (double) numberOfAddedElements;
 	}
 
-	
 }
