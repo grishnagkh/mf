@@ -196,7 +196,7 @@ void DOMParser::parseSession(){
                 node = root->getSubNodes().at(i);
                 if(node->getName() == "session"){                     
                         for(size_t j=0; j<node->getSubNodes().size(); j++){
-                                peer = node->getSubNodes().at(i);
+                                peer = node->getSubNodes().at(j);
                                 s.append("{id:");
                                 s.append(peer->getAttributeValue("id"));
                                 s.append(", ip:");
