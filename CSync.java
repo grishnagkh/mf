@@ -87,7 +87,6 @@ public class CSync implements SyncI {
 	 */
 	private class CSyncRunnable implements Runnable {
 		public void run() {
-
 			/* 1 */
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
 				String myIP = SessionManager.getInstance().getMySelf()
@@ -118,8 +117,11 @@ public class CSync implements SyncI {
 
 			/* 3 */
 
+			if (msgQueue.size() == 0)
+				return;
+
 			for (String response : msgQueue) {
-				String[] responseFields = response.split(DELIM);
+				String[] responseFields = response.split("\\" + DELIM);
 				long pts = Long.parseLong(responseFields[3]);
 				long nts = Long.parseLong(responseFields[4]);
 				avgPTS += pts + (Utils.getTimestamp() - nts);
@@ -132,18 +134,35 @@ public class CSync implements SyncI {
 			Log.d(TAG_CS, "calculated average from coarse synchronization: "
 					+ avgPTS);
 
+			/* XXX following block is for testing my bugs */
 			try {
-				LibVLC.getInstance().setTime(avgPTS);
+
+				do {
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						// ignore
+					}
+				} while (LibVLC.getInstance().getTime() < 2000);
+				// LibVLC.getInstance().setTime(avgPTS);
+				// LibVLC.getInstance().setTime(123467);
 			} catch (LibVlcException e) {
-				/*
-				 * hmm.. did not work, but here we already should have the
-				 * playback... suspicios... may someone has trained a kitten to
-				 * sabotage us... ignore this: we cannot cope with a super
-				 * intelligent trained kitten!
-				 */
 
 			}
 
+			/* TODO uncomment when bugs are fixed */
+			// try {
+			// LibVLC.getInstance().setTime(avgPTS);
+			// } catch (LibVlcException e) {
+			// // TODO Auto-generated catch block
+			/*
+			 * hmm.. did not work, but here we already should have the
+			 * playback... suspicios... may someone has trained a kitten to
+			 * sabotage us... ignore this: do not mess with a super intelligent
+			 * trained kitten!
+			 */
+			// }
+			// FSync.getInstance().startSync();
 		}
 	}
 
@@ -161,6 +180,7 @@ public class CSync implements SyncI {
 
 		public void run() {
 			// parse request
+			Log.d(TAG_CS, "got the following request: " + req);
 			String[] responseFields = req.split("\\" + DELIM);
 			if (responseFields.length != 6) { // simplest check available...
 				return; // invalid message
@@ -190,6 +210,7 @@ public class CSync implements SyncI {
 			int myId = SessionManager.getInstance().getMySelf().getId();
 			String msg = Utils.buildMessage(DELIM, TYPE_COARSE_RESP, myIP,
 					myPort, myPts, myNts, myId);
+			Log.d(TAG_CS, "sending message" + msg);
 
 			// send response
 			try {

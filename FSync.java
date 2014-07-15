@@ -22,7 +22,6 @@
 package at.itec.mf;
 
 import java.io.IOException;
-
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.List;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.LibVlcException;
 
+import android.util.Log;
 import at.itec.mf.bloomfilter.BloomFilter;
 
 /**
@@ -71,6 +71,7 @@ public class FSync implements SyncI {
 		bloomList = new ArrayList<BloomFilter<Integer>>();
 		maxId = SessionManager.getInstance().getMySelf().getId();
 		myId = SessionManager.getInstance().getMySelf().getId();
+
 	}
 
 	/**
@@ -112,8 +113,9 @@ public class FSync implements SyncI {
 					N_HASHES);
 
 			bloom.add(SessionManager.getInstance().getMySelf().getId());
-
-			while (fineSyncNecessary) {
+			
+			int remSteps = 100; ///XXX just for testing
+			while (remSteps-- > 0) {
 
 				// is fine sync necessary, or should we stop it?
 
@@ -126,10 +128,10 @@ public class FSync implements SyncI {
 				nts = Utils.getTimestamp();
 				long uts = avgTs + nts - oldTs; // updated (average) timestamp
 				long delta = pts - uts;
-
-				if (delta * delta < EPSILON * EPSILON) {
-					return;
-				}
+				Log.d(TAG_FS, "delta: " + delta);
+				// if (delta * delta < EPSILON * EPSILON) {
+				// return;
+				// }
 
 				// broadcast to neighbors
 				for (Peer p : SessionManager.getInstance().getPeers().values()) {
@@ -168,6 +170,8 @@ public class FSync implements SyncI {
 		}
 
 		public void run() {
+			if (bloom == null)
+				return;
 			try {
 				pts = LibVLC.getInstance().getTime();
 			} catch (LibVlcException e) {
@@ -177,6 +181,8 @@ public class FSync implements SyncI {
 			nts = Utils.getTimestamp();
 
 			String[] msgA = msg.split("\\" + DELIM);
+
+			Log.d(TAG_FS, "message: " + msg);
 
 			BloomFilter<Integer> rcvBF = new BloomFilter<Integer>(
 					BITS_PER_ELEM, N_EXP_ELEM, N_HASHES);
@@ -232,7 +238,7 @@ public class FSync implements SyncI {
 			} else {
 				// the same bloom filters: ignore; time stamps must be equal
 			}
-
+			Log.d(TAG_FS, "actual avg: " + avgTs + " (@time:" + oldTs + ")");
 			maxId = maxId < paketMax ? paketMax : maxId;
 
 			// update player here?

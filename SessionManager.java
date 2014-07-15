@@ -50,9 +50,9 @@ import android.util.Log;
 public class SessionManager {
 
 	/** tag for android log */
-	private static final String TAG = "session mf";
+	private static final String TAG = "SessionManager" + "";
 	/** singleton instance */
-	private static SessionManager instance = null;
+	private static SessionManager instance;
 
 	/*
 	 * Attention, do not change: following port is hard coded into vlc dash
@@ -72,6 +72,8 @@ public class SessionManager {
 	/** string representation of the session info */
 	private String sInfo;
 
+	private boolean waiting;
+
 	/** Singleton constructor */
 	private SessionManager() {
 		this(PORT);
@@ -80,6 +82,7 @@ public class SessionManager {
 	/** Singleton constructor */
 	private SessionManager(int port) {
 		this.port = port;
+		waiting = false;
 	}
 
 	/**
@@ -87,7 +90,9 @@ public class SessionManager {
 	 * getInstance() instead)
 	 */
 	public static SessionManager getInstance(int port) {
-		instance = instance == null ? new SessionManager(port) : instance;
+		if (instance == null) {
+			instance = new SessionManager(port);
+		}
 		return instance;
 	}
 
@@ -105,13 +110,21 @@ public class SessionManager {
 	 * address
 	 */
 	public void init(Activity a) {
-		c = a.getApplicationContext();
+		if (a == null) {
+			Log.d(TAG, "wtf is wrong with you?");
+		}
+		c = a;
 	}
 
 	/**
 	 * start listening for session info
 	 */
 	public void startListener() {
+		if (waiting) {
+			Log.d(TAG,
+					"we already have a listener started, so wait my young padawan...");
+			return;
+		}
 		new Thread(new SessionRunnable()).start();
 	}
 
@@ -150,8 +163,13 @@ public class SessionManager {
 
 		s = s.substring(1, s.length() - 1);
 
-		System.out.println(s);
-		for (String str : s.split("}")) {
+		Log.d(TAG, "String received" + s);
+		InetAddress ownAddress = Utils.getWifiAddress(c);
+
+		for (String str : s.split("\\}")) {
+			if ("".equals(str.trim()))
+				break;
+
 			str = str.substring(1);
 
 			String[] attrs = str.split(",");
@@ -168,8 +186,7 @@ public class SessionManager {
 
 			Peer p = new Peer(id, InetAddress.getByName(ipS), port);
 
-			if (p.getAddress().equals(Utils.getWifiAddress(c))
-					&& p.getPort() == port) {
+			if (p.getAddress().equals(ownAddress) && p.getPort() == port) {
 				mySelf = p;
 			} else {
 				peers.put(id, p);
@@ -198,9 +215,15 @@ public class SessionManager {
 		 * worker method: just store the received string and start the coarse
 		 * synchronization
 		 */
-		public void run() {
+		public synchronized void run() {
+			waiting = true;
+			Log.d(TAG, "start handling...");
+			/* when we start this a second time, we want the peers to reset... */
+			peers = null;
+
 			sessionInfo = new StringBuffer();
 			try {
+				Log.d(TAG, "open server socket");
 				ServerSocket sock = new ServerSocket(port);
 				Socket client = sock.accept();
 
@@ -211,10 +234,14 @@ public class SessionManager {
 				while (client.isConnected() && (tmp = in.readLine()) != null) {
 					sessionInfo.append(tmp);
 				}
+				Log.d(TAG, "close server socket");
 				sock.close();
+				waiting = false;
 				sInfo = sessionInfo.toString();
+				Log.d(TAG, "got session info: " + sInfo);
 				// we got a result, start message handler and coarse sync
-				SyncMessageHandler.getInstance().startHandling();
+				 /* should be run when playing a video, see VideoPlayerActivity onResume, onPause */
+				// SyncMessageHandler.getInstance().startHandling();
 				CSync.getInstance().startSync();
 
 			} catch (Exception e) {

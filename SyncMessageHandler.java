@@ -50,6 +50,9 @@ public class SyncMessageHandler {
 	/** singleton instance */
 	private static SyncMessageHandler instance;
 
+	/** boolean for graceful shutdown */
+	private boolean stopMe;
+
 	/** singleton method using default port */
 	public static SyncMessageHandler getInstance() {
 		return getInstance(PORT);
@@ -93,12 +96,22 @@ public class SyncMessageHandler {
 		clientSocket.close();
 	}
 
+	
+	HandlerServer srv;
 	/**
 	 * start the handling of messages, starts a thread waiting for incoming
 	 * messages and distributing the work to the sync modules
 	 */
-	public void startHandling() {
-		new Thread(new ServerRunnable()).start();
+	public void startHandling() {		
+		//new Thread(new ServerRunnable()).start();
+		srv = new HandlerServer();
+		srv.start();
+	}
+
+	/** stop the listener for requests */
+	public void stopHandling() {
+		stopMe = true;
+		srv.interrupt();
 	}
 
 	/**
@@ -107,28 +120,47 @@ public class SyncMessageHandler {
 	 * @author stefan
 	 *
 	 */
-	private class ServerRunnable implements Runnable {
+	private class HandlerServer extends Thread {
+		Thread t;
 		/** UDP socket for receiving messages */
 		DatagramSocket serverSocket;
 		/** receive Buffer */
 		byte[] rcvBuf = new byte[RCF_BUF_LEN];
 
+		@Override
+		public void interrupt(){
+			super.interrupt();
+			if(serverSocket != null){
+				serverSocket.close();
+			}
+		}
+		public void start(){
+			t = new Thread(this);
+			t.start();
+		}
 		/** worker method */
 		@Override
 		public void run() {
+			Log.d(TAG, "start message handler");
 			try {
 				serverSocket = new DatagramSocket(port);
-			} catch (SocketException e) {
-				e.printStackTrace();
+			} catch (SocketException e1) {
+				Log.d(TAG, e1.toString());
 			}
-			while (true) {
-
+			if(serverSocket == null){
+				Log.d("why","do you do this to me?");
+			}
+			stopMe = false;
+			while (!stopMe) {
+				
 				// listen for messages
 				DatagramPacket rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
 				try {
+					Log.d(TAG,"receiving...");
 					serverSocket.receive(rcv);
 					String msg = new String(rcv.getData());
-
+					msg = msg.trim();
+					Log.d(TAG, "received request: " + msg);
 					/* distribute the message */
 					if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
 						CSync.getInstance().processRequest(msg);
@@ -138,13 +170,17 @@ public class SyncMessageHandler {
 						FSync.getInstance().processRequest(msg);
 					} else {
 						// other requests, really? should not happen
-						Log.d(TAG, "We received some other request: " + msg);
+
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					
 				}
 
 			}
+			stopMe = false;
+			
+			Log.d(TAG, "close port for sync messages");
+			serverSocket.close();
 		}
 
 	}
