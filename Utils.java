@@ -23,9 +23,12 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.BitSet;
 
+import org.videolan.vlc.gui.MainActivity;
+
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;
+import android.util.Log;
 import at.itec.mf.bloomfilter.BloomFilter;
 
 /**
@@ -162,12 +165,13 @@ public class Utils {
 	 */
 	@SuppressWarnings("deprecation")
 	public static InetAddress getWifiAddress(Context c) {
-		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
+		// FIXME hack alert: global variable
+		WifiManager wm = (WifiManager) MainActivity.c.getSystemService(Context.WIFI_SERVICE);
 		try {
 			return InetAddress.getByName(Formatter.formatIpAddress(wm
 					.getConnectionInfo().getIpAddress()));
-		} catch (UnknownHostException e) {
-			// TODO exception handling
+		} catch (UnknownHostException e) {			
+			Log.e("sync utils", "cannot get wifi address, returning null...");
 		}
 		return null;
 	}

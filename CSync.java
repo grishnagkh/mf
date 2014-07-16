@@ -87,6 +87,7 @@ public class CSync implements SyncI {
 	 */
 	private class CSyncRunnable implements Runnable {
 		public void run() {
+			Log.d(TAG_CS, "start coarse sync request");
 			/* 1 */
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
 				String myIP = SessionManager.getInstance().getMySelf()
@@ -101,24 +102,27 @@ public class CSync implements SyncI {
 					SyncMessageHandler.getInstance().sendMsg(msg,
 							p.getAddress(), p.getPort());
 				} catch (SocketException e) {
-					// TODO exception handling
+					Log.e(TAG_CS, "could not send message");					
 				} catch (IOException e) {
-					// TODO exception handling
+					Log.e(TAG_CS, "could not send message");
 				}
 			}
+			Log.d(TAG_CS, "phase 1 completed, waiting...");
 			/* 2 */
 			try {
 				Thread.sleep(WAIT_TIME_CS_MS);
 			} catch (InterruptedException e) {
-				// TODO exception handling
+				Log.e(TAG_CS, "interrupted while sleep... ");
 			}
-
+			Log.d(TAG_CS, "phase 2 completed, calculating");
 			long avgPTS = 0;
 
 			/* 3 */
 
-			if (msgQueue.size() == 0)
+			if (msgQueue.size() == 0) {
+				Log.d(TAG_CS, "no messages in queue");
 				return;
+			}
 
 			for (String response : msgQueue) {
 				String[] responseFields = response.split("\\" + DELIM);
@@ -133,7 +137,7 @@ public class CSync implements SyncI {
 
 			Log.d(TAG_CS, "calculated average from coarse synchronization: "
 					+ avgPTS);
-
+			Log.d(TAG_CS, "phase 4: test");
 			/* XXX following block is for testing my bugs */
 			try {
 
@@ -142,11 +146,13 @@ public class CSync implements SyncI {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
 						// ignore
+
 					}
 				} while (LibVLC.getInstance().getTime() < 2000);
-				// LibVLC.getInstance().setTime(avgPTS);
+				LibVLC.getInstance().setTime(avgPTS);
 				// LibVLC.getInstance().setTime(123467);
 			} catch (LibVlcException e) {
+				Log.d(TAG_CS, "phase 4: error... try to fix");
 
 			}
 
@@ -154,7 +160,7 @@ public class CSync implements SyncI {
 			// try {
 			// LibVLC.getInstance().setTime(avgPTS);
 			// } catch (LibVlcException e) {
-			// // TODO Auto-generated catch block
+			//Log.d(TAG_CS, "trained kitten alert");
 			/*
 			 * hmm.. did not work, but here we already should have the
 			 * playback... suspicios... may someone has trained a kitten to
@@ -183,6 +189,7 @@ public class CSync implements SyncI {
 			Log.d(TAG_CS, "got the following request: " + req);
 			String[] responseFields = req.split("\\" + DELIM);
 			if (responseFields.length != 6) { // simplest check available...
+				Log.d(TAG_CS, "invalid request [length]");
 				return; // invalid message
 			}
 			String senderIP = responseFields[1];
@@ -190,8 +197,8 @@ public class CSync implements SyncI {
 			try {
 				peerAddress = InetAddress.getByName(senderIP);
 			} catch (UnknownHostException e) {
+				Log.d(TAG_CS, "invalid request [IP]");
 				return; // invalid IP, don't care;
-
 			}
 			int senderPort = Integer.parseInt(responseFields[2]);
 
@@ -210,18 +217,15 @@ public class CSync implements SyncI {
 			int myId = SessionManager.getInstance().getMySelf().getId();
 			String msg = Utils.buildMessage(DELIM, TYPE_COARSE_RESP, myIP,
 					myPort, myPts, myNts, myId);
-			Log.d(TAG_CS, "sending message" + msg);
 
 			// send response
 			try {
 				SyncMessageHandler.getInstance().sendMsg(msg, peerAddress,
 						senderPort);
-			} catch (SocketException e) {
-				// TODO exception handling, most likely ignore and log
-
+			} catch (SocketException e) {				
+				Log.e(TAG_CS, "could not send message");
 			} catch (IOException e) {
-				// TODO exception handling, most likely ignore and log
-
+				Log.e(TAG_CS, "could not send message");
 			}
 			int peerId = Integer.parseInt(responseFields[5]);
 			if (!SessionManager.getInstance().getPeers().containsKey(peerId)) {

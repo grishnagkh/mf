@@ -89,27 +89,30 @@ public class SyncMessageHandler {
 	 */
 	public synchronized void sendMsg(String msg, InetAddress address, int port)
 			throws SocketException, IOException {
+		Log.d(TAG, "sending message: " + msg);
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
 				msg.getBytes().length, address, port);
 		clientSocket.send(sendPacket);
 		clientSocket.close();
+		Log.d(TAG, "sending done");
 	}
 
-	
 	HandlerServer srv;
+
 	/**
 	 * start the handling of messages, starts a thread waiting for incoming
 	 * messages and distributing the work to the sync modules
 	 */
-	public void startHandling() {		
-		//new Thread(new ServerRunnable()).start();
+	public void startHandling() {
+		// new Thread(new ServerRunnable()).start();
 		srv = new HandlerServer();
 		srv.start();
 	}
 
 	/** stop the listener for requests */
 	public void stopHandling() {
+		Log.d(TAG, "stoppung handler...");
 		stopMe = true;
 		srv.interrupt();
 	}
@@ -128,41 +131,48 @@ public class SyncMessageHandler {
 		byte[] rcvBuf = new byte[RCF_BUF_LEN];
 
 		@Override
-		public void interrupt(){
+		public void interrupt() {
 			super.interrupt();
-			if(serverSocket != null){
+			if (serverSocket != null) {
 				serverSocket.close();
 			}
 		}
-		public void start(){
+
+		public void start() {
 			t = new Thread(this);
 			t.start();
 		}
+
 		/** worker method */
 		@Override
 		public void run() {
+			CSync.getInstance().startSync();
+			
 			Log.d(TAG, "start message handler");
 			try {
 				serverSocket = new DatagramSocket(port);
+				serverSocket.setSoTimeout(0);
 			} catch (SocketException e1) {
 				Log.d(TAG, e1.toString());
 			}
-			if(serverSocket == null){
-				Log.d("why","do you do this to me?");
+			if (serverSocket == null) {
+				Log.d("why", "do you do this to me?");
 			}
 			stopMe = false;
 			while (!stopMe) {
-				
+
 				// listen for messages
 				DatagramPacket rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
 				try {
-					Log.d(TAG,"receiving...");
+					Log.d(TAG, "receiving...");
 					serverSocket.receive(rcv);
+					Log.d(TAG, "received a paket");
 					String msg = new String(rcv.getData());
 					msg = msg.trim();
-					Log.d(TAG, "received request: " + msg);
+					Log.d(TAG, "received message: " + msg);
 					/* distribute the message */
 					if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
+						Log.d("", "add  to message queue");
 						CSync.getInstance().processRequest(msg);
 					} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
 						CSync.getInstance().coarseResponse(msg);
@@ -173,12 +183,12 @@ public class SyncMessageHandler {
 
 					}
 				} catch (IOException e) {
-					
+
 				}
 
 			}
 			stopMe = false;
-			
+
 			Log.d(TAG, "close port for sync messages");
 			serverSocket.close();
 		}

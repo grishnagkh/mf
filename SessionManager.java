@@ -50,7 +50,7 @@ import android.util.Log;
 public class SessionManager {
 
 	/** tag for android log */
-	private static final String TAG = "SessionManager" + "";
+	private static final String TAG = "SessionManager";
 	/** singleton instance */
 	private static SessionManager instance;
 
@@ -240,12 +240,14 @@ public class SessionManager {
 				sInfo = sessionInfo.toString();
 				Log.d(TAG, "got session info: " + sInfo);
 				// we got a result, start message handler and coarse sync
-				 /* should be run when playing a video, see VideoPlayerActivity onResume, onPause */
+				/*
+				 * should be run when playing a video, see VideoPlayerActivity
+				 * onResume, onPause
+				 */
 				// SyncMessageHandler.getInstance().startHandling();
-				CSync.getInstance().startSync();
 
 			} catch (Exception e) {
-				// TODO exception handling
+				Log.d(TAG, "session info read failure, sInfo: <" + sInfo +">");
 			}
 		}
 	}
