@@ -45,6 +45,9 @@ import android.util.Log;
  */
 
 public class CSync implements SyncI {
+	
+	public static final int SEGSIZE= 2000;//for now^^
+	
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
 	/** singleton instance */
@@ -90,6 +93,7 @@ public class CSync implements SyncI {
 			Log.d(TAG_CS, "start coarse sync request");
 			/* 1 */
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
+			
 				String myIP = SessionManager.getInstance().getMySelf()
 						.getAddress().getHostAddress();
 				int myPort = SessionManager.getInstance().getMySelf().getPort();
@@ -102,7 +106,7 @@ public class CSync implements SyncI {
 					SyncMessageHandler.getInstance().sendMsg(msg,
 							p.getAddress(), p.getPort());
 				} catch (SocketException e) {
-					Log.e(TAG_CS, "could not send message");					
+					Log.e(TAG_CS, "could not send message");
 				} catch (IOException e) {
 					Log.e(TAG_CS, "could not send message");
 				}
@@ -121,6 +125,7 @@ public class CSync implements SyncI {
 
 			if (msgQueue.size() == 0) {
 				Log.d(TAG_CS, "no messages in queue");
+				FSync.getInstance().startSync();
 				return;
 			}
 
@@ -129,46 +134,39 @@ public class CSync implements SyncI {
 				long pts = Long.parseLong(responseFields[3]);
 				long nts = Long.parseLong(responseFields[4]);
 				avgPTS += pts + (Utils.getTimestamp() - nts);
+				Log.d(TAG_CS, "trip time (peer " + responseFields[4] + "): " + (Utils.getTimestamp() - nts));
 			}
 			avgPTS /= msgQueue.size();
 
 			// empty request queue
 			msgQueue.clear();
 
-			Log.d(TAG_CS, "calculated average from coarse synchronization: "
-					+ avgPTS);
-			Log.d(TAG_CS, "phase 4: test");
-			/* XXX following block is for testing my bugs */
 			try {
 
-				do {
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException e) {
-						// ignore
-
-					}
-				} while (LibVLC.getInstance().getTime() < 2000);
+				Log.d(TAG_CS,
+						"calculated average from coarse synchronization: "
+								+ avgPTS);
+				// scale time to the 2s segments, just to make some sense for fine
+				// sync^^,
+				
+				avgPTS = SEGSIZE+ avgPTS - avgPTS % SEGSIZE;
+				// Log.d(TAG_CS, "try to set time to " + avgPTS);
 				LibVLC.getInstance().setTime(avgPTS);
-				// LibVLC.getInstance().setTime(123467);
+				// Log.d(TAG_CS, "have set time to " + avgPTS);
+
 			} catch (LibVlcException e) {
+				/*
+				 * hmm.. did not work, but here we already should have the
+				 * playback... suspicios... may someone has trained a kitten to
+				 * sabotage us... ignore this: do not mess with a super
+				 * intelligent trained kitten!
+				 */
+
 				Log.d(TAG_CS, "phase 4: error... try to fix");
 
 			}
 
-			/* TODO uncomment when bugs are fixed */
-			// try {
-			// LibVLC.getInstance().setTime(avgPTS);
-			// } catch (LibVlcException e) {
-			//Log.d(TAG_CS, "trained kitten alert");
-			/*
-			 * hmm.. did not work, but here we already should have the
-			 * playback... suspicios... may someone has trained a kitten to
-			 * sabotage us... ignore this: do not mess with a super intelligent
-			 * trained kitten!
-			 */
-			// }
-			// FSync.getInstance().startSync();
+			FSync.getInstance().startSync();
 		}
 	}
 
@@ -222,7 +220,7 @@ public class CSync implements SyncI {
 			try {
 				SyncMessageHandler.getInstance().sendMsg(msg, peerAddress,
 						senderPort);
-			} catch (SocketException e) {				
+			} catch (SocketException e) {
 				Log.e(TAG_CS, "could not send message");
 			} catch (IOException e) {
 				Log.e(TAG_CS, "could not send message");

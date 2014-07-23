@@ -184,9 +184,15 @@ public class SessionManager {
 					portS.length()));
 			ipS = ipS.substring(ipS.indexOf(':') + 1, ipS.length());
 
+			Log.d("nit wirklich", id + "," + port + "," + ipS);
+
 			Peer p = new Peer(id, InetAddress.getByName(ipS), port);
 
-			if (p.getAddress().equals(ownAddress) && p.getPort() == port) {
+			// /* hack for testing how to play video files.. */
+			// mySelf = p; // TODO: remove hack //just uncomment for now.. maybe
+			// we need it again^^ hacker paranoia
+
+			if (p.getAddress().equals(ownAddress)) {// && p.getPort() == port) {
 				mySelf = p;
 			} else {
 				peers.put(id, p);
@@ -247,8 +253,9 @@ public class SessionManager {
 				// SyncMessageHandler.getInstance().startHandling();
 
 			} catch (Exception e) {
-				Log.d(TAG, "session info read failure, sInfo: <" + sInfo +">");
+				Log.d(TAG, "session info read failure, sInfo: <" + sInfo + ">");
 			}
+
 		}
 	}
 }

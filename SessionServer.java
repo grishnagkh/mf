@@ -108,12 +108,15 @@ public class SessionServer {
 							new InputStreamReader(s.getInputStream()));
 					while ((tmp = br.readLine()) != null) {
 						sb.append(tmp);
-						Log.d("session server","read: " + tmp);
+						Log.d("session server", "read: " + tmp);
 					}
 
 					peers.add(maxId++ + ","
 							+ s.getInetAddress().getHostAddress() + ","
 							+ sb.toString());
+					Log.d("new peer",
+							maxId++ + "," + s.getInetAddress().getHostAddress()
+									+ "," + sb.toString());
 
 					sb = new StringBuffer();
 					sb.append("[");

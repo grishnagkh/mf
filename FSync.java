@@ -61,8 +61,8 @@ public class FSync implements SyncI {
 	/** singleton instance */
 	private static FSync instance;
 
-	/** stop the message sending */
-	private boolean fineSyncNecessary = true;
+	// /** stop the message sending */
+	// private boolean fineSyncNecessary = true;
 
 	/**
 	 * Constructor
@@ -88,6 +88,7 @@ public class FSync implements SyncI {
 	 * start fine sync message sending in a new thread
 	 */
 	public void startSync() {
+		Log.d(TAG_FS, "want to start fine sync thread");
 		new Thread(new FSWorker()).start();
 	}
 
@@ -104,17 +105,22 @@ public class FSync implements SyncI {
 	 * @author stefan petscharnig
 	 *
 	 */
+	long uts;
+
 	private class FSWorker implements Runnable {
 
 		public void run() {
+
+			Log.d(TAG_FS, "started fine sync thread");
 			// create the bloom filter
 
 			bloom = new BloomFilter<Integer>(BITS_PER_ELEM, N_EXP_ELEM,
 					N_HASHES);
 
 			bloom.add(SessionManager.getInstance().getMySelf().getId());
-			
-			int remSteps = 100; ///XXX just for testing
+
+			int remSteps = 100; // /XXX just for testing
+			oldTs = Utils.getTimestamp();
 			while (remSteps-- > 0) {
 
 				// is fine sync necessary, or should we stop it?
@@ -126,12 +132,19 @@ public class FSync implements SyncI {
 					return;
 				}
 				nts = Utils.getTimestamp();
-				long uts = avgTs + nts - oldTs; // updated (average) timestamp
-				long delta = pts - uts;
-				Log.d(TAG_FS, "delta: " + delta);
-				// if (delta * delta < EPSILON * EPSILON) {
-				// return;
-				// }
+				uts = avgTs + nts - oldTs; // updated (average) timestamp
+				long delta = pts - uts; // FIXME: grob verrechnet oder falsch
+										// gespeichert unten
+				Log.d(TAG_FS, "delta [ms]: " + delta);
+				if (delta * delta < EPSILON * EPSILON) {
+					try {
+						LibVLC.getInstance().setTime(uts);
+					} catch (LibVlcException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					return;
+				}
 
 				// broadcast to neighbors
 				for (Peer p : SessionManager.getInstance().getPeers().values()) {
@@ -152,6 +165,12 @@ public class FSync implements SyncI {
 					// ignore
 				}
 
+			}
+			try {
+				LibVLC.getInstance().setTime(uts);
+			} catch (LibVlcException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
@@ -204,7 +223,7 @@ public class FSync implements SyncI {
 					long newTs = Utils.getTimestamp();
 					long wSum = ((avgTs + (newTs - oldTs)) * nBloom1 + (rAvg + (newTs - rNtp))
 							* nBloom2);
-					avgTs = wSum / (nBloom1 + nBloom2);
+					avgTs = wSum / (nBloom1 + nBloom2); //FIXME: divide by zero can happen...
 
 					oldTs = newTs;
 

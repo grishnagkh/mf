@@ -147,7 +147,7 @@ public class SyncMessageHandler {
 		@Override
 		public void run() {
 			CSync.getInstance().startSync();
-			
+
 			Log.d(TAG, "start message handler");
 			try {
 				serverSocket = new DatagramSocket(port);

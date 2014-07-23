@@ -19,6 +19,11 @@
  * MA 02110-1301 USA
  */package at.itec.mf;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.BitSet;
@@ -166,13 +171,15 @@ public class Utils {
 	@SuppressWarnings("deprecation")
 	public static InetAddress getWifiAddress(Context c) {
 		// FIXME hack alert: global variable
-		WifiManager wm = (WifiManager) MainActivity.c.getSystemService(Context.WIFI_SERVICE);
+		WifiManager wm = (WifiManager) MainActivity.c
+				.getSystemService(Context.WIFI_SERVICE);
 		try {
 			return InetAddress.getByName(Formatter.formatIpAddress(wm
 					.getConnectionInfo().getIpAddress()));
-		} catch (UnknownHostException e) {			
+		} catch (UnknownHostException e) {
 			Log.e("sync utils", "cannot get wifi address, returning null...");
 		}
 		return null;
 	}
+
 }
