@@ -96,7 +96,7 @@ public class Utils {
 	 */
 	public static String toString(BitSet b) {
 		StringBuffer ret = new StringBuffer();
-		for (int i = 0; i < b.size(); i += 8) {
+		for (int i = 0; i < b.size(); i += 1) {			
 			ret.append(b.get(i) ? 1 : 0);
 		}
 		return ret.toString();
@@ -156,7 +156,7 @@ public class Utils {
 	 */
 	public static int getN(BloomFilter<Integer> bloom, int maxId) {
 		int ctr = 0;
-		for (int i = 1; i < maxId; i++) {
+		for (int i = 1; i <= maxId; i++) {
 			if (bloom.contains(i))
 				ctr++;
 		}
