@@ -13,7 +13,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package at.itec.mf.bloomfilter;
+package mf.at.itec.bloomfilter;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;

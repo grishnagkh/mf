@@ -19,18 +19,15 @@
  * MA 02110-1301 USA
  */
 
-package at.itec.mf;
+package mf.at.itec;
 
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.videolan.libvlc.LibVLC;
-import org.videolan.libvlc.LibVlcException;
-
+import mf.at.itec.bloomfilter.BloomFilter;
 import android.util.Log;
-import at.itec.mf.bloomfilter.BloomFilter;
 
 /**
  * 
@@ -117,13 +114,11 @@ public class FSync implements SyncI {
 	}
 
 	private void initAvgTs() {
-		try {
-			synchronized (avgMonitor) {
-				avgTs = LibVLC.getInstance().getTime();
-				lastAvgUpdateTs = Utils.getTimestamp();
-			}
-		} catch (LibVlcException e) {
+		synchronized (avgMonitor) {
+			avgTs = Utils.getPlaybackTime();
+			lastAvgUpdateTs = Utils.getTimestamp();
 		}
+
 	}
 
 	private void initBloom() {
@@ -165,16 +160,8 @@ public class FSync implements SyncI {
 				// udpate
 				long nts = Utils.getTimestamp();
 				// alignAvgTs(nts);
-				Log.d(TAG_FS, "time to align: " + alignAvgTs(nts));
-
-				try {
-					long delta = avgTs - LibVLC.getInstance().getTime();
-					Log.d(TAG_FS, "delta: " + delta);
-				} catch (Exception e) {
-				}
-
+				alignAvgTs(nts);
 				broadcastToPeers(nts);
-
 				try {
 					Thread.sleep(PERIOD_FS_MS);
 				} catch (InterruptedException iex) {
@@ -187,69 +174,12 @@ public class FSync implements SyncI {
 			 */
 
 			Log.d(TAG_FS, "setting time to: " + avgTs);
-			try {
-				LibVLC.getInstance().setTime(avgTs);
-			} catch (LibVlcException e) {
-				Log.d(TAG_FS, "some weird exception while setting time..");
-			}
+
+			Utils.setPlaybackTime(avgTs);
 
 			// reset [for resync]
 			bloomList.clear();
 			maxId = myId;
-
-			Log.d(TAG_FS,
-					"test whether time on device is slower/faster than playback time...");
-			try {
-				long t1a = LibVLC.getInstance().getTime();
-				long t2a = System.currentTimeMillis();
-				System.out.println();
-				Thread.sleep(200);
-				long t1b = LibVLC.getInstance().getTime();
-				long t2b = System.currentTimeMillis();
-				Log.d(TAG_FS, "time diff in playback: " + (t1b - t1a));
-				Log.d(TAG_FS, "time diff in system: " + (t2b - t2a));
-				Log.d(TAG_FS, "time delta within 200msec: "
-						+ ((t2b - t2a) - (t1b - t1a)));
-
-				Log.d(TAG_FS, "lets have another try...");
-				t1a = LibVLC.getInstance().getTime();
-				t2a = System.currentTimeMillis();
-				System.out.println();
-				Thread.sleep(1000);
-				t2b = System.currentTimeMillis();
-				t1b = LibVLC.getInstance().getTime();
-				Log.d(TAG_FS, "time diff in playback: " + (t1b - t1a));
-				Log.d(TAG_FS, "time diff in system: " + (t2b - t2a));
-				Log.d(TAG_FS, "time delta within 1000 msec: "
-						+ ((t2b - t2a) - (t1b - t1a)));
-
-				Log.d(TAG_FS, "lets have another try using the position...");
-				t1a = (long) (LibVLC.getInstance().getPosition() * LibVLC
-						.getInstance().getLength());
-				t2a = System.currentTimeMillis();
-				System.out.println();
-				Thread.sleep(1000);
-				t2b = System.currentTimeMillis();
-
-				t1b = (long) (LibVLC.getInstance().getPosition() * LibVLC
-						.getInstance().getLength());
-				Log.d(TAG_FS, "time diff in playback: " + (t1b - t1a));
-				Log.d(TAG_FS, "time diff in system: " + (t2b - t2a));
-				Log.d(TAG_FS, "time delta within 1000 msec: "
-						+ ((t2b - t2a) - (t1b - t1a)));
-
-				Log.d(TAG_FS,
-						"testing getPosition and getTime in ~100ms interval...");
-				for (int i = 0; i < 20; i++) {
-					Log.d(TAG_FS, "system time: " + System.currentTimeMillis());
-					Log.d(TAG_FS, "pos: " + LibVLC.getInstance().getPosition());
-					Log.d(TAG_FS, "time: " + LibVLC.getInstance().getTime());
-					Thread.sleep(100);
-				}
-
-			} catch (Exception e) {
-
-			}
 		}
 	}
 

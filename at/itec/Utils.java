@@ -17,19 +17,18 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
- */package at.itec.mf;
+ */
+package mf.at.itec;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.BitSet;
 
-import org.videolan.vlc.gui.MainActivity;
-
+import mf.at.itec.bloomfilter.BloomFilter;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;
 import android.util.Log;
-import at.itec.mf.bloomfilter.BloomFilter;
 
 /**
  * 
@@ -41,7 +40,7 @@ import at.itec.mf.bloomfilter.BloomFilter;
  */
 public class Utils {
 
-	// TODO: implement NTP query ?
+	// TODO: implement NTP query? for now we assume already synchronized clocks
 	public static long getTimestamp() {
 		return System.currentTimeMillis();
 	}
@@ -91,7 +90,7 @@ public class Utils {
 	 */
 	public static String toString(BitSet b) {
 		StringBuffer ret = new StringBuffer();
-		for (int i = 0; i < b.size(); i += 1) {			
+		for (int i = 0; i < b.size(); i += 1) {
 			ret.append(b.get(i) ? 1 : 0);
 		}
 		return ret.toString();
@@ -164,10 +163,10 @@ public class Utils {
 	 * @return the wifi address
 	 */
 	@SuppressWarnings("deprecation")
-	public static InetAddress getWifiAddress(Context c) {
-		// FIXME hack alert: global variable
-		WifiManager wm = (WifiManager) MainActivity.c
-				.getSystemService(Context.WIFI_SERVICE);
+	public static InetAddress getWifiAddress() {
+		Context c = null; // FIXME get a context context
+
+		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
 		try {
 			return InetAddress.getByName(Formatter.formatIpAddress(wm
 					.getConnectionInfo().getIpAddress()));
@@ -175,6 +174,16 @@ public class Utils {
 			Log.e("sync utils", "cannot get wifi address, returning null...");
 		}
 		return null;
+	}
+
+	// TODO: implement
+	public static long getPlaybackTime() {
+		throw new UnsupportedOperationException("Not implemented yet");
+	}
+
+	// TODO: implement
+	public static void setPlaybackTime(long avgPTS) {
+		throw new UnsupportedOperationException("Not implemented yet");
 	}
 
 }

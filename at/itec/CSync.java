@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package at.itec.mf;
+package mf.at.itec;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -26,9 +26,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.videolan.libvlc.LibVLC;
-import org.videolan.libvlc.LibVlcException;
 
 import android.util.Log;
 
@@ -45,9 +42,9 @@ import android.util.Log;
  */
 
 public class CSync implements SyncI {
-	
-	public static final int SEGSIZE= 2000;//for now^^
-	
+
+	public static final int SEGSIZE = 2000;// for now^^
+
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
 	/** singleton instance */
@@ -93,7 +90,7 @@ public class CSync implements SyncI {
 			Log.d(TAG_CS, "start coarse sync request");
 			/* 1 */
 			for (Peer p : SessionManager.getInstance().getPeers().values()) {
-			
+
 				String myIP = SessionManager.getInstance().getMySelf()
 						.getAddress().getHostAddress();
 				int myPort = SessionManager.getInstance().getMySelf().getPort();
@@ -134,37 +131,25 @@ public class CSync implements SyncI {
 				long pts = Long.parseLong(responseFields[3]);
 				long nts = Long.parseLong(responseFields[4]);
 				avgPTS += pts + (Utils.getTimestamp() - nts);
-				Log.d(TAG_CS, "trip time (peer " + responseFields[4] + "): " + (Utils.getTimestamp() - nts));
+				Log.d(TAG_CS, "trip time (peer " + responseFields[4] + "): "
+						+ (Utils.getTimestamp() - nts));
 			}
 			avgPTS /= msgQueue.size();
 
 			// empty request queue
 			msgQueue.clear();
 
-			try {
+			Log.d(TAG_CS, "calculated average from coarse synchronization: "
+					+ avgPTS);
+			// scale time to the 2s segments, just to make some sense for fine
+			// sync^^,
 
-				Log.d(TAG_CS,
-						"calculated average from coarse synchronization: "
-								+ avgPTS);
-				// scale time to the 2s segments, just to make some sense for fine
-				// sync^^,
-				
-				avgPTS = SEGSIZE+ avgPTS - avgPTS % SEGSIZE;
-				// Log.d(TAG_CS, "try to set time to " + avgPTS);
-				LibVLC.getInstance().setTime(avgPTS);
-				// Log.d(TAG_CS, "have set time to " + avgPTS);
+			avgPTS = SEGSIZE + avgPTS - avgPTS % SEGSIZE;
+			// Log.d(TAG_CS, "try to set time to " + avgPTS);
 
-			} catch (LibVlcException e) {
-				/*
-				 * hmm.. did not work, but here we already should have the
-				 * playback... suspicios... may someone has trained a kitten to
-				 * sabotage us... ignore this: do not mess with a super
-				 * intelligent trained kitten!
-				 */
+			Utils.setPlaybackTime(avgPTS);
 
-				Log.d(TAG_CS, "phase 4: error... try to fix");
-
-			}
+			// Log.d(TAG_CS, "have set time to " + avgPTS);
 
 			FSync.getInstance().startSync();
 		}
@@ -201,11 +186,7 @@ public class CSync implements SyncI {
 			int senderPort = Integer.parseInt(responseFields[2]);
 
 			long myPts = 0;
-			try {
-				myPts = LibVLC.getInstance().getTime();
-			} catch (LibVlcException e1) {
-				Log.e(TAG_CS, "unable to get media information");
-			}
+			myPts = Utils.getPlaybackTime();
 
 			long myNts = Utils.getTimestamp();
 
