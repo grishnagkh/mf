@@ -140,13 +140,8 @@ public class SessionManager {
 	public Map<Integer, Peer> getPeers() {
 		if (peers == null) {
 			peers = new HashMap<Integer, Peer>();
-			try {
-				convertPeers(sInfo);
-			} catch (UnknownHostException e) {
-				Log.e(TAG, "unknown host");
-			}
-
 		}
+		convertPeers(sInfo);
 		return peers;
 	}
 
@@ -157,14 +152,17 @@ public class SessionManager {
 	 *            string representing session info
 	 * @throws UnknownHostException
 	 */
-	private void convertPeers(String s) throws UnknownHostException {
+	private int convertPeers(String s) {
 		if (s.length() < 4)
-			return;
+			return -1;
 
 		s = s.substring(1, s.length() - 1);
 
 		Log.d(TAG, "String received" + s);
 		InetAddress ownAddress = Utils.getWifiAddress(c);
+		if (ownAddress == null) {
+			return -1;
+		}
 
 		for (String str : s.split("\\}")) {
 			if ("".equals(str.trim()))
@@ -186,7 +184,12 @@ public class SessionManager {
 
 			Log.d("nit wirklich", id + "," + port + "," + ipS);
 
-			Peer p = new Peer(id, InetAddress.getByName(ipS), port);
+			Peer p;
+			try {
+				p = new Peer(id, InetAddress.getByName(ipS), port);
+			} catch (UnknownHostException e) {
+				return -1;
+			}
 
 			// /* hack for testing how to play video files.. */
 			// mySelf = p; // TODO: remove hack //just uncomment for now.. maybe
@@ -198,6 +201,7 @@ public class SessionManager {
 				peers.put(id, p);
 			}
 		}
+		return 0;
 	}
 
 	/**
