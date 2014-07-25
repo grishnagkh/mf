@@ -3,7 +3,6 @@ package mf.player.gui;
 import java.util.ArrayList;
 import java.util.List;
 
-import mf.at.itec.R;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -74,8 +73,9 @@ public class MainActivity extends Activity {
 		} else {
 			uri = URI_PLAY;
 		}
+		// test xml
 		uri = "http://grishnagkh.files.wordpress.com/2014/07/test2.key";
-		
+
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))
 				.putExtra(DemoUtil.CONTENT_ID_EXTRA, "")
