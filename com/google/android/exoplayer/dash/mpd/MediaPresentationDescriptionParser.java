@@ -123,11 +123,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			} else if (isStartTag(xpp, "Period")) {
 				periods.add(parsePeriod(xpp, contentId, baseUrl, durationMs));
 			} else if (isStartTag(xpp, "session")) {
-				/*
-				 * do not save anything here, just fill session handlers peer
-				 * list
-				 */
-				parseSession(xpp);
+				parseSession(xpp); // XXX
 			}
 		} while (!isEndTag(xpp, "MPD"));
 
@@ -168,7 +164,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			} else {
 
 			}
-		} while (!isEndTag(xpp, "Session"));
+		} while (!isEndTag(xpp, "session"));
 		SessionManager.getInstance().setPeers(peers);
 		SessionManager.getInstance().setMySelf(mySelf);
 	}/* erweiterter google code.. yey ende! */
