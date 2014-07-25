@@ -22,8 +22,8 @@ import mf.com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializa
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.com.google.android.exoplayer.util.PlayerControl;
-import mf.sync.SyncMessageHandler;
-import mf.sync.Utils;
+import mf.sync.net.MessageHandler;
+import mf.sync.utils.Utils;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaCodec.CryptoException;
@@ -35,7 +35,6 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.View.OnTouchListener;
 import android.widget.MediaController;
 import android.widget.Toast;
 
@@ -98,15 +97,38 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 		setContentView(R.layout.player_activity_simple);
 		View root = findViewById(R.id.root);
-		root.setOnTouchListener(new OnTouchListener() {
+
+		
+		
+		root.setOnTouchListener(new OnSwipeTouchListener(root.getContext()) {
+			
+			public boolean onTouch(View v, MotionEvent event){
+				toggleControlsVisibility();
+				return super.onTouch(v, event);
+			}
 			@Override
-			public boolean onTouch(View arg0, MotionEvent arg1) {
-				if (arg1.getAction() == MotionEvent.ACTION_DOWN) {
-					toggleControlsVisibility();
-				}
-				return true;
+			public void onSwipeRight(float vel) {
+				Log.d("swipe", "right, vel: " + vel);
+
+				int pos = (player.getCurrentPosition() + player
+						.getDuration() / 10);
+				pos = pos < player.getDuration() ? pos : player
+						.getDuration();
+				player.seekTo(pos);
+			}
+
+			@Override
+			public void onSwipeLeft(float vel) {
+				Log.d("swipe", "right, vel: " + vel);
+
+				int pos = (player.getCurrentPosition() - player
+						.getDuration() / 10);
+				pos = pos > 0 ? pos : 0;
+				player.seekTo(pos);
 			}
 		});
+	
+				
 
 		mediaController = new MediaController(this);
 		mediaController.setAnchorView(root);
@@ -130,7 +152,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Request the renderers
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
-		SyncMessageHandler.getInstance().startHandling();
+		MessageHandler.getInstance().startHandling(); // XXX
 	}
 
 	@Override
@@ -146,7 +168,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
 
-		SyncMessageHandler.getInstance().stopHandling();
+		MessageHandler.getInstance().stopHandling(); // XXX
 	}
 
 	// Public methods
