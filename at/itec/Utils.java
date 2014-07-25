@@ -163,9 +163,9 @@ public class Utils {
 	 * @return the wifi address
 	 */
 	@SuppressWarnings("deprecation")
-	public static InetAddress getWifiAddress() {
-		Context c = null; // FIXME get a context context
-
+	public static InetAddress getWifiAddress(Context c) {
+		if (c == null)
+			throw new RuntimeException("Context is null");
 		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
 		try {
 			return InetAddress.getByName(Formatter.formatIpAddress(wm

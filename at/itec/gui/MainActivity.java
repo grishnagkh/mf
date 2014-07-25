@@ -5,6 +5,7 @@ import java.util.List;
 
 import mf.at.itec.R;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -34,9 +35,11 @@ public class MainActivity extends Activity {
 	public static final String PLAY_ID = "Google Play";
 
 	public final static String TAG = "MainActivity";
+	public static Context c = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		c = this;
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		initChoosableVideos();
@@ -71,7 +74,8 @@ public class MainActivity extends Activity {
 		} else {
 			uri = URI_PLAY;
 		}
-
+		uri = "http://grishnagkh.files.wordpress.com/2014/07/test2.key";
+		
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))
 				.putExtra(DemoUtil.CONTENT_ID_EXTRA, "")

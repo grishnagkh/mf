@@ -29,6 +29,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
+import mf.at.itec.gui.MainActivity;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -73,6 +74,9 @@ public class SessionManager {
 	private String sInfo;
 
 	private boolean waiting;
+	
+	private String sessionId;
+	private long validThru;
 
 	/** Singleton constructor */
 	private SessionManager() {
@@ -145,6 +149,10 @@ public class SessionManager {
 		return peers;
 	}
 
+	public void setPeers(Map<Integer, Peer> peers) {
+		this.peers = peers;
+	}
+
 	/**
 	 * converts the info string to a list of peers
 	 * 
@@ -159,7 +167,7 @@ public class SessionManager {
 		s = s.substring(1, s.length() - 1);
 
 		Log.d(TAG, "String received" + s);
-		InetAddress ownAddress = Utils.getWifiAddress();
+		InetAddress ownAddress = Utils.getWifiAddress(MainActivity.c);
 		if (ownAddress == null) {
 			return -1;
 		}
@@ -181,8 +189,6 @@ public class SessionManager {
 			int port = Integer.parseInt(portS.substring(portS.indexOf(':') + 1,
 					portS.length()));
 			ipS = ipS.substring(ipS.indexOf(':') + 1, ipS.length());
-
-			Log.d("nit wirklich", id + "," + port + "," + ipS);
 
 			Peer p;
 			try {
@@ -261,5 +267,17 @@ public class SessionManager {
 			}
 
 		}
+	}
+
+	public void setMySelf(Peer mySelf) {
+		this.mySelf = mySelf;
+	}
+
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+
+	public void setValidThru(String validThru) {
+		this.validThru = Long.parseLong(validThru);
 	}
 }
