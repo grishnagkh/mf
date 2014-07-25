@@ -1,4 +1,4 @@
-package mf.player.at.itec.gui;
+package mf.player.gui;
 
 /*
  * Copyright (C) 2014 The Android Open Source Project
@@ -19,8 +19,8 @@ package mf.player.at.itec.gui;
 import mf.com.google.android.exoplayer.FrameworkSampleSource;
 import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
-import mf.player.at.itec.gui.PlayerActivity.RendererBuilder;
-import mf.player.at.itec.gui.PlayerActivity.RendererBuilderCallback;
+import mf.player.gui.PlayerActivity.RendererBuilder;
+import mf.player.gui.PlayerActivity.RendererBuilderCallback;
 import android.media.MediaCodec;
 import android.net.Uri;
 

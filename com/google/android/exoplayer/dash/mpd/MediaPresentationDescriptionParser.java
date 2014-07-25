@@ -33,10 +33,10 @@ import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SegmentTimelineEleme
 import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SingleSegmentBase;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.MimeTypes;
-import mf.player.at.itec.Peer;
-import mf.player.at.itec.SessionManager;
-import mf.player.at.itec.Utils;
-import mf.player.at.itec.gui.MainActivity;
+import mf.player.gui.MainActivity;
+import mf.sync.Peer;
+import mf.sync.SessionManager;
+import mf.sync.Utils;
 
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmlpull.v1.XmlPullParser;

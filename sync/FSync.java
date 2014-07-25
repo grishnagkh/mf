@@ -19,14 +19,14 @@
  * MA 02110-1301 USA
  */
 
-package mf.player.at.itec;
+package mf.sync;
 
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
-import mf.player.at.itec.bloomfilter.BloomFilter;
+import mf.bloomfilter.BloomFilter;
 import android.util.Log;
 
 /**

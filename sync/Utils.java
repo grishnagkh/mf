@@ -18,13 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.player.at.itec;
+package mf.sync;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.BitSet;
 
-import mf.player.at.itec.bloomfilter.BloomFilter;
+import mf.bloomfilter.BloomFilter;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;

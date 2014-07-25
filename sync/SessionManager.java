@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.player.at.itec;
+package mf.sync;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -29,7 +29,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-import mf.player.at.itec.gui.MainActivity;
+import mf.player.gui.MainActivity;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;

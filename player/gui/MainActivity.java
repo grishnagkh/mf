@@ -1,4 +1,4 @@
-package mf.player.at.itec.gui;
+package mf.player.gui;
 
 import java.util.ArrayList;
 import java.util.List;

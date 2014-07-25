@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package mf.player.at.itec.gui;
+package mf.player.gui;
 
 import java.util.ArrayList;
 
@@ -39,8 +39,8 @@ import mf.com.google.android.exoplayer.upstream.DataSource;
 import mf.com.google.android.exoplayer.upstream.DefaultBandwidthMeter;
 import mf.com.google.android.exoplayer.upstream.HttpDataSource;
 import mf.com.google.android.exoplayer.util.ManifestFetcher.ManifestCallback;
-import mf.player.at.itec.gui.PlayerActivity.RendererBuilder;
-import mf.player.at.itec.gui.PlayerActivity.RendererBuilderCallback;
+import mf.player.gui.PlayerActivity.RendererBuilder;
+import mf.player.gui.PlayerActivity.RendererBuilderCallback;
 import android.media.MediaCodec;
 import android.os.AsyncTask;
 import android.os.Handler;
