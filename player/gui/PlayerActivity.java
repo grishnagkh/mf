@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package mf.player.gui;
-import mf.at.itec.R;
+
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
 import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
