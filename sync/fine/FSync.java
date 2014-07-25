@@ -19,7 +19,7 @@
  * MA 02110-1301 USA
  */
 
-package mf.sync;
+package mf.sync.fine;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -27,6 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mf.bloomfilter.BloomFilter;
+import mf.sync.net.MessageHandler;
+import mf.sync.utils.Peer;
+import mf.sync.utils.SessionInfo;
+import mf.sync.utils.SyncI;
+import mf.sync.utils.Utils;
 import android.util.Log;
 
 /**
@@ -65,7 +70,7 @@ public class FSync implements SyncI {
 	 */
 	private FSync() {
 		bloomList = new ArrayList<BloomFilter<Integer>>();
-		myId = SessionManager.getInstance().getMySelf().getId();
+		myId = SessionInfo.getInstance().getMySelf().getId();
 		maxId = myId;
 		avgMonitor = this;
 	}
@@ -123,17 +128,17 @@ public class FSync implements SyncI {
 
 	private void initBloom() {
 		bloom = new BloomFilter<Integer>(BITS_PER_ELEM, N_EXP_ELEM, N_HASHES);
-		bloom.add(SessionManager.getInstance().getMySelf().getId());
+		bloom.add(SessionInfo.getInstance().getMySelf().getId());
 		bloomList.add(bloom);
 	}
 
 	private void broadcastToPeers(long nts) {
 		// broadcast to known peers
-		for (Peer p : SessionManager.getInstance().getPeers().values()) {
+		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 			String msg = Utils.buildMessage(DELIM, TYPE_FINE, avgTs, nts, myId,
 					Utils.toString(bloom.getBitSet()), maxId);
 			try {
-				SyncMessageHandler.getInstance().sendMsg(msg, p.getAddress(),
+				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
 						p.getPort());
 			} catch (SocketException e) {
 				// ignore
@@ -199,7 +204,7 @@ public class FSync implements SyncI {
 		public void run() {
 			if (bloom == null)
 				return;
-			
+
 			long nts = Utils.getTimestamp();
 
 			String[] msgA = msg.split("\\" + DELIM);

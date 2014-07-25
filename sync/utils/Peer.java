@@ -18,13 +18,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.sync;
+package mf.sync.utils;
 
 import java.net.InetAddress;
 
 /**
- * 
- * model for a peer
  * 
  * @author stefan petscharnig
  *

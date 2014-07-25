@@ -34,9 +34,10 @@ import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SingleSegmentBase;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.MimeTypes;
 import mf.player.gui.MainActivity;
-import mf.sync.Peer;
-import mf.sync.SessionManager;
-import mf.sync.Utils;
+import mf.sync.net.MessageHandler;
+import mf.sync.utils.Peer;
+import mf.sync.utils.SessionInfo;
+import mf.sync.utils.Utils;
 
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmlpull.v1.XmlPullParser;
@@ -140,8 +141,8 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		String validThru = xpp.getAttributeValue(0);
 		String sessionId = xpp.getAttributeValue(1);
 
-		SessionManager.getInstance().setValidThru(validThru);
-		SessionManager.getInstance().setSessionId(sessionId);
+		SessionInfo.getInstance().setValidThru(validThru);
+		SessionInfo.getInstance().setSessionId(sessionId);
 
 		Map<Integer, Peer> peers = new HashMap<Integer, Peer>();
 		Peer mySelf = null;
@@ -165,8 +166,14 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 
 			}
 		} while (!isEndTag(xpp, "session"));
-		SessionManager.getInstance().setPeers(peers);
-		SessionManager.getInstance().setMySelf(mySelf);
+		SessionInfo.getInstance().setPeers(peers);
+		/*
+		 * should not happen because of the server, but when it does (testing with dummy data) we are prepared^^
+		 * 
+		 */
+		if (mySelf == null)
+			mySelf = new Peer(31, ownAddress, MessageHandler.PORT);
+		SessionInfo.getInstance().setMySelf(mySelf);
 	}/* erweiterter google code.. yey ende! */
 
 	private Period parsePeriod(XmlPullParser xpp, String contentId,

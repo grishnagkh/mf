@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.sync;
+package mf.sync.utils;
 
 /**
  * 
@@ -41,10 +41,6 @@ public interface SyncI {
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 250;
 
-	/*
-	 * TODO: unfortunately the delimiter is part of the reg expression language
-	 * ... maybe we will change that sometime..
-	 */
 	public static final String DELIM = "|";
 
 	/** bloom filter length: n_exp_elem * bits_per_elem */

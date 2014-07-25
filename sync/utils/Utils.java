@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.sync;
+package mf.sync.utils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -33,8 +33,7 @@ import android.util.Log;
 
 /**
  * 
- * Utility class providing methods for timing, message building and bloom filter
- * comparison
+ * Utility class
  * 
  * @author stefan petscahrnig
  *
