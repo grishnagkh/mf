@@ -19,6 +19,7 @@
  * MA 02110-1301 USA
  */
 package mf.sync;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -146,7 +147,7 @@ public class CSync implements SyncI {
 			avgPTS = SEGSIZE + avgPTS - avgPTS % SEGSIZE;
 			// Log.d(TAG_CS, "try to set time to " + avgPTS);
 
-			Utils.setPlaybackTime(avgPTS);
+			Utils.setPlaybackTime((int) avgPTS);
 
 			// Log.d(TAG_CS, "have set time to " + avgPTS);
 

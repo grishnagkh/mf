@@ -22,6 +22,8 @@ import mf.com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializa
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.com.google.android.exoplayer.util.PlayerControl;
+import mf.sync.SyncMessageHandler;
+import mf.sync.Utils;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaCodec.CryptoException;
@@ -111,6 +113,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		shutterView = findViewById(R.id.shutter);
 		surfaceView = (VideoSurfaceView) findViewById(R.id.surface_view);
 		surfaceView.getHolder().addCallback(this);
+
+		Utils.initPlayer(player);
 	}
 
 	@Override
@@ -126,6 +130,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Request the renderers
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
+		SyncMessageHandler.getInstance().startHandling();
 	}
 
 	@Override
@@ -140,6 +145,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		callback = null;
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
+
+		SyncMessageHandler.getInstance().stopHandling();
 	}
 
 	// Public methods

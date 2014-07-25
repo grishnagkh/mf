@@ -175,7 +175,7 @@ public class FSync implements SyncI {
 
 			Log.d(TAG_FS, "setting time to: " + avgTs);
 
-			Utils.setPlaybackTime(avgTs);
+			Utils.setPlaybackTime((int) avgTs);
 
 			// reset [for resync]
 			bloomList.clear();
@@ -199,12 +199,7 @@ public class FSync implements SyncI {
 		public void run() {
 			if (bloom == null)
 				return;
-			// try {
-			// pts = LibVLC.getInstance().getTime();
-			// } catch (LibVlcException e) {
-			// // something went terribly wrong
-			// return;
-			// }
+			
 			long nts = Utils.getTimestamp();
 
 			String[] msgA = msg.split("\\" + DELIM);

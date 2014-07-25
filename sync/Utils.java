@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.util.BitSet;
 
 import mf.bloomfilter.BloomFilter;
+import mf.com.google.android.exoplayer.ExoPlayer;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;
@@ -176,14 +177,29 @@ public class Utils {
 		return null;
 	}
 
-	// TODO: implement
-	public static long getPlaybackTime() {
-		throw new UnsupportedOperationException("Not implemented yet");
+	public static int getCurTrackDuration() {
+		if (player == null)
+			return -1;
+		return player.getDuration();
 	}
 
-	// TODO: implement
-	public static void setPlaybackTime(long avgPTS) {
-		throw new UnsupportedOperationException("Not implemented yet");
+	public static int getPlaybackTime() {
+		if (player == null)
+			return -1;
+		return player.getCurrentPosition();
+	}
+
+	public static void setPlaybackTime(int avgPts) {
+		if (player == null)
+			return;
+		player.seekTo(avgPts);
+	}
+
+	private static ExoPlayer player;
+
+	public static void initPlayer(ExoPlayer newPlayer) {
+		player = newPlayer;
+
 	}
 
 }
