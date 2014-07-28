@@ -52,14 +52,12 @@ public class FSync implements SyncI {
 	private long lastAvgUpdateTs; // the time of the last avg ts update
 	/** average time stamp at time oldTs */
 	private long avgTs;
-
-	/** maximum peer id seen so far */
 	private int maxId;
-	/** own peer id */
 	private int myId;
 	/** singleton instance */
 	private static FSync instance;
 
+	private Thread workerThread;
 	private Object avgMonitor;
 
 	// /** stop the message sending */
@@ -89,18 +87,31 @@ public class FSync implements SyncI {
 	 * start fine sync message sending in a new thread
 	 */
 	public void startSync() {
+		initBloom();
+		// reset [for resync]
+		bloomList.clear();
+		maxId = myId;
 		Log.d(TAG_FS, "want to start fine sync thread");
-		new Thread(new FSWorker()).start();
+		workerThread = new FSWorker(this);
+		workerThread.start();
+	}
+
+	public void reSync() {
+		stopSync();
+		startSync();
+	}
+
+	public void stopSync() {
+		if (workerThread != null && workerThread.isAlive())
+			workerThread.interrupt();
 	}
 
 	/**
 	 * do process a fine sync request in a new thread
 	 */
 	public void processRequest(String msg) {
-		new Thread(new FSResponseHandler(msg)).start();
+		new FSResponseHandler(msg, this, maxId).start();
 	}
-
-	// FIXME: ^^
 
 	/**
 	 * sent a message periodically to the neighbour
@@ -109,21 +120,27 @@ public class FSync implements SyncI {
 	 *
 	 */
 
-	private long alignAvgTs(long alignTo) {
-		long ret = Utils.getTimestamp();
+	long alignAvgTs(long alignTo) {
 		synchronized (avgMonitor) {
 			avgTs += alignTo - lastAvgUpdateTs; // align avgTs
 			lastAvgUpdateTs = Utils.getTimestamp();
 		}
-		return Utils.getTimestamp() - ret;
+		return avgTs;
 	}
 
-	private void initAvgTs() {
+	long initAvgTs() {
 		synchronized (avgMonitor) {
 			avgTs = Utils.getPlaybackTime();
 			lastAvgUpdateTs = Utils.getTimestamp();
 		}
+		return avgTs;
+	}
 
+	void updateAvgTs(long newValue) {
+		synchronized (avgMonitor) {
+			avgTs = newValue;
+			lastAvgUpdateTs = Utils.getTimestamp();
+		}
 	}
 
 	private void initBloom() {
@@ -132,11 +149,11 @@ public class FSync implements SyncI {
 		bloomList.add(bloom);
 	}
 
-	private void broadcastToPeers(long nts) {
+	void broadcastToPeers(long nts) {
 		// broadcast to known peers
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			String msg = Utils.buildMessage(DELIM, TYPE_FINE, avgTs, nts, myId,
-					Utils.toString(bloom.getBitSet()), maxId);
+			String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_FINE,
+					avgTs, nts, myId, Utils.toString(bloom.getBitSet()), maxId);
 			try {
 				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
 						p.getPort());
@@ -148,44 +165,16 @@ public class FSync implements SyncI {
 		}
 	}
 
-	private class FSWorker implements Runnable {
+	BloomFilter<Integer> getBloom() {
+		return bloom;
+	}
 
-		public void run() {
+	public List<BloomFilter<Integer>> getBloomList() {
+		return bloomList;
+	}
 
-			Log.d(TAG_FS, "started fine sync thread");
-			// create the bloom filter
-
-			initBloom();
-
-			int remSteps = 40; // /XXX just for testing
-
-			initAvgTs();
-
-			while (remSteps-- > 0) {
-				// udpate
-				long nts = Utils.getTimestamp();
-				// alignAvgTs(nts);
-				alignAvgTs(nts);
-				broadcastToPeers(nts);
-				try {
-					Thread.sleep(PERIOD_FS_MS);
-				} catch (InterruptedException iex) {
-					// ignore
-				}
-			}
-			/*
-			 * end while, fine sync ended TODO: for resync, simply start this
-			 * again
-			 */
-
-			Log.d(TAG_FS, "setting time to: " + avgTs);
-
-			Utils.setPlaybackTime((int) avgTs);
-
-			// reset [for resync]
-			bloomList.clear();
-			maxId = myId;
-		}
+	public void setMaxId(int maxId) {
+		this.maxId = maxId;
 	}
 
 	/**
@@ -194,100 +183,4 @@ public class FSync implements SyncI {
 	 * @author stefan petscharnig
 	 *
 	 */
-	private class FSResponseHandler implements Runnable {
-		private String msg;
-
-		public FSResponseHandler(String msg) {
-			this.msg = msg;
-		}
-
-		public void run() {
-			if (bloom == null)
-				return;
-
-			long nts = Utils.getTimestamp();
-
-			String[] msgA = msg.split("\\" + DELIM);
-
-			// Log.d(TAG_FS, "message: " + msg);
-
-			BloomFilter<Integer> rcvBF = new BloomFilter<Integer>(
-					BITS_PER_ELEM, N_EXP_ELEM, N_HASHES);
-
-			rcvBF.setBitSet(Utils.fromString(msgA[4]));
-
-			int paketMax = Integer.parseInt(msgA[5]);
-
-			int nBloom1 = Utils.getN(rcvBF, paketMax); // returns 0.. blöd
-			int nBloom2 = Utils.getN(bloom, maxId);
-
-			Log.d(TAG_FS, "#peers in received bf: " + nBloom1 + ", maxId: "
-					+ paketMax);
-			Log.d(TAG_FS, "#peers in stored bf: " + nBloom2 + ", maxId: "
-					+ maxId);
-
-			long rAvg = Long.parseLong(msgA[1]);
-			long rNtp = Long.parseLong(msgA[2]);
-
-			long newTs = Utils.getTimestamp();
-
-			if (Utils.xor(rcvBF, bloom)) {// the bloom filters are different
-				Log.d(TAG_FS, "bloom filters are different");
-				if (!Utils.and(rcvBF, bloom)) {// the bloom filters do not
-												// overlap
-					Log.d(TAG_FS, "bloom filters do not overlap");
-					// merge the filters
-					bloom.getBitSet().or(rcvBF.getBitSet());
-
-					// calc weighted average
-
-					long wSum = ((avgTs + (newTs - lastAvgUpdateTs)) * nBloom1 + (rAvg + (newTs - rNtp))
-							* nBloom2);
-					avgTs = wSum / (nBloom1 + nBloom2);
-
-					// add the received bloom filter to the ones already seen
-					bloomList.add(rcvBF);
-					// add ourself to the bloom filter
-					bloom.add(myId);
-
-				} else if (!bloomList.contains(rcvBF) && nBloom1 < nBloom2) {
-					Log.d(TAG_FS,
-							"bloom filters do overlap, we have not seen the "
-									+ "bloom filter before and the received "
-									+ "bloom filter has more information");
-					/*
-					 * TODO: does the list "contain" the bf when the same are
-					 * sent over the network? to test..,. if not, a comparison
-					 * method must be written
-					 */
-					// overlap and received bloom filter has more information
-					bloom = rcvBF;
-					if (bloom.contains(myId)) {
-						Log.d(TAG_FS,
-								"we already are in this bloom filter, just take this average");
-						// take the received average and correct it
-						avgTs = rAvg + (newTs - lastAvgUpdateTs);
-					} else {
-						Log.d(TAG_FS,
-								"we are not in this bloom filter, update average and add ourself to the bloom filter");
-						// take the received time stamp and add our own
-						long wSum = (nBloom2 * (rAvg + (newTs - rNtp)) + (avgTs + (newTs - lastAvgUpdateTs)));
-						avgTs = wSum / (nBloom2 + 1);
-						bloom.add(myId);
-					}
-				}
-			} else {
-				// the same bloom filters: ignore; time stamps must be equal
-			}
-
-			Log.d(TAG_FS, "actual avg: " + avgTs + " (@time:" + lastAvgUpdateTs
-					+ ")");
-
-			maxId = maxId < paketMax ? paketMax : maxId;
-
-			lastAvgUpdateTs = newTs;
-
-		}
-	}
-
 }
