@@ -239,20 +239,23 @@ public class BloomFilter<E> implements Serializable {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		@SuppressWarnings("unchecked")
+
+		if (!(obj instanceof BloomFilter<?>)) {
+			return false;
+		}
 		final BloomFilter<E> other = (BloomFilter<E>) obj;
-		if (this.expectedNumberOfFilterElements != other.expectedNumberOfFilterElements) {
+
+		/*
+		 * change of implementation: bloom filters are equal, if the bitset is
+		 * the same
+		 */
+
+		if (this.getBitSet().length() != other.getBitSet().length()) {
 			return false;
 		}
-		if (this.k != other.k) {
-			return false;
-		}
-		if (this.bitSetSize != other.bitSetSize) {
-			return false;
-		}
-		if (this.bitset != other.bitset
-				&& (this.bitset == null || !this.bitset.equals(other.bitset))) {
-			return false;
+		for (int i = 0; i < this.getBitSet().length(); i++) {
+			if (this.getBit(i) != other.getBit(i))
+				return false;
 		}
 		return true;
 	}
