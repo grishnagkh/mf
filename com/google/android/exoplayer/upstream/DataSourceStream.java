@@ -31,7 +31,8 @@ public final class DataSourceStream implements Loadable, NonBlockingInputStream 
   /**
    * Thrown when an error is encountered trying to load data into a {@link DataSourceStream}.
    */
-  public static class DataSourceStreamLoadException extends IOException {
+	@SuppressWarnings("serial")
+public static class DataSourceStreamLoadException extends IOException {
 
     public DataSourceStreamLoadException(IOException cause) {
       super(cause);

@@ -40,11 +40,13 @@ import android.util.Log;
  * @author stefan petscharnig
  *
  */
-public class CSyncServer implements Runnable {
+public class CSyncServer extends Thread {
 	String TAG = "csr";
 	int SEGSIZE = 2000;
 	private List<String> msgQueue;
 
+	
+	
 	public CSyncServer(List<String> messageQueue) {
 		msgQueue = messageQueue;
 	}
@@ -77,7 +79,7 @@ public class CSyncServer implements Runnable {
 		try {
 			Thread.sleep(SyncI.WAIT_TIME_CS_MS);
 		} catch (InterruptedException e) {
-			Log.e(TAG, "interrupted while sleep... ");
+			return;
 		}
 		Log.d(TAG, "phase 2 completed, calculating");
 		long avgPTS = 0;

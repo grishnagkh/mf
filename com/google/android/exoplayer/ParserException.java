@@ -20,14 +20,15 @@ import java.io.IOException;
 /**
  * Thrown when an error occurs parsing media data.
  */
+@SuppressWarnings("serial")
 public class ParserException extends IOException {
 
-  public ParserException(String message) {
-    super(message);
-  }
+	public ParserException(String message) {
+		super(message);
+	}
 
-  public ParserException(Exception cause) {
-    super(cause);
-  }
+	public ParserException(Exception cause) {
+		super(cause);
+	}
 
 }

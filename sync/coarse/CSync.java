@@ -34,7 +34,7 @@ import mf.sync.utils.SyncI;
 public class CSync implements SyncI {
 
 	public static final int SEGSIZE = 2000;// for now^^
-
+	private CSyncServer cSyncServer;
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
 	/** singleton instance */
@@ -59,11 +59,18 @@ public class CSync implements SyncI {
 
 	/** start the sync server */
 	public void startSync() {
-		new Thread(new CSyncServer(msgQueue)).start();
+		stopSync();
+		cSyncServer = new CSyncServer(msgQueue);
+		cSyncServer.start();
 	}
 
 	/** process a sync request message */
 	public void processRequest(String request) {
 		new Thread(new CSyncRequestProcessor(request)).start();
+	}
+
+	public void stopSync() {
+		if (cSyncServer != null && cSyncServer.isAlive())
+			cSyncServer.interrupt();
 	}
 }

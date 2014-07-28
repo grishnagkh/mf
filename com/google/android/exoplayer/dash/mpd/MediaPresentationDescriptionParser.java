@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import mf.com.google.android.exoplayer.ParserException;
 import mf.com.google.android.exoplayer.chunk.Format;
 import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SegmentList;
@@ -38,12 +37,11 @@ import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
-
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
-
+import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
@@ -133,6 +131,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 	}
 
 	/* erweiterter google code.. yey! */
+	@SuppressLint("UseSparseArrays")
 	private void parseSession(XmlPullParser xpp) throws XmlPullParserException,
 			IOException {
 		String tag = "parse";
@@ -168,8 +167,8 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		} while (!isEndTag(xpp, "session"));
 		SessionInfo.getInstance().setPeers(peers);
 		/*
-		 * should not happen because of the server, but when it does (testing with dummy data) we are prepared^^
-		 * 
+		 * should not happen because of the server, but when it does (testing
+		 * with dummy data) we are prepared^^
 		 */
 		if (mySelf == null)
 			mySelf = new Peer(31, ownAddress, MessageHandler.PORT);

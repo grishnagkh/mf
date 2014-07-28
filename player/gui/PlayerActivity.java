@@ -232,7 +232,12 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	private void onError(Exception e) {
 		Log.e(TAG, "Playback failed", e);
-		Toast.makeText(this, R.string.failed, Toast.LENGTH_SHORT).show();
+
+		Toast.makeText(
+				this,
+				"could not paly the selected video, check your internet connection and try again",
+				Toast.LENGTH_LONG).show();
+
 		finish();
 	}
 

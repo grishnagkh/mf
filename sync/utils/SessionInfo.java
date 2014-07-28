@@ -22,6 +22,7 @@ package mf.sync.utils;
 
 import java.util.Map;
 
+import mf.player.gui.MainActivity;
 import android.annotation.SuppressLint;
 import android.support.v4.util.ArrayMap;
 
@@ -68,6 +69,10 @@ public class SessionInfo {
 	}
 
 	public Peer getMySelf() {
+		/* obviously we have not parsed anythign yet */
+		if (mySelf == null) {
+			return new Peer(-1, Utils.getWifiAddress(MainActivity.c), 12346);
+		}
 		return mySelf;
 	}
 

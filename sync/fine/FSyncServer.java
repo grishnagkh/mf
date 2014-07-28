@@ -43,17 +43,17 @@ public class FSyncServer extends Thread {
 
 		avgTs = parent.initAvgTs();
 
-		do {
-			// udpate
-			long nts = Utils.getTimestamp();
-			avgTs = parent.alignAvgTs(nts);
-			parent.broadcastToPeers(nts);
+		while (!isInterrupted() && remSteps-- > 0) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
-				// ignore
+				/* ignore */
 			}
-		} while (!isInterrupted() && --remSteps > 0);
+			/* udpate */
+			long nts = Utils.getTimestamp();
+			avgTs = parent.alignAvgTs(nts);
+			parent.broadcastToPeers(nts);
+		}
 		if (!isInterrupted()) {
 			Log.d(TAG, "setting time to: " + avgTs);
 			Utils.setPlaybackTime((int) avgTs);

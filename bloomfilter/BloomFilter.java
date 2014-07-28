@@ -231,6 +231,7 @@ public class BloomFilter<E> implements Serializable {
 	 *            is the object to compare to.
 	 * @return True if the contents of the objects are equal.
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == null) {
@@ -243,6 +244,7 @@ public class BloomFilter<E> implements Serializable {
 		if (!(obj instanceof BloomFilter<?>)) {
 			return false;
 		}
+
 		final BloomFilter<E> other = (BloomFilter<E>) obj;
 
 		/*

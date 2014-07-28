@@ -18,20 +18,22 @@ package mf.com.google.android.exoplayer;
 /**
  * Thrown when a non-recoverable playback failure occurs.
  * <p>
- * Where possible, the cause returned by {@link #getCause()} will indicate the reason for failure.
+ * Where possible, the cause returned by {@link #getCause()} will indicate the
+ * reason for failure.
  */
+@SuppressWarnings("serial")
 public class ExoPlaybackException extends Exception {
 
-  public ExoPlaybackException(String message) {
-    super(message);
-  }
+	public ExoPlaybackException(String message) {
+		super(message);
+	}
 
-  public ExoPlaybackException(Throwable cause) {
-    super(cause);
-  }
+	public ExoPlaybackException(Throwable cause) {
+		super(cause);
+	}
 
-  public ExoPlaybackException(String message, Throwable cause) {
-    super(message, cause);
-  }
+	public ExoPlaybackException(String message, Throwable cause) {
+		super(message, cause);
+	}
 
 }

@@ -26,6 +26,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
+import mf.sync.coarse.CSync;
+import mf.sync.fine.FSync;
+
 /**
  * 
  * a message handler which forwards the received udp packages to the
@@ -103,6 +106,8 @@ public class MessageHandler {
 
 	/** stop the listener for requests */
 	public void stopHandling() {
+		FSync.getInstance().stopSync();
+		CSync.getInstance().stopSync();
 		srv.interrupt();
 	}
 

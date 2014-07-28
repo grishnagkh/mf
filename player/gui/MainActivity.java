@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Spinner;
 
 public class MainActivity extends Activity {
@@ -69,6 +70,10 @@ public class MainActivity extends Activity {
 
 	private void initChoosableVideos() {
 		List<String> list = new ArrayList<String>();
+
+		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
+		e.setText(SERVER_ADDRESS);
+
 		list.add(GLASS_ID);
 		list.add(PLAY_ID);
 		list.add(BUNNY_ID);
@@ -94,9 +99,10 @@ public class MainActivity extends Activity {
 		} else {
 			uri = URI_PLAY;
 		}
-		uri = SERVER_ADDRESS + "?port=" + MessageHandler.PORT + "&mediaSource="
-				+ uri;
-		// test xml
+		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
+		String srv = e.getText().toString();
+		
+		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri;
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))
