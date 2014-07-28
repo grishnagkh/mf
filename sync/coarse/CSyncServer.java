@@ -52,6 +52,7 @@ public class CSyncServer implements Runnable {
 	public void run() {
 		Log.d(TAG, "start coarse sync request");
 		/* 1 */
+		
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 
 			String myIP = SessionInfo.getInstance().getMySelf().getAddress()

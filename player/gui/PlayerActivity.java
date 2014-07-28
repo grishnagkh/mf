@@ -98,22 +98,19 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		setContentView(R.layout.player_activity_simple);
 		View root = findViewById(R.id.root);
 
-		
-		
 		root.setOnTouchListener(new OnSwipeTouchListener(root.getContext()) {
-			
-			public boolean onTouch(View v, MotionEvent event){
+
+			public boolean onTouch(View v, MotionEvent event) {
 				toggleControlsVisibility();
 				return super.onTouch(v, event);
 			}
+
 			@Override
 			public void onSwipeRight(float vel) {
 				Log.d("swipe", "right, vel: " + vel);
 
-				int pos = (player.getCurrentPosition() + player
-						.getDuration() / 10);
-				pos = pos < player.getDuration() ? pos : player
-						.getDuration();
+				int pos = (player.getCurrentPosition() + player.getDuration() / 10);
+				pos = pos < player.getDuration() ? pos : player.getDuration();
 				player.seekTo(pos);
 			}
 
@@ -121,14 +118,11 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 			public void onSwipeLeft(float vel) {
 				Log.d("swipe", "right, vel: " + vel);
 
-				int pos = (player.getCurrentPosition() - player
-						.getDuration() / 10);
+				int pos = (player.getCurrentPosition() - player.getDuration() / 10);
 				pos = pos > 0 ? pos : 0;
 				player.seekTo(pos);
 			}
 		});
-	
-				
 
 		mediaController = new MediaController(this);
 		mediaController.setAnchorView(root);
@@ -136,7 +130,6 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		surfaceView = (VideoSurfaceView) findViewById(R.id.surface_view);
 		surfaceView.getHolder().addCallback(this);
 
-		Utils.initPlayer(player);
 	}
 
 	@Override
@@ -152,6 +145,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Request the renderers
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
+		Utils.initPlayer(player);
 		MessageHandler.getInstance().startHandling(); // XXX
 	}
 

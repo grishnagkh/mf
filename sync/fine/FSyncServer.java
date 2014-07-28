@@ -25,26 +25,25 @@ import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
 import android.util.Log;
 
-public class FSWorker extends Thread {
+public class FSyncServer extends Thread {
 
 	private FSync parent;
 
-	public static final String TAG = "FS Worker";
+	public static final String TAG = "FSync Server";
 
-	public FSWorker(FSync parent) {
+	public FSyncServer(FSync parent) {
 		this.parent = parent;
 	}
 
 	public void run() {
 
 		Log.d(TAG, "started fine sync thread");
-		// create the bloom filter
 		long avgTs;
-		int remSteps = 40; // /XXX just for testing
+		int remSteps = 40; // XXX just for testing
 
 		avgTs = parent.initAvgTs();
 
-		while (!isInterrupted() && remSteps-- > 0) {
+		do {
 			// udpate
 			long nts = Utils.getTimestamp();
 			avgTs = parent.alignAvgTs(nts);
@@ -54,10 +53,7 @@ public class FSWorker extends Thread {
 			} catch (InterruptedException iex) {
 				// ignore
 			}
-		}
-		/*
-		 * end while, fine sync ended TODO: for resync, simply start this again
-		 */
+		} while (!isInterrupted() && --remSteps > 0);
 		if (!isInterrupted()) {
 			Log.d(TAG, "setting time to: " + avgTs);
 			Utils.setPlaybackTime((int) avgTs);

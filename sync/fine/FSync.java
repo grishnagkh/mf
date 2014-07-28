@@ -92,7 +92,7 @@ public class FSync implements SyncI {
 		bloomList.clear();
 		maxId = myId;
 		Log.d(TAG_FS, "want to start fine sync thread");
-		workerThread = new FSWorker(this);
+		workerThread = new FSyncServer(this);
 		workerThread.start();
 	}
 

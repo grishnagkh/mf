@@ -23,6 +23,7 @@ package mf.sync.utils;
 import java.util.Map;
 
 import android.annotation.SuppressLint;
+import android.support.v4.util.ArrayMap;
 
 public class SessionInfo {
 
@@ -39,9 +40,12 @@ public class SessionInfo {
 
 	private long validThru;
 
+	public SessionInfo() {
+		peers = new ArrayMap<Integer, Peer>();
+	}
+
 	/**
-	 * singleton method, do not use (default port is hard coded into vlc, use
-	 * getInstance() instead)
+	 * singleton method
 	 */
 	public static SessionInfo getInstance() {
 		if (instance == null) {
