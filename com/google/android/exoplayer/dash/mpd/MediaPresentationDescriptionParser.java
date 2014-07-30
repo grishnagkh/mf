@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import mf.com.google.android.exoplayer.ParserException;
 import mf.com.google.android.exoplayer.chunk.Format;
 import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SegmentList;
@@ -33,14 +34,17 @@ import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SingleSegmentBase;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.MimeTypes;
 import mf.player.gui.MainActivity;
+import mf.sync.coarse.CSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
+
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
+
 import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -54,6 +58,8 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 	// Note: Does not support the date part of ISO 8601
 	private static final Pattern DURATION = Pattern
 			.compile("^PT(([0-9]*)H)?(([0-9]*)M)?(([0-9.]*)S)?$");
+
+	private static final boolean DEBUG_ON_SCREEN = true;
 
 	private final XmlPullParserFactory xmlParserFactory;
 
@@ -92,9 +98,11 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			InputStream inputStream, String inputEncoding, String contentId,
 			Uri baseUrl) throws XmlPullParserException, IOException,
 			ParserException {
+
 		XmlPullParser xpp = xmlParserFactory.newPullParser();
 		xpp.setInput(inputStream, inputEncoding);
 		int eventType = xpp.next();
+		Log.d("parser", xpp.getName());
 		if (eventType != XmlPullParser.START_TAG
 				|| !"MPD".equals(xpp.getName())) {
 			throw new ParserException(
@@ -126,6 +134,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			}
 		} while (!isEndTag(xpp, "MPD"));
 
+		CSync.getInstance().startSync();// XXX
 		return new MediaPresentationDescription(durationMs, minBufferTimeMs,
 				dynamic, minUpdateTimeMs, periods);
 	}
@@ -134,8 +143,8 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 	@SuppressLint("UseSparseArrays")
 	private void parseSession(XmlPullParser xpp) throws XmlPullParserException,
 			IOException {
-		String tag = "parse";
-		Log.d(tag, "encountered session tag");
+		if (DEBUG_ON_SCREEN)
+			SessionInfo.getInstance().log("parsing session");
 
 		String validThru = xpp.getAttributeValue(0);
 		String sessionId = xpp.getAttributeValue(1);
@@ -145,6 +154,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 
 		Map<Integer, Peer> peers = new HashMap<Integer, Peer>();
 		Peer mySelf = null;
+
 		InetAddress ownAddress = Utils.getWifiAddress(MainActivity.c);
 		do {
 
@@ -155,17 +165,23 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 				InetAddress addr = InetAddress.getByName(xpp
 						.getAttributeValue(1));
 				Peer peer = new Peer(id, addr, port);
-				Log.d(tag, peer.toString());
-				if (peer.getAddress().equals(ownAddress)) {
+
+				if (peer.getAddress().getHostAddress()
+						.equals(ownAddress.getHostAddress())) {
 					mySelf = peer;
+					if (DEBUG_ON_SCREEN)
+						SessionInfo.getInstance().log(
+								"encountered myself " + mySelf);
 				} else {
-					peers.put(id, peer);
+					if (DEBUG_ON_SCREEN)
+						SessionInfo.getInstance().log("add peer " + peer);
+					SessionInfo.getInstance().getPeers().put(id, peer);
 				}
 			} else {
 
 			}
 		} while (!isEndTag(xpp, "session"));
-		SessionInfo.getInstance().setPeers(peers);
+
 		/*
 		 * should not happen because of the server, but when it does (testing
 		 * with dummy data) we are prepared^^
@@ -173,6 +189,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		if (mySelf == null)
 			mySelf = new Peer(31, ownAddress, MessageHandler.PORT);
 		SessionInfo.getInstance().setMySelf(mySelf);
+
 	}/* erweiterter google code.. yey ende! */
 
 	private Period parsePeriod(XmlPullParser xpp, String contentId,
