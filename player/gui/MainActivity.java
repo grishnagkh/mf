@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
 	public static final String GLASS_ID = "Google Glasses";
 	public static final String PLAY_ID = "Google Play";
 
-	public static final String SERVER_ADDRESS = "http://192.168.7.100/mf/simsServer.php";
+	public static final String SERVER_ADDRESS = "https://demo-itec.uni-klu.ac.at/livelab/mf/simsServer.php" ;//"http://192.168.7.100/mf/simsServer.php";
 
 	public final static String TAG = "MainActivity";
 	public static Context c = null;
