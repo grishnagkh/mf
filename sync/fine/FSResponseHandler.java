@@ -43,7 +43,7 @@ public class FSResponseHandler extends Thread {
 
 	public void run() {
 
-		String[] msgA = msg.split("\\" + SyncI.DELIM);
+		String[] msgA = msg.split(SyncI.DELIM);
 
 		BloomFilter<Integer> rcvBF = new BloomFilter<Integer>(
 				SyncI.BITS_PER_ELEM, SyncI.N_EXP_ELEM, SyncI.N_HASHES);
@@ -74,6 +74,7 @@ public class FSResponseHandler extends Thread {
 			 * the network? to test..,. if not, a comparison method must be
 			 * written
 			 */
+			long delta = 1239120491;
 
 			if (Utils.xor(rcvBF, bloom)) {// the bloom filters are different
 				Log.d(TAG, "bloom filters are different");
@@ -85,6 +86,7 @@ public class FSResponseHandler extends Thread {
 					long wSum = (avgTs * nBloom2 + (rAvg + (actTs - rNtp))
 							* nBloom1);
 					parent.updateAvgTs(wSum / (nBloom1 + nBloom2));
+
 					/* add the received bloom filter to the ones already seen */
 					parent.getBloomList().add(rcvBF);
 
@@ -97,16 +99,20 @@ public class FSResponseHandler extends Thread {
 						/* correct received average */
 						parent.updateAvgTs(rAvg + (actTs - rNtp));
 					} else {
-						/* add own timestamp to received one  */
+						/* add own timestamp to received one */
 						long wSum = (nBloom1 * (rAvg + (actTs - rNtp)) + avgTs);
 						parent.updateAvgTs(wSum / (nBloom2 + 1));
 						bloom.add(myId);
 					}
-				}
 
+				}
+				long pts = Utils.getPlaybackTime();// XXX
+				delta = actTs - pts;// XXX
+				SessionInfo.getInstance().log("delta from fine sync: " + avgTs);
 			} else {
 				// the same bloom filters: ignore; time stamps must be equal
 			}
+
 		}
 
 		parent.setMaxId(maxId < paketMax ? paketMax : maxId);

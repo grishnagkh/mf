@@ -37,11 +37,11 @@ public interface SyncI {
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
 	 */
-	public static final int WAIT_TIME_CS_MS = 1000;
+	public static final int WAIT_TIME_CS_MS = 5000;
 	/** fine sync period length */
-	public static final int PERIOD_FS_MS = 250;
+	public static final int PERIOD_FS_MS = 1000;// 250;
 
-	public static final String DELIM = "|";
+	public static final String DELIM = ":";
 
 	/** bloom filter length: n_exp_elem * bits_per_elem */
 	public static final int N_EXP_ELEM = 256;

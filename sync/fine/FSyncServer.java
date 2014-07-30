@@ -37,6 +37,20 @@ public class FSyncServer extends Thread {
 
 	public void run() {
 
+		// let's make our test from getting time like vlc again..
+
+		long t1 = Utils.getTimestamp();
+		int first = Utils.getPlaybackTime();
+
+//		for (int i = 0; i < 30000; i++) {
+//			Log.d("maytest", Utils.getPlaybackTime() + "");
+//		}
+//		int last = Utils.getPlaybackTime();
+//
+//		Log.d("maytest", (System.currentTimeMillis() - t1) + "ms");
+//		Log.d("maytest", "first: " + first);
+//		Log.d("maytest", "last: " + last);
+
 		Log.d(TAG, "started fine sync thread");
 		long avgTs;
 		int remSteps = 40; // XXX just for testing
@@ -47,17 +61,17 @@ public class FSyncServer extends Thread {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
-				/* ignore */
+				break;
 			}
 			/* udpate */
 			long nts = Utils.getTimestamp();
 			avgTs = parent.alignAvgTs(nts);
 			parent.broadcastToPeers(nts);
-		}
-		if (!isInterrupted()) {
-			Log.d(TAG, "setting time to: " + avgTs);
-			Utils.setPlaybackTime((int) avgTs);
-		}
 
+		}
+		// if (!isInterrupted()) {
+		// Log.d(TAG, "setting time to: " + avgTs);
+		// }
+		Utils.setPlaybackTime((int) avgTs);
 	}
 }

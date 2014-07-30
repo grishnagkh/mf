@@ -48,8 +48,8 @@ public class FSync implements SyncI {
 	/** a list of seen bloom filters */
 	private List<BloomFilter<Integer>> bloomList;
 
-	/** time when the last avgTs was received */
-	private long lastAvgUpdateTs; // the time of the last avg ts update
+	/** time when the last avgTs update */
+	private long lastAvgUpdateTs;
 	/** average time stamp at time oldTs */
 	private long avgTs;
 	private int maxId;
@@ -59,9 +59,6 @@ public class FSync implements SyncI {
 
 	private Thread workerThread;
 	private Object avgMonitor;
-
-	// /** stop the message sending */
-	// private boolean fineSyncNecessary = true;
 
 	/**
 	 * Constructor

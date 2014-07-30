@@ -41,59 +41,72 @@ import android.util.Log;
  *
  */
 public class CSyncServer extends Thread {
-	String TAG = "csr";
-	int SEGSIZE = 2000;
+
+	public static final String TAG = "csr";
+	public static final boolean DEBUG_ON_SCREEN = true;
+	private int SEGSIZE = 2000;
+
 	private List<String> msgQueue;
 
-	
-	
 	public CSyncServer(List<String> messageQueue) {
+		if (DEBUG_ON_SCREEN) {
+			SessionInfo.getInstance().log("new csync server");
+		}
 		msgQueue = messageQueue;
 	}
 
 	public void run() {
-		Log.d(TAG, "start coarse sync request");
+
 		/* 1 */
-		
+
+		String myIP = SessionInfo.getInstance().getMySelf().getAddress()
+				.getHostAddress();
+		int myPort = SessionInfo.getInstance().getMySelf().getPort();
+		int myId = SessionInfo.getInstance().getMySelf().getId();
+
+		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ,
+				myIP, myPort, 0, Utils.getTimestamp(), myId);
+		if (DEBUG_ON_SCREEN)
+			SessionInfo.getInstance().log("built csync message: " + msg);
+
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 
-			String myIP = SessionInfo.getInstance().getMySelf().getAddress()
-					.getHostAddress();
-			int myPort = SessionInfo.getInstance().getMySelf().getPort();
-			int myId = SessionInfo.getInstance().getMySelf().getId();
-
-			String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ,
-					myIP, myPort, 0, Utils.getTimestamp(), myId);
+			if (DEBUG_ON_SCREEN)
+				SessionInfo.getInstance().log("Processing peer: " + p);
 
 			try {
 				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
 						p.getPort());
 			} catch (SocketException e) {
-				Log.e(TAG, "could not send message");
+				if (DEBUG_ON_SCREEN)
+					SessionInfo.getInstance().log(
+							"FATAL: could not send message" + e.toString());
 			} catch (IOException e) {
-				Log.e(TAG, "could not send message");
+				if (DEBUG_ON_SCREEN)
+					SessionInfo.getInstance().log(
+							"FATAL: could not send message " + e.toString());
 			}
 		}
-		Log.d(TAG, "phase 1 completed, waiting...");
 		/* 2 */
 		try {
 			Thread.sleep(SyncI.WAIT_TIME_CS_MS);
 		} catch (InterruptedException e) {
 			return;
 		}
-		Log.d(TAG, "phase 2 completed, calculating");
+
 		long avgPTS = 0;
 
 		/* 3 */
 
 		if (msgQueue.size() == 0) {
-			Log.d(TAG, "no messages in queue");
-			FSync.getInstance().startSync();
+			if (DEBUG_ON_SCREEN)
+				SessionInfo.getInstance().log("no messages in response queue");
+			 FSync.getInstance().startSync();
 			return;
 		}
 
 		for (String response : msgQueue) {
-			String[] responseFields = response.split("\\" + SyncI.DELIM);
+			String[] responseFields = response.split(SyncI.DELIM);
 			long pts = Long.parseLong(responseFields[3]);
 			long nts = Long.parseLong(responseFields[4]);
 			avgPTS += pts + (Utils.getTimestamp() - nts);
@@ -106,18 +119,22 @@ public class CSyncServer extends Thread {
 		// empty request queue
 		msgQueue.clear();
 
-		Log.d(TAG, "calculated average from coarse synchronization: " + avgPTS);
-		// scale time to the 2s segments, just to make some sense for fine
-		// sync^^,
+		if (DEBUG_ON_SCREEN)
+			SessionInfo.getInstance().log(
+					"calculated average from c synchronization: " + avgPTS);
+
+		/*
+		 * scale time to the 2s segments, just to make some sense for fine
+		 * sync^^
+		 */
 
 		avgPTS = SEGSIZE + avgPTS - avgPTS % SEGSIZE;
-		// Log.d(TAG_CS, "try to set time to " + avgPTS);
 
 		Utils.setPlaybackTime((int) avgPTS);
+		if (DEBUG_ON_SCREEN)
+			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		// Log.d(TAG_CS, "have set time to " + avgPTS);
-
-		FSync.getInstance().startSync();
+		 FSync.getInstance().startSync();
 	}
 
 }

@@ -60,8 +60,9 @@ public class Utils {
 	 */
 	public static String buildMessage(String delim, int type, String myIP,
 			int myPort, long pts, long nts, int myId) {
-		return type + delim + myIP + delim + myPort + delim + pts + delim + nts
-				+ delim + myId;
+		String msg = type + delim + myIP + delim + myPort + delim + pts + delim
+				+ nts + delim + myId;
+		return msg;
 	}
 
 	/**
@@ -78,8 +79,9 @@ public class Utils {
 	 */
 	public static String buildMessage(String delim, int type, long avgTS,
 			long nts, int myId, String bloomFilterRep, int maxId) {
-		return type + delim + avgTS + delim + nts + delim + myId + delim
+		String msg = type + delim + avgTS + delim + nts + delim + myId + delim
 				+ bloomFilterRep + delim + maxId;
+		return msg;
 	}
 
 	/**

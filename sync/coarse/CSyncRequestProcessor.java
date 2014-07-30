@@ -38,23 +38,35 @@ import android.util.Log;
  * @author stefan petscharnig
  */
 class CSyncRequestProcessor implements Runnable {
-	String req;
-	String TAG = "csprr";
+
+	private String req;
+	public static final String TAG = "csprr";
 
 	public CSyncRequestProcessor(String req) {
 		this.req = req;
 	}
 
+	// sometimes we get 7 fileds back, most times 6, happy hacking
 	public void run() {
 		// parse request
 		Log.d(TAG, "got the following request: " + req);
-		String[] responseFields = req.split("\\" + SyncI.DELIM);
-		if (responseFields.length != 6) { // simplest check available...
-			Log.d(TAG, "invalid request [length]");
+		String[] responseFields = req.split(SyncI.DELIM);
+
+		int peerId;
+
+		if (responseFields.length == 6) {
+			peerId = Integer.parseInt(responseFields[5]);
+		} else if (responseFields.length == 7) { // check our hack
+			peerId = Integer.parseInt(responseFields[6]);
+		} else {
+			SessionInfo.getInstance().log(
+					"dropping invalid request [length]: " + req);
 			return; // invalid message
 		}
+
 		String senderIP = responseFields[1];
 		InetAddress peerAddress = null;
+
 		try {
 			peerAddress = InetAddress.getByName(senderIP);
 		} catch (UnknownHostException e) {
@@ -63,9 +75,7 @@ class CSyncRequestProcessor implements Runnable {
 		}
 		int senderPort = Integer.parseInt(responseFields[2]);
 
-		long myPts = 0;
-		myPts = Utils.getPlaybackTime();
-
+		int myPts = Utils.getPlaybackTime();
 		long myNts = Utils.getTimestamp();
 
 		String myIP = SessionInfo.getInstance().getMySelf().getAddress()
@@ -83,8 +93,9 @@ class CSyncRequestProcessor implements Runnable {
 		} catch (IOException e) {
 			Log.e(TAG, "could not send message");
 		}
-		int peerId = Integer.parseInt(responseFields[5]);
+
 		if (!SessionInfo.getInstance().getPeers().containsKey(peerId)) {
+			Log.d("", "add a new peer");
 			Peer p = new Peer(peerId, peerAddress, senderPort);
 			SessionInfo.getInstance().getPeers().put(peerId, p);
 		}

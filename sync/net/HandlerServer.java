@@ -23,11 +23,18 @@ package mf.sync.net;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
+import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
+import mf.sync.utils.Utils;
+import mf.sync.utils.log.SyncLogger;
+import android.os.Debug;
 import android.util.Log;
 
 /**
@@ -39,7 +46,8 @@ import android.util.Log;
 public class HandlerServer extends Thread {
 	public static final String TAG = "HandlerServer";
 	/** length of the receive buffer */
-	public static final int RCF_BUF_LEN = 4096; // we start with a 4k buffer
+	public static final int RCF_BUF_LEN = 2048; // let us have a 2k buffer..
+	private static final boolean DEBUG = true;
 	Thread t;
 	/** UDP socket for receiving messages */
 	DatagramSocket serverSocket;
@@ -48,12 +56,22 @@ public class HandlerServer extends Thread {
 
 	int port;
 
+	static SyncLogger rcvLog;
+	static {
+		rcvLog = new SyncLogger(5);
+	}
+
+	public HandlerServer() {
+		SessionInfo.getInstance().log("new handler server");
+	}
+
 	@Override
 	public void interrupt() {
-		super.interrupt();
+		SessionInfo.getInstance().log("Interrupt message handler server");
 		if (serverSocket != null) {
 			serverSocket.close();
 		}
+		super.interrupt();
 	}
 
 	public void start(int port) {
@@ -62,26 +80,49 @@ public class HandlerServer extends Thread {
 		t.start();
 	}
 
+	// we get duplicate messages, despite sending unique... hack to receive
+	// message only once..
+	List<String> received;
+
 	/** worker method */
 	@Override
 	public void run() {
-		CSync.getInstance().startSync();
+		received = new ArrayList<String>();
 
 		try {
 			serverSocket = new DatagramSocket(port);
 			serverSocket.setSoTimeout(0);
 		} catch (SocketException e1) {
-			Log.d(TAG, e1.toString());
+			SessionInfo.getInstance().log(e1.toString());
 		}
-		if (serverSocket == null) {
-			Log.d("why", "do you do this to me?");
-		}
+		DatagramPacket rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
+
 		while (!isInterrupted()) {
-			DatagramPacket rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
 			try {
+				rcv.setLength(RCF_BUF_LEN);
 				serverSocket.receive(rcv);
 				String msg = new String(rcv.getData());
+
+				int idx = msg.indexOf('#') + 1;
+
+				String id = msg.substring(0, idx);
+				if (received.contains(id)) {
+					if (DEBUG)
+						SessionInfo.getInstance().log(
+								"duplicate message, dropping...");
+
+					continue; // we have received this message
+				} else {
+					received.add(id);
+				}
 				msg = msg.trim();
+				if (msg.length() < 50) {
+					rcvLog.append(msg);
+				} else {
+					rcvLog.append(msg.substring(0, 49) + "...");
+				}
+				msg = msg.substring(idx);
+
 				/* distribute the message */
 				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
 					CSync.getInstance().processRequest(msg);
@@ -95,7 +136,9 @@ public class HandlerServer extends Thread {
 			} catch (IOException e) {
 
 			}
+
 		}
+		SessionInfo.getInstance().log("handler server got interrupted");
 	}
 
 }

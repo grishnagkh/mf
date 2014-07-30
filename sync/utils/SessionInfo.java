@@ -22,9 +22,10 @@ package mf.sync.utils;
 
 import java.util.Map;
 
-import mf.player.gui.MainActivity;
+import mf.sync.utils.log.SyncLogger;
 import android.annotation.SuppressLint;
 import android.support.v4.util.ArrayMap;
+import android.util.Log;
 
 public class SessionInfo {
 
@@ -40,9 +41,13 @@ public class SessionInfo {
 	private String sessionId;
 
 	private long validThru;
+	// List<String> log;
+	SyncLogger log;
 
 	public SessionInfo() {
 		peers = new ArrayMap<Integer, Peer>();
+		// log = new ArrayList<String>();
+		log = new SyncLogger(20);
 	}
 
 	/**
@@ -61,6 +66,7 @@ public class SessionInfo {
 	}
 
 	public void setPeers(Map<Integer, Peer> peers) {
+		Log.d("SessionInfo", "setting peers: " + peers);
 		this.peers = peers;
 	}
 
@@ -69,10 +75,6 @@ public class SessionInfo {
 	}
 
 	public Peer getMySelf() {
-		/* obviously we have not parsed anythign yet */
-		if (mySelf == null) {
-			return new Peer(-1, Utils.getWifiAddress(MainActivity.c), 12346);
-		}
 		return mySelf;
 	}
 
@@ -91,5 +93,18 @@ public class SessionInfo {
 	public long getValidThru() {
 		return validThru;
 	}
+
+	public void log(String s) {
+		// log.add(s);
+		log.append(s);
+	}
+
+	public SyncLogger getLog() {
+		return log;
+	}
+	// public List<String> getLog() {
+	//
+	// return log;
+	// }
 
 }

@@ -25,9 +25,12 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 
-import mf.sync.coarse.CSync;
-import mf.sync.fine.FSync;
+import mf.sync.utils.SessionInfo;
+import mf.sync.utils.log.SyncLogger;
+import android.util.Log;
 
 /**
  * 
@@ -44,6 +47,8 @@ public class MessageHandler {
 
 	/** default port where we listen for synchronization messages */
 	public static final int PORT = 12346;
+
+	SyncLogger sendLog;
 
 	/** actual port to listen */
 	private int port;
@@ -72,6 +77,18 @@ public class MessageHandler {
 	/** singleton constructor using custom port */
 	private MessageHandler(int port) {
 		this.port = port;
+		sendLog = new SyncLogger(5);
+		SessionInfo.getInstance().getLog().append("create new message handler");
+	}
+
+	public SyncLogger getSendLog() {
+		return sendLog;
+	}
+
+	public SyncLogger getRcvLog() {
+		if (srv != null)
+			return srv.rcvLog;
+		return null;
 	}
 
 	/**
@@ -86,8 +103,24 @@ public class MessageHandler {
 	 * @throws SocketException
 	 * @throws IOException
 	 */
+
+	static int cnt;
+
+	static {
+		cnt = 0;
+	}
+
 	public synchronized void sendMsg(String msg, InetAddress address, int port)
 			throws SocketException, IOException {
+
+		msg = SessionInfo.getInstance().getMySelf().getId() + "." + cnt++ + "#"
+				+ msg;
+		if (msg.length() < 50) {
+			sendLog.append(msg);
+		} else {
+			sendLog.append(msg.substring(0, 49) + "...");
+		}
+
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
 				msg.getBytes().length, address, port);
@@ -100,14 +133,18 @@ public class MessageHandler {
 	 * messages and distributing the work to the sync modules
 	 */
 	public void startHandling() {
+		Log.d(TAG, "start handling");
 		srv = new HandlerServer();
 		srv.start(port);
 	}
 
 	/** stop the listener for requests */
 	public void stopHandling() {
-		FSync.getInstance().stopSync();
-		CSync.getInstance().stopSync();
+		Log.d(TAG, "stop handling");
+		getRcvLog().clear();
+		getSendLog().clear();
+		SessionInfo.getInstance().getLog().clear();
+		SessionInfo.getInstance().getPeers().clear();
 		srv.interrupt();
 	}
 

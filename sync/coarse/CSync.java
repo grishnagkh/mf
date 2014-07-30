@@ -23,6 +23,7 @@ package mf.sync.coarse;
 import java.util.ArrayList;
 import java.util.List;
 
+import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
 
 /**
@@ -32,9 +33,12 @@ import mf.sync.utils.SyncI;
  */
 
 public class CSync implements SyncI {
+	public static final boolean DEBUG = true;
 
 	public static final int SEGSIZE = 2000;// for now^^
+
 	private CSyncServer cSyncServer;
+
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
 	/** singleton instance */
@@ -42,6 +46,9 @@ public class CSync implements SyncI {
 
 	/** Singleton constructor */
 	private CSync() {
+		if (DEBUG) {
+			SessionInfo.getInstance().log("new csync, init message queue");
+		}
 		msgQueue = new ArrayList<String>();
 	}
 
@@ -54,23 +61,34 @@ public class CSync implements SyncI {
 
 	/** method for filling the queue response */
 	public void coarseResponse(String msg) {
+		if (DEBUG)
+			SessionInfo.getInstance().log("process coarse response");
 		msgQueue.add(msg);
 	}
 
 	/** start the sync server */
 	public void startSync() {
+		if (DEBUG)
+			SessionInfo.getInstance().log("start sync");
 		stopSync();
+
 		cSyncServer = new CSyncServer(msgQueue);
 		cSyncServer.start();
 	}
 
 	/** process a sync request message */
 	public void processRequest(String request) {
+		if (DEBUG)
+			SessionInfo.getInstance().log("process coarse request");
 		new Thread(new CSyncRequestProcessor(request)).start();
 	}
 
 	public void stopSync() {
-		if (cSyncServer != null && cSyncServer.isAlive())
+
+		if (cSyncServer != null && cSyncServer.isAlive()) {
+			if (DEBUG)
+				SessionInfo.getInstance().log("stopping already running csync");
 			cSyncServer.interrupt();
+		}
 	}
 }
