@@ -16,6 +16,11 @@
 
 package mf.player.gui;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
 import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
@@ -24,6 +29,8 @@ import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.com.google.android.exoplayer.util.PlayerControl;
 import mf.sync.net.MessageHandler;
+import mf.sync.utils.Peer;
+import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
 import android.app.Activity;
 import android.content.Intent;
@@ -36,7 +43,9 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.widget.MediaController;
+import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -87,6 +96,32 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+
+				for (int i = 0; i < 1000000; i++) {
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					try {
+						runOnUiThread(new Runnable() {
+
+							@Override
+							public void run() {
+								updateDebugViews();
+							}
+						});
+					} catch (Exception e) {
+					}
+				}
+			}
+		}).start();
+
 		Intent intent = getIntent();
 		contentUri = intent.getData();
 		contentType = intent.getIntExtra(DemoUtil.CONTENT_TYPE_EXTRA,
@@ -98,30 +133,13 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 		setContentView(R.layout.player_activity_simple);
 		View root = findViewById(R.id.root);
-
-		root.setOnTouchListener(new OnSwipeTouchListener(root.getContext()) {
-
-			public boolean onTouch(View v, MotionEvent event) {
-				toggleControlsVisibility();
-				return super.onTouch(v, event);
-			}
-
+		root.setOnTouchListener(new OnTouchListener() {
 			@Override
-			public void onSwipeRight(float vel) {
-				Log.d("swipe", "right, vel: " + vel);
-
-				int pos = (player.getCurrentPosition() + player.getDuration() / 10);
-				pos = pos < player.getDuration() ? pos : player.getDuration();
-				player.seekTo(pos);
-			}
-
-			@Override
-			public void onSwipeLeft(float vel) {
-				Log.d("swipe", "right, vel: " + vel);
-
-				int pos = (player.getCurrentPosition() - player.getDuration() / 10);
-				pos = pos > 0 ? pos : 0;
-				player.seekTo(pos);
+			public boolean onTouch(View arg0, MotionEvent arg1) {
+				if (arg1.getAction() == MotionEvent.ACTION_DOWN) {
+					toggleControlsVisibility();
+				}
+				return true;
 			}
 		});
 
@@ -131,6 +149,36 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		surfaceView = (VideoSurfaceView) findViewById(R.id.surface_view);
 		surfaceView.getHolder().addCallback(this);
 
+	}
+
+	public void updateDebugViews() {
+		TextView dRcv = (TextView) findViewById(R.id.debug_view_rcv);
+		TextView dSen = (TextView) findViewById(R.id.debug_view_send);
+		TextView dPee = (TextView) findViewById(R.id.debug_view_peers);
+		TextView dBox = (TextView) findViewById(R.id.debug_box);
+
+		String rcvStr = "message received\n", senStr = "messages sent\n", peeStr = "known peers\n", dText = "DEBUG\n";
+
+		dText += SessionInfo.getInstance().getLog().toString();
+		senStr += MessageHandler.getInstance().getSendLog().toString();
+		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
+
+		Map<Integer, Peer> map = (Map<Integer, Peer>) SessionInfo.getInstance()
+				.getPeers();
+		if (map != null) {
+			Collection<Peer> l2 = map.values();
+			List<Peer> l1 = new ArrayList<Peer>();
+			for (Peer p : l2) {
+				l1.add(p);
+			}
+			for (int i = l1.size(); i > 0; i--) {
+				peeStr += l1.get(i - 1).toString() + "\n";
+			}
+		}
+		dRcv.setText(rcvStr);
+		dSen.setText(senStr);
+		dPee.setText(peeStr);
+		dBox.setText(dText);
 	}
 
 	@Override
@@ -146,8 +194,11 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Request the renderers
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
+
 		Utils.initPlayer(player);
+
 		MessageHandler.getInstance().startHandling(); // XXX
+
 	}
 
 	@Override
@@ -191,6 +242,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		case TYPE_DASH_VOD:
 			return new DashVodRendererBuilder(this, userAgent,
 					contentUri.toString(), contentId);
+
 		default:
 			return new DefaultRendererBuilder(this, contentUri);
 		}

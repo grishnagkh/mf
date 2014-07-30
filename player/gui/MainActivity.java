@@ -36,26 +36,36 @@ import android.widget.Spinner;
 
 public class MainActivity extends Activity {
 
-	public static final String BIG_BUCK = "BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd";
-	public static final String ED = "ElephantsDream_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd";
+	// public static final String BIG_BUCK =
+	// "BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd";
+	// public static final String ED =
+	// "ElephantsDream_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd";
+	//
+	// public static final String URI_GLASS =
+	// "http://www.youtube.com/api/manifest/dash/id/bf5bb2419360daf1/source/youtube?"
+	// +
+	// "as=fmp4_audio_clear,fmp4_sd_hd_clear&sparams=ip,ipbits,expire,as&ip=0.0.0.0&"
+	// +
+	// "ipbits=0&expire=19000000000&signature=255F6B3C07C753C88708C07EA31B7A1A10703C8D."
+	// + "2D6A28B21F921D0B245CDCF36F7EB54A2B5ABFC2&key=ik0";
+	public static final String URI_PLAY = "./play.mpd";
+	public static final String URI_GLASS = "./glass.mpd";
+	// public static final String URI_PLAY =
+	// "http://www.youtube.com/api/manifest/dash/id/3aa39fa2cc27967f/source/youtube?"
+	// +
+	// "as=fmp4_audio_clear,fmp4_sd_hd_clear&sparams=ip,ipbits,expire,as&ip=0.0.0.0&ipbits=0&"
+	// +
+	// "expire=19000000000&signature=7181C59D0252B285D593E1B61D985D5B7C98DE2A."
+	// + "5B445837F55A40E0F28AACAA047982E372D177E2&key=ik0";
 
-	public static final String URI_GLASS = "http://www.youtube.com/api/manifest/dash/id/bf5bb2419360daf1/source/youtube?"
-			+ "as=fmp4_audio_clear,fmp4_sd_hd_clear&sparams=ip,ipbits,expire,as&ip=0.0.0.0&"
-			+ "ipbits=0&expire=19000000000&signature=255F6B3C07C753C88708C07EA31B7A1A10703C8D."
-			+ "2D6A28B21F921D0B245CDCF36F7EB54A2B5ABFC2&key=ik0";
+	// public static final String URI_BUNNY =
+	// "http://rdmedia.bbc.co.uk/dash/ondemand/bbb/avc3/1/client_manifest-common_init.mpd";
 
-	public static final String URI_PLAY = "http://www.youtube.com/api/manifest/dash/id/3aa39fa2cc27967f/source/youtube?"
-			+ "as=fmp4_audio_clear,fmp4_sd_hd_clear&sparams=ip,ipbits,expire,as&ip=0.0.0.0&ipbits=0&"
-			+ "expire=19000000000&signature=7181C59D0252B285D593E1B61D985D5B7C98DE2A."
-			+ "5B445837F55A40E0F28AACAA047982E372D177E2&key=ik0";
-
-	public static final String URI_BUNNY = "http://rdmedia.bbc.co.uk/dash/ondemand/bbb/avc3/1/client_manifest-common_init.mpd";
-
-	public static final String BUNNY_ID = "Big Buck Bunny";
+	// public static final String BUNNY_ID = "Big Buck Bunny";
 	public static final String GLASS_ID = "Google Glasses";
 	public static final String PLAY_ID = "Google Play";
 
-	public static final String SERVER_ADDRESS = "http://blubdididu.changeme.org/filename.php";
+	public static final String SERVER_ADDRESS = "http://192.168.7.100/mf/simsServer.php";
 
 	public final static String TAG = "MainActivity";
 	public static Context c = null;
@@ -76,7 +86,6 @@ public class MainActivity extends Activity {
 
 		list.add(GLASS_ID);
 		list.add(PLAY_ID);
-		list.add(BUNNY_ID);
 
 		ArrayAdapter<String> adap = new ArrayAdapter<String>(this,
 				android.R.layout.simple_spinner_item, list);
@@ -89,19 +98,16 @@ public class MainActivity extends Activity {
 		String selection = ((Spinner) findViewById(R.id.fileChooser_main))
 				.getSelectedItem().toString();
 
-		String uri;
-		if (GLASS_ID.equals(selection)) {
+		String uri = "";
+		if (PLAY_ID.equals(selection)) {
+			uri = URI_PLAY;
+		} else if (GLASS_ID.equals(selection)) {
 			uri = URI_GLASS;
-		} else if (PLAY_ID.equals(selection)) {
-			uri = URI_PLAY;
-		} else if (BUNNY_ID.equals(selection)) {
-			uri = URI_BUNNY;
-		} else {
-			uri = URI_PLAY;
+
 		}
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		String srv = e.getText().toString();
-		
+
 		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri;
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
