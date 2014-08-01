@@ -25,10 +25,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.zip.CRC32;
 
 import mf.sync.utils.SessionInfo;
+import mf.sync.utils.SyncI;
 import mf.sync.utils.log.SyncLogger;
 import android.util.Log;
 
@@ -115,6 +115,12 @@ public class MessageHandler {
 
 		msg = SessionInfo.getInstance().getMySelf().getId() + "." + cnt++ + "#"
 				+ msg;
+
+		CRC32 check = new CRC32();
+		check.update(msg.getBytes());
+
+		msg = check.getValue() + "#" + msg;
+
 		if (msg.length() < 50) {
 			sendLog.append(msg);
 		} else {

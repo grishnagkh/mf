@@ -23,19 +23,16 @@ package mf.sync.net;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.CRC32;
 
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
-import mf.sync.utils.Utils;
 import mf.sync.utils.log.SyncLogger;
-import android.os.Debug;
-import android.util.Log;
 
 /**
  * Class implementing the distribution behaviour for the MessageHandler
@@ -47,27 +44,38 @@ public class HandlerServer extends Thread {
 	public static final String TAG = "HandlerServer";
 	/** length of the receive buffer */
 	public static final int RCF_BUF_LEN = 2048; // let us have a 2k buffer..
-	private static final boolean DEBUG = true;
-	Thread t;
-	/** UDP socket for receiving messages */
-	DatagramSocket serverSocket;
-	/** receive Buffer */
-	byte[] rcvBuf = new byte[RCF_BUF_LEN];
 
-	int port;
+	private static final boolean DEBUG_CRC = false;
+	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
+	private static final boolean DEBUG = false;
+	private Thread t;
+	/** UDP socket for receiving messages */
+	private DatagramSocket serverSocket;
+	/** receive Buffer */
+	private byte[] rcvBuf = new byte[RCF_BUF_LEN];
+	private int port;
+
+	private List<String> received;
 
 	static SyncLogger rcvLog;
+
 	static {
+		/* init logger */
 		rcvLog = new SyncLogger(5);
 	}
 
 	public HandlerServer() {
-		SessionInfo.getInstance().log("new handler server");
+		if (DEBUG)
+			SessionInfo.getInstance().log("new handler server");
 	}
 
 	@Override
 	public void interrupt() {
-		SessionInfo.getInstance().log("Interrupt message handler server");
+		if (DEBUG)
+			SessionInfo.getInstance().log("Interrupt message handler server");
+
+		received.clear();
+
 		if (serverSocket != null) {
 			serverSocket.close();
 		}
@@ -79,10 +87,6 @@ public class HandlerServer extends Thread {
 		this.port = port;
 		t.start();
 	}
-
-	// we get duplicate messages, despite sending unique... hack to receive
-	// message only once..
-	List<String> received;
 
 	/** worker method */
 	@Override
@@ -105,23 +109,43 @@ public class HandlerServer extends Thread {
 
 				int idx = msg.indexOf('#') + 1;
 
+				String crc = msg.substring(0, idx - 1);
+				msg = msg.substring(idx);
+				msg = msg.trim();
+
+				/* CRC check */
+				long checkSum = Long.parseLong(crc);
+				CRC32 check = new CRC32();
+				check.update(msg.getBytes());
+				if (checkSum != check.getValue()) {
+					if (DEBUG_CRC)
+						SessionInfo.getInstance().log("crc check not passed");
+					continue;
+				}
+				if (DEBUG_CRC)
+					SessionInfo.getInstance().log("crc check passed");
+				idx = msg.indexOf('#') + 1;
+				/* duplicate message check */
 				String id = msg.substring(0, idx);
 				if (received.contains(id)) {
-					if (DEBUG)
+					if (DEBUG_DUPLICATE_MESSAGES)
 						SessionInfo.getInstance().log(
 								"duplicate message, dropping...");
-
 					continue; // we have received this message
 				} else {
+					if (DEBUG_DUPLICATE_MESSAGES)
+						SessionInfo.getInstance().log(
+								"message id unseen, adding to seen list");
 					received.add(id);
 				}
-				msg = msg.trim();
+
+				msg = msg.substring(idx);
+
 				if (msg.length() < 50) {
 					rcvLog.append(msg);
 				} else {
 					rcvLog.append(msg.substring(0, 49) + "...");
 				}
-				msg = msg.substring(idx);
 
 				/* distribute the message */
 				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
@@ -138,7 +162,6 @@ public class HandlerServer extends Thread {
 			}
 
 		}
-		SessionInfo.getInstance().log("handler server got interrupted");
 	}
 
 }
