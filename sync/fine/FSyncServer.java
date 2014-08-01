@@ -42,11 +42,12 @@ public class FSyncServer extends Thread {
 
 		Log.d(TAG, "started fine sync thread");
 		long avgTs;
-		int remSteps = 10; // XXX just for testing
+
+		int ctr = 0; // XXX just for testing
 
 		avgTs = parent.initAvgTs();
 
-		while (!isInterrupted() && remSteps-- > 0) {
+		while (!isInterrupted()) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
@@ -56,9 +57,14 @@ public class FSyncServer extends Thread {
 			long nts = Utils.getTimestamp();
 			avgTs = parent.alignAvgTs(nts);
 			parent.broadcastToPeers(nts);
-
+			if (ctr++ % 5 == 0) {
+				SessionInfo.getInstance().log("setting time to: " + avgTs);
+				Utils.setPlaybackTime((int) avgTs);
+			}
 		}
-		SessionInfo.getInstance().log("setting time to: " + avgTs);
-		Utils.setPlaybackTime((int) avgTs);
+
+		SessionInfo.getInstance().log("FSync interrupted");
+		Log.d(TAG, "FSync interrupted");
+
 	}
 }

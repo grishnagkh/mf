@@ -39,7 +39,7 @@ public interface SyncI {
 	 */
 	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
-	public static final int PERIOD_FS_MS = 1000;// 250;
+	public static final int PERIOD_FS_MS = 1000;
 
 	public static final String DELIM = ":";
 

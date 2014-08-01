@@ -20,13 +20,10 @@
  */
 package mf.sync.fine;
 
-import java.util.zip.CRC32;
-
 import mf.bloomfilter.BloomFilter;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
-import android.util.Log;
 
 public class FSResponseHandler extends Thread {
 	private String msg;
@@ -67,19 +64,22 @@ public class FSResponseHandler extends Thread {
 			int nPeersRcv = Utils.getN(rcvBF, paketMax);
 			int nPeersOwn = Utils.getN(bloom, maxId);
 
-			// SessionInfo.getInstance().log(
-			// "#peers in received bf: " + nPeersRcv + ", maxId: "
-			// + paketMax);
-			// SessionInfo.getInstance().log(
-			// "#peers in stored bf: " + nPeersOwn + ", maxId: " + maxId);
+			if (DEBUG_OVERLAY) {
+				SessionInfo.getInstance().log(
+						"#peers in received bf: " + nPeersRcv + ", maxId: "
+								+ paketMax);
+				SessionInfo.getInstance().log(
+						"#peers in stored bf: " + nPeersOwn + ", maxId: "
+								+ maxId);
+			}
 
 			long actTs = Utils.getTimestamp();
 			long avgTs = parent.alignAvgTs(actTs);
 
 			if (Utils.xor(rcvBF, bloom)) {// the bloom filters are different
-				// if (DEBUG_OVERLAY)
-				// SessionInfo.getInstance()
-				// .log("bloom filters are different");
+				if (DEBUG_OVERLAY)
+					SessionInfo.getInstance()
+							.log("bloom filters are different");
 				if (!Utils.and(rcvBF, bloom)) {// the bloom filters do not
 												// overlap
 												// SessionInfo.getInstance().log(
@@ -94,28 +94,32 @@ public class FSResponseHandler extends Thread {
 					parent.getBloomList().add(rcvBF);
 
 				} else if (!parent.getBloomList().contains(rcvBF)) {
-					// SessionInfo
-					// .getInstance()
-					// .log("bloom filters do overlap && we have seen this blomm filter before");
+					if (DEBUG_OVERLAY)
+						SessionInfo
+								.getInstance()
+								.log("bloom filters do overlap && we have seen this blomm filter before");
 					if (nPeersRcv > nPeersOwn) {
-						// SessionInfo
-						// .getInstance()
-						// .log("bloom filters do overlap and the received one contains more information");
+						if (DEBUG_OVERLAY)
+							SessionInfo
+									.getInstance()
+									.log("bloom filters do overlap and the received one contains more information");
 						/*
 						 * overlap and received bloom filter has more
 						 * information
 						 */
 						bloom = rcvBF;
 						if (bloom.contains(myId)) {
-							// SessionInfo
-							// .getInstance()
-							// .log("this peer already is in the filter, so set the received average");
+							if (DEBUG_OVERLAY)
+								SessionInfo
+										.getInstance()
+										.log("this peer already is in the filter, so set the received average");
 							/* correct received average */
 							parent.updateAvgTs(rAvg + (actTs - rNtp));
 						} else {
-							// SessionInfo
-							// .getInstance()
-							// .log("this peer is not in the filter, so correct the received average and add ourself");
+							if (DEBUG_OVERLAY)
+								SessionInfo
+										.getInstance()
+										.log("this peer is not in the filter, so correct the received average and add ourself");
 							/* add own timestamp to received one */
 							long wSum = (nPeersRcv * (rAvg + (actTs - rNtp)) + avgTs);
 							parent.updateAvgTs(wSum / (nPeersOwn + 1));
@@ -125,7 +129,8 @@ public class FSResponseHandler extends Thread {
 				}
 
 			} else {
-				// SessionInfo.getInstance().log("same bloom filters");
+				if (DEBUG_OVERLAY)
+					SessionInfo.getInstance().log("same bloom filters");
 				/* the same bloom filters: ignore; time stamps must be equal */
 			}
 

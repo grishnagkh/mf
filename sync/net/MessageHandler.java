@@ -27,6 +27,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.zip.CRC32;
 
+import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
 import mf.sync.utils.log.SyncLogger;
@@ -151,6 +152,7 @@ public class MessageHandler {
 		getSendLog().clear();
 		SessionInfo.getInstance().getLog().clear();
 		SessionInfo.getInstance().getPeers().clear();
+		FSync.getInstance().stopSync();
 		srv.interrupt();
 	}
 

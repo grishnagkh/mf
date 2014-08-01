@@ -64,7 +64,8 @@ public class Utils {
 				InetAddress hostAddr = InetAddress.getByName(NTP_HOSTS[i]);
 
 				TimeInfo info = client.getTime(hostAddr);
-				SessionInfo.getInstance().log("update ntp time from " + NTP_HOSTS[i]);
+				SessionInfo.getInstance().log(
+						"update ntp time from " + NTP_HOSTS[i]);
 				ret = info.getReturnTime();
 				oldNtp = ret;
 				oldUpdateTime = System.currentTimeMillis();
@@ -121,8 +122,10 @@ public class Utils {
 	 */
 	public static String buildMessage(String delim, int type, long avgTS,
 			long nts, int myId, String bloomFilterRep, int maxId) {
+
 		String msg = type + delim + avgTS + delim + nts + delim + myId + delim
 				+ bloomFilterRep + delim + maxId;
+
 		return msg;
 	}
 

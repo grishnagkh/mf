@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
 import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
@@ -33,6 +32,7 @@ import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaCodec.CryptoException;
@@ -135,6 +135,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		setContentView(R.layout.player_activity_simple);
 		View root = findViewById(R.id.root);
 		root.setOnTouchListener(new OnTouchListener() {
+			@SuppressLint("ClickableViewAccessibility")
 			@Override
 			public boolean onTouch(View arg0, MotionEvent arg1) {
 				if (arg1.getAction() == MotionEvent.ACTION_DOWN) {
