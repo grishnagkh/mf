@@ -26,6 +26,10 @@ import java.util.BitSet;
 
 import mf.bloomfilter.BloomFilter;
 import mf.com.google.android.exoplayer.ExoPlayer;
+
+import org.apache.commons.net.ntp.NTPUDPClient;
+import org.apache.commons.net.ntp.TimeInfo;
+
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;
@@ -40,9 +44,47 @@ import android.util.Log;
  */
 public class Utils {
 
-	// TODO: implement NTP query? for now we assume already synchronized clocks
+	public static String[] NTP_HOSTS = new String[] {
+			"time1srv.sci.uni-klu.ac.at", "0.at.pool.ntp.org", "0.pool.ntp.org" };
+
+	private static long oldNtp = 0, oldUpdateTime = 0;
+	private static boolean refreshNtp = false;
+
 	public static long getTimestamp() {
-		return System.currentTimeMillis();
+
+		NTPUDPClient client = new NTPUDPClient();
+		client.setDefaultTimeout(1000);
+
+		long ret = -1;
+		if (System.currentTimeMillis() - oldUpdateTime > 5000) {
+			refreshNtp = true;
+		}
+		for (int i = 0; refreshNtp && i < NTP_HOSTS.length; i++) {
+			try {
+				InetAddress hostAddr = InetAddress.getByName(NTP_HOSTS[i]);
+
+				TimeInfo info = client.getTime(hostAddr);
+				SessionInfo.getInstance().log("update ntp time from " + NTP_HOSTS[i]);
+				ret = info.getReturnTime();
+				oldNtp = ret;
+				oldUpdateTime = System.currentTimeMillis();
+				client.close();
+				refreshNtp = false;
+				break;
+			} catch (Exception e) {
+				// does not matter
+			}
+		}
+		if (ret < 0) {
+			if (oldUpdateTime <= 0) {
+				oldNtp = System.currentTimeMillis();
+				oldUpdateTime = System.currentTimeMillis();
+			}
+			return oldNtp + System.currentTimeMillis() - oldUpdateTime;
+		}
+
+		return ret;
+
 	}
 
 	/**

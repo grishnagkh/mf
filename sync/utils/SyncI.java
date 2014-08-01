@@ -37,7 +37,7 @@ public interface SyncI {
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
 	 */
-	public static final int WAIT_TIME_CS_MS = 5000;
+	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 1000;// 250;
 
