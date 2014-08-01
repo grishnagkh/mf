@@ -18,6 +18,7 @@ package mf.player.gui;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -159,7 +160,10 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 		String rcvStr = "message received\n", senStr = "messages sent\n", peeStr = "known peers\n", dText = "DEBUG\n";
 
-		dText += SessionInfo.getInstance().getLog().toString();
+		long now = Utils.getTimestamp();
+
+		dText += "Ntp Time: " + new Date(now) + "(" + now + ")" + "\n"
+				+ SessionInfo.getInstance().getLog().toString();
 		senStr += MessageHandler.getInstance().getSendLog().toString();
 		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
 
