@@ -22,7 +22,9 @@ package mf.player.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import mf.player.gui.Samples.Sample;
 import mf.sync.net.MessageHandler;
 import android.app.Activity;
 import android.content.Context;
@@ -36,11 +38,7 @@ import android.widget.Spinner;
 
 public class MainActivity extends Activity {
 
-	public static final String URI_PLAY = "https://demo-itec.aau.at/livelab/mf/play.mpd";
-	public static final String URI_GLASS = "https://demo-itec.aau.at/livelab/mf/glass.mpd";
-
-	public static final String GLASS_ID = "Google Glasses";
-	public static final String PLAY_ID = "Google Play";
+	Map<String, String> videos;
 
 	public static final String SERVER_ADDRESS = "https://demo-itec.uni-klu.ac.at/livelab/mf/session/simsServer.php";
 
@@ -56,15 +54,16 @@ public class MainActivity extends Activity {
 	}
 
 	private void initChoosableVideos() {
-		List<String> list = new ArrayList<String>();
+
+		List<Sample> list = new ArrayList<Sample>();
 
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		e.setText(SERVER_ADDRESS);
+		for (Sample s : Samples.DASH) {
+			list.add(s);
+		}
 
-		list.add(GLASS_ID);
-		list.add(PLAY_ID);
-
-		ArrayAdapter<String> adap = new ArrayAdapter<String>(this,
+		ArrayAdapter<Sample> adap = new ArrayAdapter<Sample>(this,
 				android.R.layout.simple_spinner_item, list);
 		Spinner fileSpinner = (Spinner) findViewById(R.id.fileChooser_main);
 		fileSpinner.setAdapter(adap);
@@ -72,16 +71,11 @@ public class MainActivity extends Activity {
 
 	public void onOpenButtonClick(View openButton) {
 
-		String selection = ((Spinner) findViewById(R.id.fileChooser_main))
-				.getSelectedItem().toString();
+		Sample selection = (Sample) ((Spinner) findViewById(R.id.fileChooser_main))
+				.getSelectedItem();
 
-		String uri = "";
-		if (PLAY_ID.equals(selection)) {
-			uri = URI_PLAY;
-		} else if (GLASS_ID.equals(selection)) {
-			uri = URI_GLASS;
-
-		}
+		String uri = selection.uri;
+		
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		EditText e1 = (EditText) findViewById(R.id.sessionKeyET_main);
 		String srv = e.getText().toString();
