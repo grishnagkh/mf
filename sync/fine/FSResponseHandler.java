@@ -20,6 +20,8 @@
  */
 package mf.sync.fine;
 
+import java.util.zip.CRC32;
+
 import mf.bloomfilter.BloomFilter;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.SyncI;
@@ -29,6 +31,7 @@ import android.util.Log;
 public class FSResponseHandler extends Thread {
 	private String msg;
 	public static final String TAG = "FSResponse Handler";
+	private static final boolean DEBUG_OVERLAY = true;
 	private FSync parent;
 
 	private int maxId;
@@ -44,7 +47,6 @@ public class FSResponseHandler extends Thread {
 	public void run() {
 
 		String[] msgA = msg.split(SyncI.DELIM);
-
 		BloomFilter<Integer> rcvBF = new BloomFilter<Integer>(
 				SyncI.BITS_PER_ELEM, SyncI.N_EXP_ELEM, SyncI.N_HASHES);
 
@@ -57,60 +59,74 @@ public class FSResponseHandler extends Thread {
 		synchronized (parent) {
 
 			BloomFilter<Integer> bloom = parent.getBloom();
-			if (bloom == null)
+			if (bloom == null) {
+				SessionInfo.getInstance().log(
+						"bloom is null.. what the heck?!?");
 				return;
-			int nBloom1 = Utils.getN(rcvBF, paketMax);
-			int nBloom2 = Utils.getN(bloom, maxId);
+			}
+			int nPeersRcv = Utils.getN(rcvBF, paketMax);
+			int nPeersOwn = Utils.getN(bloom, maxId);
 
-			Log.d(TAG, "#peers in received bf: " + nBloom1 + ", maxId: "
-					+ paketMax);
-			Log.d(TAG, "#peers in stored bf: " + nBloom2 + ", maxId: " + maxId);
+			// SessionInfo.getInstance().log(
+			// "#peers in received bf: " + nPeersRcv + ", maxId: "
+			// + paketMax);
+			// SessionInfo.getInstance().log(
+			// "#peers in stored bf: " + nPeersOwn + ", maxId: " + maxId);
 
 			long actTs = Utils.getTimestamp();
 			long avgTs = parent.alignAvgTs(actTs);
 
-			/*
-			 * TODO: does the list "contain" the bf when the same are sent over
-			 * the network? to test..,. if not, a comparison method must be
-			 * written
-			 */
-			long delta = 1239120491;
-
 			if (Utils.xor(rcvBF, bloom)) {// the bloom filters are different
-				Log.d(TAG, "bloom filters are different");
+				// if (DEBUG_OVERLAY)
+				// SessionInfo.getInstance()
+				// .log("bloom filters are different");
 				if (!Utils.and(rcvBF, bloom)) {// the bloom filters do not
 												// overlap
-					Log.d(TAG, "bloom filters do not overlap");
+												// SessionInfo.getInstance().log(
+					// "bloom filters do not overlap");
 					/* merge the filters */
 					bloom.getBitSet().or(rcvBF.getBitSet());
-					long wSum = (avgTs * nBloom2 + (rAvg + (actTs - rNtp))
-							* nBloom1);
-					parent.updateAvgTs(wSum / (nBloom1 + nBloom2));
+					long wSum = (avgTs * nPeersOwn + (rAvg + (actTs - rNtp))
+							* nPeersRcv);
+					parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
 
 					/* add the received bloom filter to the ones already seen */
 					parent.getBloomList().add(rcvBF);
 
-				} else if (!parent.getBloomList().contains(rcvBF)
-						&& nBloom1 < nBloom2) {
-
-					/* overlap and received bloom filter has more information */
-					bloom = rcvBF;
-					if (bloom.contains(myId)) {
-						/* correct received average */
-						parent.updateAvgTs(rAvg + (actTs - rNtp));
-					} else {
-						/* add own timestamp to received one */
-						long wSum = (nBloom1 * (rAvg + (actTs - rNtp)) + avgTs);
-						parent.updateAvgTs(wSum / (nBloom2 + 1));
-						bloom.add(myId);
+				} else if (!parent.getBloomList().contains(rcvBF)) {
+					// SessionInfo
+					// .getInstance()
+					// .log("bloom filters do overlap && we have seen this blomm filter before");
+					if (nPeersRcv > nPeersOwn) {
+						// SessionInfo
+						// .getInstance()
+						// .log("bloom filters do overlap and the received one contains more information");
+						/*
+						 * overlap and received bloom filter has more
+						 * information
+						 */
+						bloom = rcvBF;
+						if (bloom.contains(myId)) {
+							// SessionInfo
+							// .getInstance()
+							// .log("this peer already is in the filter, so set the received average");
+							/* correct received average */
+							parent.updateAvgTs(rAvg + (actTs - rNtp));
+						} else {
+							// SessionInfo
+							// .getInstance()
+							// .log("this peer is not in the filter, so correct the received average and add ourself");
+							/* add own timestamp to received one */
+							long wSum = (nPeersRcv * (rAvg + (actTs - rNtp)) + avgTs);
+							parent.updateAvgTs(wSum / (nPeersOwn + 1));
+							bloom.add(myId);
+						}
 					}
-
 				}
-				long pts = Utils.getPlaybackTime();// XXX
-				delta = actTs - pts;// XXX
-				SessionInfo.getInstance().log("delta from fine sync: " + avgTs);
+
 			} else {
-				// the same bloom filters: ignore; time stamps must be equal
+				// SessionInfo.getInstance().log("same bloom filters");
+				/* the same bloom filters: ignore; time stamps must be equal */
 			}
 
 		}

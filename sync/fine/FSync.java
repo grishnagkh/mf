@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.CRC32;
 
 import mf.bloomfilter.BloomFilter;
 import mf.sync.net.MessageHandler;
@@ -64,6 +65,7 @@ public class FSync implements SyncI {
 	 * Constructor
 	 */
 	private FSync() {
+		avgMonitor = new Object();
 		bloomList = new ArrayList<BloomFilter<Integer>>();
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		maxId = myId;
@@ -148,9 +150,11 @@ public class FSync implements SyncI {
 
 	void broadcastToPeers(long nts) {
 		// broadcast to known peers
+		
+		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_FINE, avgTs,
+				nts, myId, Utils.toString(bloom.getBitSet()), maxId);
+		
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_FINE,
-					avgTs, nts, myId, Utils.toString(bloom.getBitSet()), maxId);
 			try {
 				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
 						p.getPort());
@@ -170,14 +174,11 @@ public class FSync implements SyncI {
 		return bloomList;
 	}
 
+	public int getMaxId() {
+		return maxId;
+	}
+
 	public void setMaxId(int maxId) {
 		this.maxId = maxId;
 	}
-
-	/**
-	 * process fine sync responses
-	 * 
-	 * @author stefan petscharnig
-	 *
-	 */
 }
