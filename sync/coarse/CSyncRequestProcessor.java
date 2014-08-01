@@ -46,23 +46,13 @@ class CSyncRequestProcessor implements Runnable {
 		this.req = req;
 	}
 
-	// sometimes we get 7 fileds back, most times 6, happy hacking
 	public void run() {
 		// parse request
 		Log.d(TAG, "got the following request: " + req);
 		String[] responseFields = req.split(SyncI.DELIM);
 
-		int peerId;
+		int peerId = Integer.parseInt(responseFields[5]);
 
-		if (responseFields.length == 6) {
-			peerId = Integer.parseInt(responseFields[5]);
-		} else if (responseFields.length == 7) { // check our hack
-			peerId = Integer.parseInt(responseFields[6]);
-		} else {
-			SessionInfo.getInstance().log(
-					"dropping invalid request [length]: " + req);
-			return; // invalid message
-		}
 
 		String senderIP = responseFields[1];
 		InetAddress peerAddress = null;

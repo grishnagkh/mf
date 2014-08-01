@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.List;
 
+import mf.player.gui.MainActivity;
 import mf.sync.fine.FSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
@@ -56,6 +57,16 @@ public class CSyncServer extends Thread {
 	}
 
 	public void run() {
+
+		if (SessionInfo.getInstance().getMySelf() == null) {
+			// for testing without session server // XXX
+			if (DEBUG_ON_SCREEN)
+				SessionInfo
+						.getInstance()
+						.log("mySelf was null, so no session info was received, enter playback mode (synced with oneself ;) )");
+			Peer p = new Peer(1, Utils.getWifiAddress(MainActivity.c), 12346);
+			SessionInfo.getInstance().setMySelf(p);
+		}
 
 		/* 1 */
 
@@ -101,7 +112,7 @@ public class CSyncServer extends Thread {
 		if (msgQueue.size() == 0) {
 			if (DEBUG_ON_SCREEN)
 				SessionInfo.getInstance().log("no messages in response queue");
-			 FSync.getInstance().startSync();
+			FSync.getInstance().startSync();
 			return;
 		}
 
@@ -134,7 +145,7 @@ public class CSyncServer extends Thread {
 		if (DEBUG_ON_SCREEN)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		 FSync.getInstance().startSync();
+		FSync.getInstance().startSync();
 	}
 
 }
