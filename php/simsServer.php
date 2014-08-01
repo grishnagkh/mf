@@ -25,23 +25,22 @@
 		storing session info and altered mpds and sends them back to clients
 	*/
 	function calc_validity($duration){
-	
-		$duration = str_ireplace('pt','',$duration);
-		$duration = str_ireplace('h',';',$duration);
-		$duration = str_ireplace('m',';',$duration);
-		$duration = str_ireplace('s',';',$duration);
-		$duration = preg_split('/;/', $duration);
-		$duration = ( $duration[2] + 60* ($duration[1]  + 60*$duration[0]));
-		
+		//format: PT31.32s
+		$duration = str_ireplace('PT','',$duration);
+		$duration = str_ireplace('s','',$duration);
+		$duration *= 1000;
 		$date = new DateTime();
 		
 		return round($duration*1.5) + $date->getTimestamp(); // time_millis();
 	}
+	
+	
 	if(isset($_GET['mediaSource'])){
 		$mediaSource = $_GET['mediaSource'];
 	}else{
-		$mediaSource = 'http://www.youtube.com/api/manifest/dash/id/3aa39fa2cc27967f/source/youtube?as=fmp4_audio_clear,fmp4_sd_hd_clear&sparams=ip,ipbits,expire,as&ip=0.0.0.0&ipbits=0&expire=19000000000&signature=7181C59D0252B285D593E1B61D985D5B7C98DE2A.5B445837F55A40E0F28AACAA047982E372D177E2&key=ik0';
-	}if(isset($_GET['ip'])){
+		$mediaSource = "https://demo-itec.aau.at/livelab/mf/play.mpd";
+	}
+	if(isset($_GET['ip'])){
 		$ip = $_GET['ip'];
 	}else{
 		$ip = getenv('REMOTE_ADDR');
@@ -62,20 +61,28 @@
 		$ip = getenv('REMOTE_ADDR');
 	}
 	
-	$file_path = "$session_key.xml";
+	$file_path = "./".$session_key.".xml";
 	
 	$first_from_session = !file_exists($file_path);
 	$invalid = false;
 	
-	
+
 	if(!$first_from_session){
 		//open file and check validity
 		$fp = file_get_contents($file_path);
 		$mpd = new SimpleXMLElement($fp);
+		
 		//is the xml on the server invalid?
 		$mpd->registerXPathNamespace('p','urn:mpeg:DASH:schema:MPD:2011');
 		
-		$peers = $mpd->xpath('//p:session')[0];
+		
+		$xpathrc = $mpd->xpath('//p:session');
+		if($xpathrc == FALSE)
+		{
+			echo "shall I end up at line 82 really?";
+		}else{
+		
+		$peers = $xpathrc[0];
 		$atts = $peers[0]->attributes();
 		
 		$now = new DateTime("now");
@@ -84,32 +91,39 @@
 		$validThru->setTimestamp( $l );
 		
 		$invalid = $now > $validThru;
+		}
 		
 	}
-	if($invalid || $first_from_session){
+	
+	if($first_from_session || $invalid){
 	
 		//fetch mpd for bunny from server
-		$ch = curl_init($mediaSource);
-		$fp = fopen($file_path, "w");
-		curl_setopt($ch, CURLOPT_FILE, $fp);
-		curl_setopt($ch, CURLOPT_HEADER, 0);
+		
+	//	$ch = curl_init($mediaSource);
+	//	$fp = fopen($file_path, "w");
+	//	curl_setopt($ch, CURLOPT_FILE, $fp);
+	//	curl_setopt($ch, CURLOPT_HEADER, 0);
+	//	curl_exec($ch);
+	//	curl_close($ch);
+		
+	//	fclose($fp);
+		
+		shell_exec('wget -O '.$file_path.' '.$mediaSource);
 
-		curl_exec($ch);
-		curl_close($ch);
-		
-		fclose($fp);
-	
-	
 		$fp = file_get_contents($file_path);
-		$mpd = new SimpleXMLElement($fp);
+	
+		//$fp = file_get_contents($mediaSource); // with no curl fetching
 		
+		$mpd = new SimpleXMLElement($fp);
+	//	var_dump($mpd);
 		$root_attr = $mpd->attributes();
 		$end_time = calc_validity($root_attr['mediaPresentationDuration']);
 		$peers = $mpd->addChild('session');
 		$peers->addAttribute("validThru", $end_time);
 		$peers->addAttribute("session_id", $session_key);
-	}
 	
+	}
+
 	$ns = 'urn:mpeg:DASH:schema:MPD:2011';
 	$q = "//p:peer[@ip=\"$ip\"]";	
 	$mpd->registerXPathNamespace('p',$ns);		
