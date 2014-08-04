@@ -96,17 +96,6 @@ public class FSync {
 	public void reSync() {
 		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
-		try {
-			/*
-			 * we wait some time, because maybe a coarse synchronization is in
-			 * progress
-			 */
-			Thread.sleep(SyncI.WAIT_TIME_CS_MS);
-		} catch (InterruptedException e) {
-			SessionInfo.getInstance().log(
-					"resynchronization got interrupted, abort");
-			return;
-		}
 		startSync();
 
 	}
@@ -161,11 +150,13 @@ public class FSync {
 	}
 
 	void broadcastToPeers(long nts) {
+
 		/* broadcast to known peers */
 
-		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_FINE, avgTs,
-				nts, myId, Utils.toString(bloom.getBitSet()), maxId,
-				SessionInfo.getInstance().getSeqN());
+		FSyncMsg m = new FSyncMsg(avgTs, nts, myId, bloom, maxId, SessionInfo
+				.getInstance().getSeqN());
+
+		String msg = m.getMessageString(SyncI.DELIM, SyncI.TYPE_FINE);
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 			try {

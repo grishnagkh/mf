@@ -26,11 +26,28 @@ import mf.sync.SyncI;
 import mf.sync.utils.Utils;
 
 public class FSyncMsg {
-	public int seqN, maxId;
-	public long avg, ntp;
+	public int seqN, maxId, myId;
+	public long avg, nts;
 	public BloomFilter<Integer> bloom;
 
 	private FSyncMsg() {
+	}
+
+	public FSyncMsg(long avgTs, long nts, int myId, BloomFilter<Integer> bloom,
+			int maxId, int seqN) {
+		this.avg = avgTs;
+		this.nts = nts;
+		this.maxId = maxId;
+		this.seqN = seqN;
+		this.bloom = bloom;
+		this.myId = myId;
+	}
+
+	public String getMessageString(String delim, int type) {
+		String msg = type + delim + avg + delim + nts + delim + myId + delim
+				+ Utils.toString(bloom.getBitSet()) + delim + maxId + delim
+				+ seqN;
+		return msg;
 	}
 
 	/* transforms a string built by utils into a fine sync message */
@@ -45,7 +62,7 @@ public class FSyncMsg {
 
 		msg.seqN = Integer.parseInt(msgA[SyncI.FS_SYNC_N_POS]);
 		msg.avg = Long.parseLong(msgA[SyncI.FS_R_AVG_POS]);
-		msg.ntp = Long.parseLong(msgA[SyncI.FS_R_NTP_POS]);
+		msg.nts = Long.parseLong(msgA[SyncI.FS_R_NTP_POS]);
 		msg.maxId = Integer.parseInt(msgA[SyncI.FS_MAX_ID_POS]);
 
 		return msg;

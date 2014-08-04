@@ -27,6 +27,7 @@ import java.util.List;
 
 import mf.player.gui.MainActivity;
 import mf.sync.SyncI;
+import mf.sync.fine.FSync;
 import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
@@ -70,13 +71,11 @@ public class CSyncServer extends Thread {
 
 		/* 1 */
 
-		String myIP = SessionInfo.getInstance().getMySelf().getAddress()
-				.getHostAddress();
-		int myPort = SessionInfo.getInstance().getMySelf().getPort();
-		int myId = SessionInfo.getInstance().getMySelf().getId();
+		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
+				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
+				0, Utils.getTimestamp(), SessionInfo.getInstance().getMySelf()
+						.getId());
 
-		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ,
-				myIP, myPort, 0, Utils.getTimestamp(), myId);
 		if (DEBUG_ON_SCREEN)
 			SessionInfo.getInstance().log("built csync message: " + msg);
 
@@ -86,8 +85,9 @@ public class CSyncServer extends Thread {
 				SessionInfo.getInstance().log("Processing peer: " + p);
 
 			try {
-				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
-						p.getPort());
+				MessageHandler.getInstance().sendMsg(
+						msg.getSendMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ),
+						p.getAddress(), p.getPort());
 			} catch (SocketException e) {
 				if (DEBUG_ON_SCREEN)
 					SessionInfo.getInstance().log(
@@ -111,8 +111,11 @@ public class CSyncServer extends Thread {
 
 		if (msgQueue.size() == 0) {
 			if (DEBUG_ON_SCREEN)
-				SessionInfo.getInstance().log("no messages in response queue");
-			// FSync.getInstance().startSync(); //TODO
+				SessionInfo
+						.getInstance()
+						.log("no messages in response queue, no one seems to be here yet");
+
+			FSync.getInstance().startSync();
 			return;
 		}
 
@@ -149,6 +152,7 @@ public class CSyncServer extends Thread {
 		if (DEBUG_ON_SCREEN)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		// FSync.getInstance().startSync(); //TODO
+		CSync.getInstance().finished = true;
+		FSync.getInstance().startSync();
 	}
 }

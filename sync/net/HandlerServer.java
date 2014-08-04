@@ -140,16 +140,17 @@ public class HandlerServer extends Thread {
 				}
 
 				msg = msg.substring(idx);
-
+				
 				if (msg.length() < 50) {
 					rcvLog.append(msg);
 				} else {
 					rcvLog.append(msg.substring(0, 49) + "...");
 				}
-
+				
 				/* distribute the message */
 				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
 					CSync.getInstance().processRequest(CSyncMsg.fromString(msg));
+					
 				} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
 					CSync.getInstance().coarseResponse(msg);
 				} else if (msg.startsWith("" + SyncI.TYPE_FINE)) {

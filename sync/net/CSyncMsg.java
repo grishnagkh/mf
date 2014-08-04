@@ -25,13 +25,22 @@ import mf.sync.SyncI;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
+
 public class CSyncMsg {
 
 	public InetAddress senderIp;
 	public long pts, nts;
-	public int peerId, senderPort;
+	public int peerId, myId, senderPort;
 
-	private CSyncMsg() {
+	public CSyncMsg() {
+	}
+
+	public CSyncMsg(InetAddress addr, int port, int pts, long nts, int id) {
+		myId = id;
+		senderPort = port;
+		senderIp = addr;
+		this.pts = pts;
+		this.nts = nts;
 	}
 
 	public static CSyncMsg fromString(String str) throws UnknownHostException {
@@ -46,5 +55,10 @@ public class CSyncMsg {
 		msg.peerId = Integer.parseInt(msgA[SyncI.CS_PEER_ID_POS]);
 
 		return msg;
+	}
+
+	public String getSendMessage(String delim, int type) {
+		return type + delim + senderIp.getHostAddress() + delim + senderPort
+				+ delim + pts + delim + nts + delim + myId;
 	}
 }

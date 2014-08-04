@@ -91,7 +91,7 @@ public class FSResponseHandler extends Thread {
 					/* merge the filters */
 					bloom.getBitSet().or(msg.bloom.getBitSet());
 					/* update average */
-					long wSum = (avgTs * nPeersOwn + (msg.avg + (actTs - msg.ntp))
+					long wSum = (avgTs * nPeersOwn + (msg.avg + (actTs - msg.nts))
 							* nPeersRcv);
 					parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
 
@@ -118,7 +118,7 @@ public class FSResponseHandler extends Thread {
 										.getInstance()
 										.log("this peer already is in the filter, so set the received average");
 							/* correct received average */
-							parent.updateAvgTs(msg.avg + (actTs - msg.ntp));
+							parent.updateAvgTs(msg.avg + (actTs - msg.nts));
 						} else {
 							if (DEBUG_OVERLAY)
 								SessionInfo
@@ -127,7 +127,7 @@ public class FSResponseHandler extends Thread {
 												+ myId);
 							/* add own timestamp to received one */
 							long wSum = (nPeersRcv
-									* (msg.avg + (actTs - msg.ntp)) + avgTs);
+									* (msg.avg + (actTs - msg.nts)) + avgTs);
 							parent.updateAvgTs(wSum / (nPeersRcv + 1));
 							bloom.add(myId);
 						}

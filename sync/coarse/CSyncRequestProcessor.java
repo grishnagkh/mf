@@ -48,21 +48,16 @@ public class CSyncRequestProcessor implements Runnable {
 
 	public void run() {
 
-		int myPts = Utils.getPlaybackTime();
-		long myNts = Utils.getTimestamp();
-
-		String myIP = SessionInfo.getInstance().getMySelf().getAddress()
-				.getHostAddress();
-		int myPort = SessionInfo.getInstance().getMySelf().getPort();
-		int myId = SessionInfo.getInstance().getMySelf().getId();
-
-		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_COARSE_RESP,
-				myIP, myPort, myPts, myNts, myId);
+		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
+				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
+				Utils.getPlaybackTime(), Utils.getTimestamp(), SessionInfo
+						.getInstance().getMySelf().getId());
 
 		// send response
 		try {
-			MessageHandler.getInstance().sendMsg(msg, req.senderIp,
-					req.senderPort);
+			MessageHandler.getInstance().sendMsg(
+					msg.getSendMessage(SyncI.DELIM, SyncI.TYPE_COARSE_RESP),
+					req.senderIp, req.senderPort);
 		} catch (SocketException e) {
 			Log.e(TAG, "could not send message");
 		} catch (IOException e) {

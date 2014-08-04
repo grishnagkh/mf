@@ -83,50 +83,7 @@ public class Utils {
 			}
 			return oldNtp + System.currentTimeMillis() - oldUpdateTime;
 		}
-
 		return ret;
-
-	}
-
-	/**
-	 * 
-	 * builds a coarse sync message
-	 * 
-	 * @param delim
-	 * @param type
-	 * @param myIP
-	 * @param myPort
-	 * @param pts
-	 * @param nts
-	 * @param myId
-	 * @return
-	 */
-	public static String buildMessage(String delim, int type, String myIP,
-			int myPort, long pts, long nts, int myId) {
-		String msg = type + delim + myIP + delim + myPort + delim + pts + delim
-				+ nts + delim + myId;
-		return msg;
-	}
-
-	/**
-	 * builds a fine sync message
-	 * 
-	 * @param delim
-	 * @param type
-	 * @param avgTS
-	 * @param nts
-	 * @param myId
-	 * @param bloomFilterRep
-	 * @param maxId
-	 * @return
-	 */
-	public static String buildMessage(String delim, int type, long avgTS,
-			long nts, int myId, String bloomFilterRep, int maxId, int seqN) {
-
-		String msg = type + delim + avgTS + delim + nts + delim + myId + delim
-				+ bloomFilterRep + delim + maxId + delim + seqN;
-
-		return msg;
 	}
 
 	/**

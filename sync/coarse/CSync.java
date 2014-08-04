@@ -39,6 +39,7 @@ public class CSync {
 	public static final int SEGSIZE = 2000;// for now^^
 
 	private CSyncServer cSyncServer;
+	boolean finished;
 
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
@@ -50,6 +51,7 @@ public class CSync {
 		if (DEBUG) {
 			SessionInfo.getInstance().log("new csync, init message queue");
 		}
+		finished = false;
 		msgQueue = new ArrayList<String>();
 	}
 
@@ -94,5 +96,9 @@ public class CSync {
 				SessionInfo.getInstance().log("stopping already running csync");
 			cSyncServer.interrupt();
 		}
+	}
+
+	public boolean isFinished() {
+		return finished;
 	}
 }
