@@ -21,8 +21,8 @@
 
 package mf.sync.fine;
 
+import mf.sync.SyncI;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
 import android.util.Log;
 
@@ -37,34 +37,30 @@ public class FSyncServer extends Thread {
 	}
 
 	public void run() {
-
-		// let's make our test from getting time like vlc again..
-
 		Log.d(TAG, "started fine sync thread");
-		long avgTs;
+		long avgTs = parent.initAvgTs();
 
-		int ctr = 0; // XXX just for testing
+		int ctr = 0;
 
-		avgTs = parent.initAvgTs();
-
-		while (!isInterrupted()) {
+		while (!isInterrupted() && ctr++ < 3) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
 				break;
 			}
+
 			/* udpate */
 			long nts = Utils.getTimestamp();
 			avgTs = parent.alignAvgTs(nts);
 			parent.broadcastToPeers(nts);
-			if (ctr++ % 5 == 0) {
-				SessionInfo.getInstance().log("setting time to: " + avgTs);
-				Utils.setPlaybackTime((int) avgTs);
-			}
 		}
 
-		SessionInfo.getInstance().log("FSync interrupted");
-		Log.d(TAG, "FSync interrupted");
+		long nts = Utils.getTimestamp();
+		avgTs = parent.alignAvgTs(nts);
+		Utils.setPlaybackTime((int) avgTs);
+		SessionInfo.getInstance().log("setting time to: " + avgTs); 
+		SessionInfo.getInstance().log("FSync interrupted or stopped");
 
+		Log.d(TAG, "FSync interrupted");
 	}
 }

@@ -121,10 +121,10 @@ public class Utils {
 	 * @return
 	 */
 	public static String buildMessage(String delim, int type, long avgTS,
-			long nts, int myId, String bloomFilterRep, int maxId) {
+			long nts, int myId, String bloomFilterRep, int maxId, int seqN) {
 
 		String msg = type + delim + avgTS + delim + nts + delim + myId + delim
-				+ bloomFilterRep + delim + maxId;
+				+ bloomFilterRep + delim + maxId + delim + seqN;
 
 		return msg;
 	}
@@ -168,7 +168,7 @@ public class Utils {
 		BitSet b1 = bf1.getBitSet();
 		BitSet b2 = bf2.getBitSet();
 		for (int i = 0; i < b1.length(); i++)
-			if (b1.get(i) && b2.get(i))
+			if (b1.get(i) & b2.get(i))
 				return true;
 		return false;
 	}
@@ -183,7 +183,8 @@ public class Utils {
 		BitSet b1 = bf1.getBitSet();
 		BitSet b2 = bf2.getBitSet();
 		for (int i = 0; i < b1.length(); i++)
-			if (b1.get(i) ^ b2.get(i))
+			/* for booleans, xor and inequality are the same */
+			if (b1.get(i) != b2.get(i))
 				return true;
 		return false;
 	}

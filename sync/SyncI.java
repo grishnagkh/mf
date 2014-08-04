@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301 USA
  */
-package mf.sync.utils;
+package mf.sync;
 
 /**
  * 
@@ -33,6 +33,21 @@ public interface SyncI {
 	public static final String TAG_CS = "coarse sync mf";
 	public static final String TAG_FS = "fine sync mf";
 
+	/* coarse sync message positions */
+	public static final int CS_SENDER_IP_POS = 1;
+	public static final int CS_SENDER_PORT_POS = 2;
+	public static final int CS_PTS_POS = 3;
+	public static final int CS_NTS_POS = 4;
+	public static final int CS_PEER_ID_POS = 5;
+	
+	/* fine sync message positions */
+	public static final int FS_R_AVG_POS = 1;
+	public static final int FS_R_NTP_POS = 2;
+	public static final int FS_PEER_ID_POS = 3;
+	public static final int FS_BLOOM_POS = 4;
+	public static final int FS_MAX_ID_POS = 5;
+	public static final int FS_SYNC_N_POS = 6;
+
 	/**
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
@@ -44,18 +59,19 @@ public interface SyncI {
 	public static final String DELIM = ":";
 
 	/** bloom filter length: n_exp_elem * bits_per_elem */
-	public static final int N_EXP_ELEM = 256;
+	public static final int N_EXP_ELEM = 512;
 	public static final int BITS_PER_ELEM = 2;
 	/** number of used hash functions in the bloom filter **/
 	public static final int N_HASHES = 4;
 
 	/** difference in ms when we stop (fine) sync */
-	public static final long EPSILON = 125;
+	public static final long EPSILON = 400;
 
 	/** constants for message types */
 	public static final int TYPE_COARSE_REQ = 1;
 	public static final int TYPE_COARSE_RESP = 2;
 	public static final int TYPE_FINE = 3;
+	
 
 	/**
 	 * here, the first steps of the sync are done

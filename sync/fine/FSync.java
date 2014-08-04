@@ -25,15 +25,14 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.CRC32;
 
 import mf.bloomfilter.BloomFilter;
+import mf.sync.SyncI;
+import mf.sync.net.FSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
-import android.util.Log;
 
 /**
  * 
@@ -42,7 +41,7 @@ import android.util.Log;
  * @author stefan petscharnig
  *
  */
-public class FSync implements SyncI {
+public class FSync {
 
 	/** actual bloom filter */
 	private BloomFilter<Integer> bloom;
@@ -90,26 +89,38 @@ public class FSync implements SyncI {
 		// reset [for resync]
 		bloomList.clear();
 		maxId = myId;
-		Log.d(TAG_FS, "want to start fine sync thread");
 		workerThread = new FSyncServer(this);
 		workerThread.start();
 	}
 
 	public void reSync() {
+		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
+		try {
+			/*
+			 * we wait some time, because maybe a coarse synchronization is in
+			 * progress
+			 */
+			Thread.sleep(SyncI.WAIT_TIME_CS_MS);
+		} catch (InterruptedException e) {
+			SessionInfo.getInstance().log(
+					"resynchronization got interrupted, abort");
+			return;
+		}
 		startSync();
+
 	}
 
 	public void stopSync() {
-		if (workerThread != null && workerThread.isAlive())
+		if (serverRunning())
 			workerThread.interrupt();
 	}
 
 	/**
 	 * do process a fine sync request in a new thread
 	 */
-	public void processRequest(String msg) {
-		new FSResponseHandler(msg, this, maxId).start();
+	public void processRequest(FSyncMsg fSyncMsg) {
+		new FSResponseHandler(fSyncMsg, this, maxId).start();
 	}
 
 	/**
@@ -143,25 +154,27 @@ public class FSync implements SyncI {
 	}
 
 	private void initBloom() {
-		bloom = new BloomFilter<Integer>(BITS_PER_ELEM, N_EXP_ELEM, N_HASHES);
+		bloom = new BloomFilter<Integer>(SyncI.BITS_PER_ELEM, SyncI.N_EXP_ELEM,
+				SyncI.N_HASHES);
 		bloom.add(SessionInfo.getInstance().getMySelf().getId());
 		bloomList.add(bloom);
 	}
 
 	void broadcastToPeers(long nts) {
-		// broadcast to known peers
-		
+		/* broadcast to known peers */
+
 		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_FINE, avgTs,
-				nts, myId, Utils.toString(bloom.getBitSet()), maxId);
-		
+				nts, myId, Utils.toString(bloom.getBitSet()), maxId,
+				SessionInfo.getInstance().getSeqN());
+
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 			try {
 				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
 						p.getPort());
 			} catch (SocketException e) {
-				// ignore
+				/* ignore */
 			} catch (IOException e) {
-				// ignore
+				/* ignore */
 			}
 		}
 	}
@@ -170,15 +183,19 @@ public class FSync implements SyncI {
 		return bloom;
 	}
 
-	public List<BloomFilter<Integer>> getBloomList() {
+	List<BloomFilter<Integer>> getBloomList() {
 		return bloomList;
 	}
 
-	public int getMaxId() {
+	int getMaxId() {
 		return maxId;
 	}
 
-	public void setMaxId(int maxId) {
+	void setMaxId(int maxId) {
 		this.maxId = maxId;
+	}
+
+	public boolean serverRunning() {
+		return workerThread != null && workerThread.isAlive();
 	}
 }

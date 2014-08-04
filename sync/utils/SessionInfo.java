@@ -39,15 +39,15 @@ public class SessionInfo {
 	private Map<Integer, Peer> peers;
 
 	private String sessionId;
-
+	private int seqN;
 	private long validThru;
-	// List<String> log;
-	SyncLogger log;
+	private SyncLogger log;
 
 	public SessionInfo() {
 		peers = new ArrayMap<Integer, Peer>();
 		// log = new ArrayList<String>();
 		log = new SyncLogger(20);
+		seqN = 0;
 	}
 
 	/**
@@ -95,16 +95,19 @@ public class SessionInfo {
 	}
 
 	public void log(String s) {
-		// log.add(s);
 		log.append(s);
 	}
 
 	public SyncLogger getLog() {
 		return log;
 	}
-	// public List<String> getLog() {
-	//
-	// return log;
-	// }
+
+	public int getSeqN() {
+		return seqN;
+	}
+
+	public void setSeqN(int sn) {
+		seqN = sn;
+	}
 
 }

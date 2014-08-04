@@ -21,14 +21,14 @@
 package mf.sync.coarse;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import mf.sync.SyncI;
+import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
 import android.util.Log;
 
@@ -37,33 +37,16 @@ import android.util.Log;
  * 
  * @author stefan petscharnig
  */
-class CSyncRequestProcessor implements Runnable {
+public class CSyncRequestProcessor implements Runnable {
 
-	private String req;
+	private CSyncMsg req;
 	public static final String TAG = "csprr";
 
-	public CSyncRequestProcessor(String req) {
-		this.req = req;
+	public CSyncRequestProcessor(CSyncMsg cSyncMsg) throws UnknownHostException {
+		this.req = cSyncMsg;
 	}
 
 	public void run() {
-		// parse request
-		Log.d(TAG, "got the following request: " + req);
-		String[] responseFields = req.split(SyncI.DELIM);
-
-		int peerId = Integer.parseInt(responseFields[5]);
-
-
-		String senderIP = responseFields[1];
-		InetAddress peerAddress = null;
-
-		try {
-			peerAddress = InetAddress.getByName(senderIP);
-		} catch (UnknownHostException e) {
-			Log.d(TAG, "invalid request [IP]");
-			return; // invalid IP, don't care;
-		}
-		int senderPort = Integer.parseInt(responseFields[2]);
 
 		int myPts = Utils.getPlaybackTime();
 		long myNts = Utils.getTimestamp();
@@ -72,22 +55,24 @@ class CSyncRequestProcessor implements Runnable {
 				.getHostAddress();
 		int myPort = SessionInfo.getInstance().getMySelf().getPort();
 		int myId = SessionInfo.getInstance().getMySelf().getId();
+
 		String msg = Utils.buildMessage(SyncI.DELIM, SyncI.TYPE_COARSE_RESP,
 				myIP, myPort, myPts, myNts, myId);
 
 		// send response
 		try {
-			MessageHandler.getInstance().sendMsg(msg, peerAddress, senderPort);
+			MessageHandler.getInstance().sendMsg(msg, req.senderIp,
+					req.senderPort);
 		} catch (SocketException e) {
 			Log.e(TAG, "could not send message");
 		} catch (IOException e) {
 			Log.e(TAG, "could not send message");
 		}
 
-		if (!SessionInfo.getInstance().getPeers().containsKey(peerId)) {
+		if (!SessionInfo.getInstance().getPeers().containsKey(req.peerId)) {
 			Log.d("", "add a new peer");
-			Peer p = new Peer(peerId, peerAddress, senderPort);
-			SessionInfo.getInstance().getPeers().put(peerId, p);
+			Peer p = new Peer(req.peerId, req.senderIp, req.senderPort);
+			SessionInfo.getInstance().getPeers().put(req.peerId, p);
 		}
 
 	}

@@ -29,7 +29,6 @@ import java.util.zip.CRC32;
 
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.log.SyncLogger;
 import android.util.Log;
 
@@ -88,7 +87,7 @@ public class MessageHandler {
 
 	public SyncLogger getRcvLog() {
 		if (srv != null)
-			return srv.rcvLog;
+			return HandlerServer.rcvLog;
 		return null;
 	}
 
@@ -117,16 +116,15 @@ public class MessageHandler {
 		msg = SessionInfo.getInstance().getMySelf().getId() + "." + cnt++ + "#"
 				+ msg;
 
-		CRC32 check = new CRC32();
-		check.update(msg.getBytes());
-
-		msg = check.getValue() + "#" + msg;
-
 		if (msg.length() < 50) {
 			sendLog.append(msg);
 		} else {
 			sendLog.append(msg.substring(0, 49) + "...");
 		}
+		CRC32 check = new CRC32();
+		check.update(msg.getBytes());
+
+		msg = check.getValue() + "#" + msg;
 
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),

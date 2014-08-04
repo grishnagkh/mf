@@ -20,11 +20,12 @@
  */
 package mf.sync.coarse;
 
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import mf.sync.net.CSyncMsg;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 
 /**
  * 
@@ -32,7 +33,7 @@ import mf.sync.utils.SyncI;
  *
  */
 
-public class CSync implements SyncI {
+public class CSync {
 	public static final boolean DEBUG = true;
 
 	public static final int SEGSIZE = 2000;// for now^^
@@ -76,15 +77,18 @@ public class CSync implements SyncI {
 		cSyncServer.start();
 	}
 
-	/** process a sync request message */
-	public void processRequest(String request) {
+	/**
+	 * process a sync request message
+	 * 
+	 * @throws UnknownHostException
+	 */
+	public void processRequest(CSyncMsg cSyncMsg) throws UnknownHostException {
 		if (DEBUG)
 			SessionInfo.getInstance().log("process coarse request");
-		new Thread(new CSyncRequestProcessor(request)).start();
+		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();
 	}
 
 	public void stopSync() {
-
 		if (cSyncServer != null && cSyncServer.isAlive()) {
 			if (DEBUG)
 				SessionInfo.getInstance().log("stopping already running csync");

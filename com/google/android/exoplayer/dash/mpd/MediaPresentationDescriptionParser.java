@@ -156,10 +156,15 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		Peer mySelf = null;
 
 		InetAddress ownAddress = Utils.getWifiAddress(MainActivity.c);
+
+		int ctr = 0;
+
 		do {
 
 			xpp.next();
+
 			if (isStartTag(xpp, "peer")) {
+				ctr++;
 				int id = Integer.parseInt(xpp.getAttributeValue(0));
 				int port = Integer.parseInt(xpp.getAttributeValue(2));
 				InetAddress addr = InetAddress.getByName(xpp
@@ -181,7 +186,8 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 
 			}
 		} while (!isEndTag(xpp, "session"));
-
+		/* set initial sequence number: #of peers without oneself */
+		SessionInfo.getInstance().setSeqN(ctr);
 		/*
 		 * should not happen because of the server, but when it does (testing
 		 * with dummy data) we are prepared^^

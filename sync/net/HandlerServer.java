@@ -28,10 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32;
 
+import mf.sync.SyncI;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.log.SyncLogger;
 
 /**
@@ -149,11 +149,11 @@ public class HandlerServer extends Thread {
 
 				/* distribute the message */
 				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
-					CSync.getInstance().processRequest(msg);
+					CSync.getInstance().processRequest(CSyncMsg.fromString(msg));
 				} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
 					CSync.getInstance().coarseResponse(msg);
 				} else if (msg.startsWith("" + SyncI.TYPE_FINE)) {
-					FSync.getInstance().processRequest(msg);
+					FSync.getInstance().processRequest(FSyncMsg.fromString(msg));
 				} else {
 					// other requests, really? should not happen
 				}

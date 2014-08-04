@@ -22,16 +22,16 @@ package mf.sync.coarse;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import mf.player.gui.MainActivity;
-import mf.sync.fine.FSync;
+import mf.sync.SyncI;
+import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.SyncI;
 import mf.sync.utils.Utils;
-import android.util.Log;
 
 /**
  * 
@@ -112,20 +112,24 @@ public class CSyncServer extends Thread {
 		if (msgQueue.size() == 0) {
 			if (DEBUG_ON_SCREEN)
 				SessionInfo.getInstance().log("no messages in response queue");
-			FSync.getInstance().startSync();
+			// FSync.getInstance().startSync(); //TODO
 			return;
 		}
 
+		CSyncMsg resp;
+		int ctr = 0;
+
 		for (String response : msgQueue) {
-			String[] responseFields = response.split(SyncI.DELIM);
-			long pts = Long.parseLong(responseFields[3]);
-			long nts = Long.parseLong(responseFields[4]);
-			avgPTS += pts + (Utils.getTimestamp() - nts);
-			Log.d(TAG,
-					"trip time (peer " + responseFields[4] + "): "
-							+ (Utils.getTimestamp() - nts));
+			try {
+				resp = CSyncMsg.fromString(response);
+				avgPTS += resp.pts + (Utils.getTimestamp() - resp.nts);
+				ctr++;
+			} catch (UnknownHostException e) {
+				/* could not get ip; ignore */
+			}
 		}
-		avgPTS /= msgQueue.size();
+		if (ctr != 0)
+			avgPTS /= ctr;
 
 		// empty request queue
 		msgQueue.clear();
@@ -145,7 +149,6 @@ public class CSyncServer extends Thread {
 		if (DEBUG_ON_SCREEN)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		FSync.getInstance().startSync();
+		// FSync.getInstance().startSync(); //TODO
 	}
-
 }
