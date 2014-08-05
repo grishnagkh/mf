@@ -21,19 +21,20 @@
 
 package mf.sync.net;
 
+import java.security.NoSuchAlgorithmException;
+
 import mf.bloomfilter.BloomFilter;
 import mf.sync.SyncI;
-import mf.sync.utils.Utils;
 
 public class FSyncMsg {
 	public int seqN, maxId, myId;
 	public long avg, nts;
-	public BloomFilter<Integer> bloom;
+	public BloomFilter bloom;
 
 	private FSyncMsg() {
 	}
 
-	public FSyncMsg(long avgTs, long nts, int myId, BloomFilter<Integer> bloom,
+	public FSyncMsg(long avgTs, long nts, int myId, BloomFilter bloom,
 			int maxId, int seqN) {
 		this.avg = avgTs;
 		this.nts = nts;
@@ -45,8 +46,7 @@ public class FSyncMsg {
 
 	public String getMessageString(String delim, int type) {
 		String msg = type + delim + avg + delim + nts + delim + myId + delim
-				+ Utils.toString(bloom.getBitSet()) + delim + maxId + delim
-				+ seqN;
+				+ bloom.toString() + delim + maxId + delim + seqN;
 		return msg;
 	}
 
@@ -56,9 +56,12 @@ public class FSyncMsg {
 
 		String[] msgA = str.split(SyncI.DELIM);
 
-		msg.bloom = new BloomFilter<Integer>(SyncI.BITS_PER_ELEM,
-				SyncI.N_EXP_ELEM, SyncI.N_HASHES);
-		msg.bloom.setBitSet(Utils.fromString(msgA[SyncI.FS_BLOOM_POS]));
+		try {
+			msg.bloom = BloomFilter.fromString(msgA[SyncI.FS_BLOOM_POS],
+					SyncI.N_HASHES);
+		} catch (NoSuchAlgorithmException e) {
+
+		}
 
 		msg.seqN = Integer.parseInt(msgA[SyncI.FS_SYNC_N_POS]);
 		msg.avg = Long.parseLong(msgA[SyncI.FS_R_AVG_POS]);

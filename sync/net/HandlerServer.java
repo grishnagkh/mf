@@ -114,16 +114,21 @@ public class HandlerServer extends Thread {
 				msg = msg.trim();
 
 				/* CRC check */
-				long checkSum = Long.parseLong(crc);
-				CRC32 check = new CRC32();
-				check.update(msg.getBytes());
-				if (checkSum != check.getValue()) {
-					if (DEBUG_CRC)
-						SessionInfo.getInstance().log("crc check not passed");
-					continue;
-				}
-				if (DEBUG_CRC)
-					SessionInfo.getInstance().log("crc check passed");
+				 long checkSum = Long.parseLong(crc);
+				 CRC32 check = new CRC32();
+				 check.update(msg.getBytes());
+				 if (checkSum != check.getValue()) {
+				 if (DEBUG_CRC)
+				 SessionInfo.getInstance().log("crc check not passed");
+				 continue;
+				 }
+				 if (DEBUG_CRC)
+				 SessionInfo.getInstance().log("crc check passed");
+				// long checkLen = Long.parseLong(crc);
+				// if (checkLen != msg.length()) {
+				// continue;
+				// }^
+				 
 				idx = msg.indexOf('#') + 1;
 				/* duplicate message check */
 				String id = msg.substring(0, idx);
@@ -140,21 +145,23 @@ public class HandlerServer extends Thread {
 				}
 
 				msg = msg.substring(idx);
-				
+
 				if (msg.length() < 50) {
 					rcvLog.append(msg);
 				} else {
 					rcvLog.append(msg.substring(0, 49) + "...");
 				}
-				
+
 				/* distribute the message */
 				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
-					CSync.getInstance().processRequest(CSyncMsg.fromString(msg));
-					
+					CSync.getInstance()
+							.processRequest(CSyncMsg.fromString(msg));
+
 				} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
 					CSync.getInstance().coarseResponse(msg);
 				} else if (msg.startsWith("" + SyncI.TYPE_FINE)) {
-					FSync.getInstance().processRequest(FSyncMsg.fromString(msg));
+					FSync.getInstance()
+							.processRequest(FSyncMsg.fromString(msg));
 				} else {
 					// other requests, really? should not happen
 				}

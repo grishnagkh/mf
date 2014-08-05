@@ -39,7 +39,7 @@ public interface SyncI {
 	public static final int CS_PTS_POS = 3;
 	public static final int CS_NTS_POS = 4;
 	public static final int CS_PEER_ID_POS = 5;
-	
+
 	/* fine sync message positions */
 	public static final int FS_R_AVG_POS = 1;
 	public static final int FS_R_NTP_POS = 2;
@@ -59,10 +59,10 @@ public interface SyncI {
 	public static final String DELIM = ":";
 
 	/** bloom filter length: n_exp_elem * bits_per_elem */
-	public static final int N_EXP_ELEM = 512;
-	public static final int BITS_PER_ELEM = 2;
+	public static final int N_EXP_ELEM = 2;
+	public static final int BYPE_PER_ELEM = 4;
 	/** number of used hash functions in the bloom filter **/
-	public static final int N_HASHES = 4;
+	public static final int N_HASHES = 2;
 
 	/** difference in ms when we stop (fine) sync */
 	public static final long EPSILON = 400;
@@ -71,7 +71,6 @@ public interface SyncI {
 	public static final int TYPE_COARSE_REQ = 1;
 	public static final int TYPE_COARSE_RESP = 2;
 	public static final int TYPE_FINE = 3;
-	
 
 	/**
 	 * here, the first steps of the sync are done

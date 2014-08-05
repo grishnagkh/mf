@@ -121,10 +121,13 @@ public class MessageHandler {
 		} else {
 			sendLog.append(msg.substring(0, 49) + "...");
 		}
+
 		CRC32 check = new CRC32();
 		check.update(msg.getBytes());
 
 		msg = check.getValue() + "#" + msg;
+
+		// msg = msg.length() + "#" + msg; //instead of crc32
 
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
