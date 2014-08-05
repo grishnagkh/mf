@@ -19,9 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -152,7 +150,6 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		SessionInfo.getInstance().setValidThru(validThru);
 		SessionInfo.getInstance().setSessionId(sessionId);
 
-		Map<Integer, Peer> peers = new HashMap<Integer, Peer>();
 		Peer mySelf = null;
 
 		InetAddress ownAddress = Utils.getWifiAddress(MainActivity.c);

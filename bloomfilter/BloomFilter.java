@@ -1,27 +1,38 @@
+/*
+ * BloomFilter.java
+ *
+ * Copyright (c) 2014, Stefan Petscharnig. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301 USA
+ */
+
 package mf.bloomfilter;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/*
- * Bloom filter implementation using byte arrays, 
- * name is temporary, to have a difference to the northern one^^ 
+/**
+ * Bloom filter implementation for int keys using byte arrays
  */
 public class BloomFilter {
 
 	private byte[] bloom;
 	private int nHashes;
 
-	static final MessageDigest md;
-	static { // The digest method is reused between instances
-		MessageDigest tmp;
-		try {
-			tmp = java.security.MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			tmp = null;
-		}
-		md = tmp;
-	}
+	private MessageDigest md;
 
 	public BloomFilter() throws NoSuchAlgorithmException {
 		this(1024, 2);
@@ -31,16 +42,7 @@ public class BloomFilter {
 			throws NoSuchAlgorithmException {
 		bloom = new byte[sizeBytes];
 		this.nHashes = nHashes;
-	}
-
-	public byte[] getBytes(int i) {
-		byte[] ret = new byte[Integer.SIZE / Byte.SIZE];
-		int ctr = -1;
-		while (++ctr < ret.length) {
-			ret[ctr] = (byte) (i % (1 << Byte.SIZE));
-			i = i >> Byte.SIZE;
-		}
-		return ret;
+		md = MessageDigest.getInstance("SHA-1");
 	}
 
 	public void add(int toAdd) {
@@ -130,7 +132,7 @@ public class BloomFilter {
 	}
 
 	/*
-	 * converts toString representation into a bytefilter with given number of
+	 * converts toString representation into a bloomfilter with given number of
 	 * hashes per element
 	 */
 	public static BloomFilter fromString(String str, int nHashes)
@@ -148,28 +150,34 @@ public class BloomFilter {
 		return bbf;
 	}
 
+	private byte[] getBytes(int i) {
+		byte[] ret = new byte[Integer.SIZE / Byte.SIZE];
+		int ctr = -1;
+		while (++ctr < ret.length) {
+			ret[ctr] = (byte) (i % (1 << Byte.SIZE));
+			i = i >> Byte.SIZE;
+		}
+		return ret;
+	}
+
 	private int[] getIndices(byte[] data, int hashes) {
 
 		int[] result = new int[hashes];
+		byte salt = 1;
 
-		int k = 0;
-		byte salt = 23;
-		while (k < hashes) {
-			byte[] digest;
-			md.update(salt);
-			salt += 1;
-			digest = md.digest(data);
+		for (int j = 0; j < hashes; j++) {
 
-			for (int i = 0; i < digest.length / 4 && k < hashes; i++) {
-				int h = 0;
-				for (int j = (i * 4); j < (i * 4) + 4; j++) {
-					h <<= 8;
-					h |= ((int) digest[j]) & 0xFF;
-				}
-				result[k] = h;
-				k++;
+			md.update(salt++);
+			byte[] digest = md.digest(data);
+			int tmpHash = digest[0];
+			for (int i = 1; i < Integer.SIZE / Byte.SIZE && i < digest.length; i++) {
+				tmpHash <<= Byte.SIZE;
+				tmpHash |= digest[i];
 			}
+			result[j] = tmpHash;
 		}
+
 		return result;
+
 	}
 }

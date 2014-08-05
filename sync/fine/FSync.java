@@ -105,6 +105,7 @@ public class FSync {
 		maxId = myId;
 		workerThread = new FSyncServer(this);
 		workerThread.start();
+
 	}
 
 	public void reSync() throws NoSuchAlgorithmException {
@@ -118,6 +119,7 @@ public class FSync {
 		bloomList.add(bloom);
 
 		startSync();
+
 	}
 
 	public void stopSync() {

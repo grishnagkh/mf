@@ -73,10 +73,6 @@ public class CSyncServer extends Thread {
 
 		/* 1 */
 
-		// CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
-		// .getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
-		// 0, Utils.getTimestamp(), SessionInfo.getInstance().getMySelf()
-		// .getId());
 		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
 				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
 				0, Clock.getTime(), SessionInfo.getInstance().getMySelf()
@@ -125,8 +121,6 @@ public class CSyncServer extends Thread {
 			 * i think this is not necessary anymore... remember that nobody
 			 * seems to be here?
 			 */
-			// FSync.getInstance().startSync();
-
 			return;
 		}
 
@@ -165,10 +159,9 @@ public class CSyncServer extends Thread {
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
 		CSync.getInstance().finished = true;
-		while (Utils.getPlaybackTime() < avgPTS + 500) {
+		while (Utils.getPlaybackTime() < avgPTS + 4000) {
 			/*
-			 * wait until we set the playback time in video and buffered some
-			 * seconds
+			 * wait for setting the playback time and buffering some data...
 			 */
 			try {
 				Thread.sleep(100);

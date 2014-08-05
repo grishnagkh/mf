@@ -37,10 +37,10 @@ package mf.player.gui;
 	}
 
 	public static final Sample[] DASH = new Sample[] {
-			new Sample("Google Play",
-					"https://demo-itec.aau.at/livelab/mf/play.mpd"),
 			new Sample("Google Glasses",
-					"https://demo-itec.aau.at/livelab/mf/glass.mpd") };
+					"https://demo-itec.aau.at/livelab/mf/glass.mpd"),
+			new Sample("Google Play",
+					"https://demo-itec.aau.at/livelab/mf/play.mpd"), };
 
 	private Samples() {
 	}

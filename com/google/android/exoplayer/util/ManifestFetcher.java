@@ -15,16 +15,14 @@
  */
 package mf.com.google.android.exoplayer.util;
 
-import android.net.Uri;
-import android.os.AsyncTask;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 import mf.com.google.android.exoplayer.ParserException;
-import mf.sync.coarse.CSync;
+import android.net.Uri;
+import android.os.AsyncTask;
 
 /**
  * An {@link AsyncTask} for loading and parsing media manifests.

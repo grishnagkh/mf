@@ -37,6 +37,7 @@ public class FSResponseHandler extends Thread {
 
 	private int maxId;
 	private int myId;
+	private BloomFilter bloom;
 
 	public FSResponseHandler(FSyncMsg fSyncMsg, FSync parent, int maxId) {
 
@@ -48,10 +49,9 @@ public class FSResponseHandler extends Thread {
 		this.parent = parent;
 	}
 
-	BloomFilter bloom;
-
 	public void run() {
 
+		/* check sequence number, if received seq n > stored seq n -> resync */
 		checkSeqN();
 
 		bloom = parent.getBloom();
@@ -76,9 +76,7 @@ public class FSResponseHandler extends Thread {
 
 			boolean contains = parent.getBloomList().contains(msg.bloom);
 
-			// long actTs = Utils.getTimestamp();
 			long actTs = Clock.getTime();
-
 			long avgTs = parent.alignAvgTs(actTs);
 
 			if (!xorZero && andZero) {
@@ -122,7 +120,6 @@ public class FSResponseHandler extends Thread {
 						"no such algorithm.. what the heck?!?");
 			}
 		}
-
 	}
 
 	public void updatePlayback() {
