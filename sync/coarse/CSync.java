@@ -34,7 +34,7 @@ import mf.sync.utils.SessionInfo;
  */
 
 public class CSync {
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 
 	public static final int SEGSIZE = 2000;// for now^^
 

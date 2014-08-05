@@ -23,6 +23,7 @@ package mf.sync.coarse;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import mf.player.gui.MainActivity;
@@ -30,6 +31,7 @@ import mf.sync.SyncI;
 import mf.sync.fine.FSync;
 import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
+import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
@@ -71,9 +73,13 @@ public class CSyncServer extends Thread {
 
 		/* 1 */
 
+		// CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
+		// .getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
+		// 0, Utils.getTimestamp(), SessionInfo.getInstance().getMySelf()
+		// .getId());
 		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
 				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
-				0, Utils.getTimestamp(), SessionInfo.getInstance().getMySelf()
+				0, Clock.getTime(), SessionInfo.getInstance().getMySelf()
 						.getId());
 
 		if (DEBUG_ON_SCREEN)
@@ -115,7 +121,12 @@ public class CSyncServer extends Thread {
 						.getInstance()
 						.log("no messages in response queue, no one seems to be here yet");
 
-			FSync.getInstance().startSync();
+			/*
+			 * i think this is not necessary anymore... remember that nobody
+			 * seems to be here?
+			 */
+			// FSync.getInstance().startSync();
+
 			return;
 		}
 
@@ -125,7 +136,8 @@ public class CSyncServer extends Thread {
 		for (String response : msgQueue) {
 			try {
 				resp = CSyncMsg.fromString(response);
-				avgPTS += resp.pts + (Utils.getTimestamp() - resp.nts);
+				// avgPTS += resp.pts + (Utils.getTimestamp() - resp.nts);
+				avgPTS += resp.pts + (Clock.getTime() - resp.nts);
 				ctr++;
 			} catch (UnknownHostException e) {
 				/* could not get ip; ignore */
@@ -153,6 +165,21 @@ public class CSyncServer extends Thread {
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
 		CSync.getInstance().finished = true;
-		FSync.getInstance().startSync();
+		while (Utils.getPlaybackTime() < avgPTS + 500) {
+			/*
+			 * wait until we set the playback time in video and buffered some
+			 * seconds
+			 */
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
+		}
+		try {
+			FSync.getInstance().startSync();
+		} catch (NoSuchAlgorithmException e) {
+			SessionInfo.getInstance().log(
+					"no such algorithm.. what the heck?!?");
+		}
 	}
 }

@@ -23,6 +23,7 @@ package mf.sync.fine;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,7 @@ import mf.bloomfilter.BloomFilter;
 import mf.sync.SyncI;
 import mf.sync.net.FSyncMsg;
 import mf.sync.net.MessageHandler;
+import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
@@ -44,9 +46,9 @@ import mf.sync.utils.Utils;
 public class FSync {
 
 	/** actual bloom filter */
-	private BloomFilter<Integer> bloom;
+	private BloomFilter bloom;
 	/** a list of seen bloom filters */
-	private List<BloomFilter<Integer>> bloomList;
+	private List<BloomFilter> bloomList;
 
 	/** time when the last avgTs update */
 	private long lastAvgUpdateTs;
@@ -64,11 +66,21 @@ public class FSync {
 	 * Constructor
 	 */
 	private FSync() {
+
 		avgMonitor = new Object();
-		bloomList = new ArrayList<BloomFilter<Integer>>();
+		bloomList = new ArrayList<BloomFilter>();
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		maxId = myId;
 		avgMonitor = this;
+		try {
+			bloom = new BloomFilter(SyncI.BYPE_PER_ELEM * SyncI.N_EXP_ELEM,
+					SyncI.N_HASHES);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		bloom.add(SessionInfo.getInstance().getMySelf().getId());
+		bloomList.add(bloom);
+
 	}
 
 	/**
@@ -83,21 +95,29 @@ public class FSync {
 
 	/**
 	 * start fine sync message sending in a new thread
+	 * 
+	 * @throws NoSuchAlgorithmException
 	 */
-	public void startSync() {
-		initBloom();
-		// reset [for resync]
-		bloomList.clear();
+	public void startSync() throws NoSuchAlgorithmException {
+
+		initAvgTs();
+
 		maxId = myId;
 		workerThread = new FSyncServer(this);
 		workerThread.start();
 	}
 
-	public void reSync() {
+	public void reSync() throws NoSuchAlgorithmException {
 		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
-		startSync();
+		bloomList.clear();
 
+		bloom = new BloomFilter(SyncI.BYPE_PER_ELEM * SyncI.N_EXP_ELEM,
+				SyncI.N_HASHES);
+		bloom.add(SessionInfo.getInstance().getMySelf().getId());
+		bloomList.add(bloom);
+
+		startSync();
 	}
 
 	public void stopSync() {
@@ -122,7 +142,9 @@ public class FSync {
 	long alignAvgTs(long alignTo) {
 		synchronized (avgMonitor) {
 			avgTs += alignTo - lastAvgUpdateTs; // align avgTs
-			lastAvgUpdateTs = Utils.getTimestamp();
+			// lastAvgUpdateTs = Utils.getTimestamp();
+			lastAvgUpdateTs = Clock.getTime();
+
 		}
 		return avgTs;
 	}
@@ -130,7 +152,9 @@ public class FSync {
 	long initAvgTs() {
 		synchronized (avgMonitor) {
 			avgTs = Utils.getPlaybackTime();
-			lastAvgUpdateTs = Utils.getTimestamp();
+			// lastAvgUpdateTs = Utils.getTimestamp();
+			lastAvgUpdateTs = Clock.getTime();
+
 		}
 		return avgTs;
 	}
@@ -138,15 +162,9 @@ public class FSync {
 	void updateAvgTs(long newValue) {
 		synchronized (avgMonitor) {
 			avgTs = newValue;
-			lastAvgUpdateTs = Utils.getTimestamp();
+			// lastAvgUpdateTs = Utils.getTimestamp();
+			lastAvgUpdateTs = Clock.getTime();
 		}
-	}
-
-	private void initBloom() {
-		bloom = new BloomFilter<Integer>(SyncI.BITS_PER_ELEM, SyncI.N_EXP_ELEM,
-				SyncI.N_HASHES);
-		bloom.add(SessionInfo.getInstance().getMySelf().getId());
-		bloomList.add(bloom);
 	}
 
 	void broadcastToPeers(long nts) {
@@ -170,11 +188,11 @@ public class FSync {
 		}
 	}
 
-	BloomFilter<Integer> getBloom() {
+	BloomFilter getBloom() {
 		return bloom;
 	}
 
-	List<BloomFilter<Integer>> getBloomList() {
+	List<BloomFilter> getBloomList() {
 		return bloomList;
 	}
 

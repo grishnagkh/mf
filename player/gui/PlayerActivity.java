@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
 import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
@@ -29,6 +30,7 @@ import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.com.google.android.exoplayer.util.PlayerControl;
 import mf.sync.net.MessageHandler;
+import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
@@ -161,7 +163,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 		String rcvStr = "message received\n", senStr = "messages sent\n", peeStr = "known peers\n", dText = "DEBUG\n";
 
-		long now = Utils.getTimestamp();
+		long now = Clock.getTime();
 
 		dText += "Ntp Time: " + new Date(now) + "(" + now + ")" + "\n"
 				+ SessionInfo.getInstance().getLog().toString();

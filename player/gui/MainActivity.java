@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		initChoosableVideos();
+
 	}
 
 	private void initChoosableVideos() {
@@ -76,14 +77,15 @@ public class MainActivity extends Activity {
 				.getSelectedItem();
 
 		String uri = selection.uri;
-		
+
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		EditText e1 = (EditText) findViewById(R.id.sessionKeyET_main);
 		String srv = e.getText().toString();
 		String sKey = e1.getText().toString();
 
 		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri
-				+ "&session_key=" + sKey + "&ip="+Utils.getWifiAddress(this).getHostAddress();
+				+ "&session_key=" + sKey + "&ip="
+				+ Utils.getWifiAddress(this).getHostAddress();
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))

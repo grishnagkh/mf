@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import mf.sync.SyncI;
 import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
+import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
@@ -48,9 +49,14 @@ public class CSyncRequestProcessor implements Runnable {
 
 	public void run() {
 
+		// CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
+		// .getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
+		// Utils.getPlaybackTime(), Utils.getTimestamp(), SessionInfo
+		// .getInstance().getMySelf().getId());
+		
 		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
 				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
-				Utils.getPlaybackTime(), Utils.getTimestamp(), SessionInfo
+				Utils.getPlaybackTime(), Clock.getTime(), SessionInfo
 						.getInstance().getMySelf().getId());
 
 		// send response

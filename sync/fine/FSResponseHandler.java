@@ -20,8 +20,11 @@
  */
 package mf.sync.fine;
 
+import java.security.NoSuchAlgorithmException;
+
 import mf.bloomfilter.BloomFilter;
 import mf.sync.net.FSyncMsg;
+import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
 
@@ -30,7 +33,6 @@ public class FSResponseHandler extends Thread {
 	private FSyncMsg msg;
 
 	public static final String TAG = "FSResponse Handler";
-	private static final boolean DEBUG_OVERLAY = true;
 	private FSync parent;
 
 	private int maxId;
@@ -46,103 +48,88 @@ public class FSResponseHandler extends Thread {
 		this.parent = parent;
 	}
 
+	BloomFilter bloom;
+
 	public void run() {
 
-		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
-			SessionInfo.getInstance().setSeqN(msg.seqN);
-			FSync.getInstance().reSync();
+		checkSeqN();
+
+		bloom = parent.getBloom();
+		if (bloom == null) {
+			SessionInfo.getInstance().log("bloom is null.. what the heck?!?");
+			return;
 		}
+
+		int nPeersRcv = msg.bloom.nElements(msg.maxId);
+		int nPeersOwn = bloom.nElements(maxId);
+
+		BloomFilter xor = msg.bloom.clone();
+		BloomFilter and = msg.bloom.clone();
+		xor.xor(bloom);
+		and.and(bloom);
+
+		boolean xorZero = xor.isZero();
+		boolean andZero = and.isZero();
+		boolean intersectContains = and.contains(myId);
 
 		synchronized (parent) {
 
-			BloomFilter<Integer> bloom = parent.getBloom();
-			if (bloom == null) {
-				SessionInfo.getInstance().log(
-						"bloom is null.. what the heck?!?");
-				return;
-			}
-			int nPeersRcv = Utils.getN(msg.bloom, msg.maxId);
-			int nPeersOwn = Utils.getN(bloom, maxId);
+			boolean contains = parent.getBloomList().contains(msg.bloom);
 
-			if (DEBUG_OVERLAY) {
-				SessionInfo.getInstance().log(
-						"#peers in received bf: " + nPeersRcv + ", maxId: "
-								+ msg.maxId);
-				SessionInfo.getInstance().log(
-						"#peers in stored bf: " + nPeersOwn + ", maxId: "
-								+ maxId);
-			}
+			// long actTs = Utils.getTimestamp();
+			long actTs = Clock.getTime();
 
-			long actTs = Utils.getTimestamp();
 			long avgTs = parent.alignAvgTs(actTs);
 
-			if (Utils.xor(msg.bloom, bloom)) {
-				/* the bloom filters are different in at least one position */
+			if (!xorZero && andZero) {
+				bloom.or(msg.bloom);
+				long wSum = (avgTs * nPeersOwn) + (msg.avg + (actTs - msg.nts))
+						* nPeersRcv;
+				parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
+				updatePlayback();
+			}
 
-				if (DEBUG_OVERLAY)
-					SessionInfo.getInstance()
-							.log("bloom filters are different");
-				if (!Utils.and(msg.bloom, bloom)) {
-
-					/*
-					 * the bloom filters do not overlap
-					 */
-
-					/* merge the filters */
-					bloom.getBitSet().or(msg.bloom.getBitSet());
-					/* update average */
-					long wSum = (avgTs * nPeersOwn + (msg.avg + (actTs - msg.nts))
-							* nPeersRcv);
-					parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
-
-				} else if (!parent.getBloomList().contains(msg.bloom)) {
-					if (DEBUG_OVERLAY)
-						SessionInfo
-								.getInstance()
-								.log("bloom filters do overlap && we have seen this bloom filter before");
-					if (nPeersRcv >= nPeersOwn) {
-						if (DEBUG_OVERLAY)
-							SessionInfo
-									.getInstance()
-									.log("bloom filters do overlap and the received one contains more information");
-						/*
-						 * overlap and received bloom filter has more
-						 * information
-						 */
-
-						bloom.setBitSet(msg.bloom.getBitSet());
-
-						if (bloom.contains(myId)) {
-							if (DEBUG_OVERLAY)
-								SessionInfo
-										.getInstance()
-										.log("this peer already is in the filter, so set the received average");
-							/* correct received average */
-							parent.updateAvgTs(msg.avg + (actTs - msg.nts));
-						} else {
-							if (DEBUG_OVERLAY)
-								SessionInfo
-										.getInstance()
-										.log("this peer is not in the filter, so correct the received average and add ourself: "
-												+ myId);
-							/* add own timestamp to received one */
-							long wSum = (nPeersRcv
-									* (msg.avg + (actTs - msg.nts)) + avgTs);
-							parent.updateAvgTs(wSum / (nPeersRcv + 1));
-							bloom.add(myId);
-						}
+			if (!xorZero && !andZero && !contains) {
+				if (nPeersRcv >= nPeersOwn) {
+					if (intersectContains) {
+						parent.updateAvgTs(msg.avg + (actTs - msg.nts));
+						bloom = msg.bloom;
+					} else {
+						long wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
+								+ avgTs;
+						parent.updateAvgTs(wSum / (nPeersRcv + 1));
+						bloom = msg.bloom;
+						bloom.add(myId);
 					}
+					updatePlayback();
 				}
+			}
 
-			} else {
-				if (DEBUG_OVERLAY)
-					SessionInfo.getInstance().log("same bloom filters");
-				/* the same bloom filters: ignore; time stamps must be equal */
+			/* add the received bloom filter to the ones already seen */
+			parent.getBloomList().add(msg.bloom);
+			/* update maxId */
+			parent.setMaxId(maxId < msg.maxId ? msg.maxId : maxId);
+		}
+	}
+
+	private void checkSeqN() {
+		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
+			SessionInfo.getInstance().setSeqN(msg.seqN);
+			try {
+				FSync.getInstance().reSync();
+			} catch (NoSuchAlgorithmException e) {
+				SessionInfo.getInstance().log(
+						"no such algorithm.. what the heck?!?");
 			}
 		}
-		/* add the received bloom filter to the ones already seen */
-		parent.getBloomList().add(msg.bloom);
-		/* update maxId */
-		parent.setMaxId(maxId < msg.maxId ? msg.maxId : maxId);
+
+	}
+
+	public void updatePlayback() {
+		// long t = Utils.getTimestamp();
+		long t = Clock.getTime();
+		int t1 = (int) parent.alignAvgTs(t);
+		SessionInfo.getInstance().log("setting time: " + t1 + " @ " + t);
+		Utils.setPlaybackTime(t1);
 	}
 }

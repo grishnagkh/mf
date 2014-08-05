@@ -22,9 +22,8 @@
 package mf.sync.fine;
 
 import mf.sync.SyncI;
+import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
-import android.util.Log;
 
 public class FSyncServer extends Thread {
 
@@ -36,13 +35,17 @@ public class FSyncServer extends Thread {
 		this.parent = parent;
 	}
 
+	public void interrupt() {
+		SessionInfo.getInstance().log("FSync interrupted");
+
+		super.interrupt();
+	}
+
 	public void run() {
-		Log.d(TAG, "started fine sync thread");
-		long avgTs = parent.initAvgTs();
 
 		int ctr = 0;
 
-		while (!isInterrupted() && ctr++ < 3) {
+		while (!isInterrupted() && ctr++ < 5) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
@@ -50,17 +53,16 @@ public class FSyncServer extends Thread {
 			}
 
 			/* udpate */
-			long nts = Utils.getTimestamp();
-			avgTs = parent.alignAvgTs(nts);
-			parent.broadcastToPeers(nts);
+			synchronized (parent) {
+				// long nts = Utils.getTimestamp();
+				long nts = Clock.getTime();
+				parent.alignAvgTs(nts);
+				parent.broadcastToPeers(nts);
+			}
+
 		}
 
-		long nts = Utils.getTimestamp();
-		avgTs = parent.alignAvgTs(nts);
-		Utils.setPlaybackTime((int) avgTs);
-		SessionInfo.getInstance().log("setting time to: " + avgTs); 
-		SessionInfo.getInstance().log("FSync interrupted or stopped");
+		SessionInfo.getInstance().log("FSync thread died");
 
-		Log.d(TAG, "FSync interrupted");
 	}
 }
