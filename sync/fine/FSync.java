@@ -75,8 +75,7 @@ public class FSync {
 		maxId = myId;
 		avgMonitor = this;
 		try {
-			bloom = new BloomFilter(SyncI.BYTE_PER_ELEM * SyncI.N_EXP_ELEM,
-					SyncI.N_HASHES);
+			bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
@@ -105,8 +104,7 @@ public class FSync {
 		initAvgTs();
 		bloomList.clear();
 		try {
-			bloom = new BloomFilter(SyncI.BYTE_PER_ELEM * SyncI.N_EXP_ELEM,
-					SyncI.N_HASHES);
+			bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}

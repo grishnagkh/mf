@@ -29,18 +29,14 @@ package mf.sync;
  */
 public interface SyncI {
 
-	/** Tags for android log */
-	public static final String TAG_CS = "coarse sync mf";
-	public static final String TAG_FS = "fine sync mf";
-
-	/* coarse sync message positions */
+	/** coarse sync message positions */
 	public static final int CS_SENDER_IP_POS = 1;
 	public static final int CS_SENDER_PORT_POS = 2;
 	public static final int CS_PTS_POS = 3;
 	public static final int CS_NTS_POS = 4;
 	public static final int CS_PEER_ID_POS = 5;
 
-	/* fine sync message positions */
+	/** fine sync message positions */
 	public static final int FS_R_AVG_POS = 1;
 	public static final int FS_R_NTP_POS = 2;
 	public static final int FS_PEER_ID_POS = 3;
@@ -52,37 +48,21 @@ public interface SyncI {
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
 	 */
-	
+
 	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 1000;
 
 	public static final String DELIM = ":";
 
-	/** bloom filter length [byte]: n_exp_elem * bits_per_elem */
-	public static final int N_EXP_ELEM = 2;
-	public static final int BYTE_PER_ELEM = 4;
+	/** bloom filter length [byte] */
+	public static final int BLOOM_FILTER_LEN_BYTE = 8;
 	/** number of used hash functions in the bloom filter **/
 	public static final int N_HASHES = 2;
-
-	/** difference in ms when we stop (fine) sync */
-	public static final long EPSILON = 400;
 
 	/** constants for message types */
 	public static final int TYPE_COARSE_REQ = 1;
 	public static final int TYPE_COARSE_RESP = 2;
 	public static final int TYPE_FINE = 3;
-
-	/**
-	 * here, the first steps of the sync are done
-	 */
-	public abstract void startSync();
-
-	/**
-	 * process an incoming request
-	 * 
-	 * @param request
-	 */
-	public abstract void processRequest(String request);
 
 }
