@@ -126,9 +126,7 @@ public class MessageHandler {
 		check.update(msg.getBytes());
 
 		msg = check.getValue() + "#" + msg;
-
-		// msg = msg.length() + "#" + msg; //instead of crc32
-
+	
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
 				msg.getBytes().length, address, port);

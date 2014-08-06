@@ -27,13 +27,28 @@ import mf.bloomfilter.BloomFilter;
 import mf.sync.SyncI;
 
 public class FSyncMsg {
+
+	/** message fields */
 	public int seqN, maxId, myId;
 	public long avg, nts;
 	public BloomFilter bloom;
 
+	/**
+	 * Constructor
+	 */
 	private FSyncMsg() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param avgTs
+	 * @param nts
+	 * @param myId
+	 * @param bloom
+	 * @param maxId
+	 * @param seqN
+	 */
 	public FSyncMsg(long avgTs, long nts, int myId, BloomFilter bloom,
 			int maxId, int seqN) {
 		this.avg = avgTs;
@@ -44,13 +59,20 @@ public class FSyncMsg {
 		this.myId = myId;
 	}
 
+	/** make message ready for transmission */
 	public String getMessageString(String delim, int type) {
 		String msg = type + delim + avg + delim + nts + delim + myId + delim
 				+ bloom.toString() + delim + maxId + delim + seqN;
 		return msg;
 	}
 
-	/* transforms a string built by utils into a fine sync message */
+	/**
+	 * transforms a string representation of a fsync message into a FSycMsg
+	 * object
+	 * 
+	 * @param str
+	 * @return
+	 */
 	public static FSyncMsg fromString(String str) {
 		FSyncMsg msg = new FSyncMsg();
 

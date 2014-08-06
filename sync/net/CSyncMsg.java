@@ -1,10 +1,3 @@
-package mf.sync.net;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import mf.sync.SyncI;
-
 /*
  * CSyncMsg.java
  *
@@ -26,15 +19,34 @@ import mf.sync.SyncI;
  * MA 02110-1301 USA
  */
 
-public class CSyncMsg {
+package mf.sync.net;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+import mf.sync.SyncI;
+
+public class CSyncMsg {
+	/** message fields */
 	public InetAddress senderIp;
 	public long pts, nts;
 	public int peerId, myId, senderPort;
 
+	/**
+	 * Constructor
+	 */
 	public CSyncMsg() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param addr
+	 * @param port
+	 * @param pts
+	 * @param nts
+	 * @param id
+	 */
 	public CSyncMsg(InetAddress addr, int port, int pts, long nts, int id) {
 		myId = id;
 		senderPort = port;
@@ -43,6 +55,14 @@ public class CSyncMsg {
 		this.nts = nts;
 	}
 
+	/**
+	 * transforms a string representation of a csync message into a CSycMsg
+	 * object
+	 * 
+	 * @param str
+	 * @return
+	 * @throws UnknownHostException
+	 */
 	public static CSyncMsg fromString(String str) throws UnknownHostException {
 		CSyncMsg msg = new CSyncMsg();
 
@@ -57,6 +77,13 @@ public class CSyncMsg {
 		return msg;
 	}
 
+	/**
+	 * get string representation for sending over udp
+	 * 
+	 * @param delim
+	 * @param type
+	 * @return as tring representation of the message
+	 */
 	public String getSendMessage(String delim, int type) {
 		return type + delim + senderIp.getHostAddress() + delim + senderPort
 				+ delim + pts + delim + nts + delim + myId;

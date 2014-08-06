@@ -20,14 +20,14 @@
  */
 package mf.sync.net;
 
+import android.annotation.SuppressLint;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.CRC32;
-
 import mf.sync.SyncI;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
@@ -40,23 +40,30 @@ import mf.sync.utils.log.SyncLogger;
  * @author stefan petscahrnig
  *
  */
+@SuppressLint("UseSparseArrays")
 public class HandlerServer extends Thread {
-	public static final String TAG = "HandlerServer";
-	/** length of the receive buffer */
-	public static final int RCF_BUF_LEN = 2048; // let us have a 2k buffer..
 
 	private static final boolean DEBUG_CRC = false;
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
 	private static final boolean DEBUG = false;
+	/** length of the receive buffer */
+	public static final int RCF_BUF_LEN = 2048; // let us have a 2k buffer..
+	/** handler thread object */
 	private Thread t;
 	/** UDP socket for receiving messages */
 	private DatagramSocket serverSocket;
 	/** receive Buffer */
 	private byte[] rcvBuf = new byte[RCF_BUF_LEN];
+	/** port to listen to */
 	private int port;
-
-	private List<String> received;
-
+	/**
+	 * data structure for storing received messages, we store the highest
+	 * message id per peer
+	 */
+	private Map<Integer, Integer> received;
+	/**
+	 * debug log for received messages
+	 */
 	static SyncLogger rcvLog;
 
 	static {
@@ -64,6 +71,9 @@ public class HandlerServer extends Thread {
 		rcvLog = new SyncLogger(5);
 	}
 
+	/**
+	 * Constructor
+	 */
 	public HandlerServer() {
 		if (DEBUG)
 			SessionInfo.getInstance().log("new handler server");
@@ -82,6 +92,12 @@ public class HandlerServer extends Thread {
 		super.interrupt();
 	}
 
+	/**
+	 * start listening to a specific port
+	 * 
+	 * @param port
+	 *            the port to listen to
+	 */
 	public void start(int port) {
 		t = new Thread(this);
 		this.port = port;
@@ -91,8 +107,8 @@ public class HandlerServer extends Thread {
 	/** worker method */
 	@Override
 	public void run() {
-		received = new ArrayList<String>();
-
+		// received = new ArrayList<String>();
+		received = new HashMap<Integer, Integer>();
 		try {
 			serverSocket = new DatagramSocket(port);
 			serverSocket.setSoTimeout(0);
@@ -114,34 +130,34 @@ public class HandlerServer extends Thread {
 				msg = msg.trim();
 
 				/* CRC check */
-				 long checkSum = Long.parseLong(crc);
-				 CRC32 check = new CRC32();
-				 check.update(msg.getBytes());
-				 if (checkSum != check.getValue()) {
-				 if (DEBUG_CRC)
-				 SessionInfo.getInstance().log("crc check not passed");
-				 continue;
-				 }
-				 if (DEBUG_CRC)
-				 SessionInfo.getInstance().log("crc check passed");
-				// long checkLen = Long.parseLong(crc);
-				// if (checkLen != msg.length()) {
-				// continue;
-				// }^
-				 
+				long checkSum = Long.parseLong(crc);
+				CRC32 check = new CRC32();
+				check.update(msg.getBytes());
+				if (checkSum != check.getValue()) {
+					if (DEBUG_CRC)
+						SessionInfo.getInstance().log("crc check not passed");
+					continue;
+				}
+				if (DEBUG_CRC)
+					SessionInfo.getInstance().log("crc check passed");
+
 				idx = msg.indexOf('#') + 1;
 				/* duplicate message check */
-				String id = msg.substring(0, idx);
-				if (received.contains(id)) {
+				String id = msg.substring(0, idx - 1);
+				int peerId = Integer.parseInt(id.split("\\.")[0]);
+				int msgId = Integer.parseInt(id.split("\\.")[1]);
+
+				if (received.get(peerId) != null
+						&& received.get(peerId) >= msgId) {
 					if (DEBUG_DUPLICATE_MESSAGES)
 						SessionInfo.getInstance().log(
 								"duplicate message, dropping...");
-					continue; // we have received this message
+					continue; // we already have received this message
 				} else {
 					if (DEBUG_DUPLICATE_MESSAGES)
 						SessionInfo.getInstance().log(
 								"message id unseen, adding to seen list");
-					received.add(id);
+					received.put(peerId, msgId);
 				}
 
 				msg = msg.substring(idx);
