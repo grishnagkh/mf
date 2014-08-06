@@ -38,12 +38,9 @@ import android.util.Log;
  */
 public class Utils {
 
-	static final boolean TEST_LOCAL = false;
+	private static final int PLAYER_NOT_INITIALIZED = -2;
 
-	public static String[] NTP_HOSTS = new String[] {
-			"time1srv.sci.uni-klu.ac.at", "0.at.pool.ntp.org", "0.pool.ntp.org" };
-
-	// private static long nts = 0, updateTime = 0;
+	/** player instance for playback control */
 	private static ExoPlayer player;
 
 	/**
@@ -65,32 +62,69 @@ public class Utils {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @return the duration of the current track in milliseconds,
+	 *         {@link ExoPlayer#UNKNOWN_TIME} if the duration is not known or
+	 * @link{Utils#PLAYER_NOT_INITIALIZED if the player is not initialized
+	 */
 	public static int getCurTrackDuration() {
 		if (player == null)
-			return -1;
+			return PLAYER_NOT_INITIALIZED;
 		return player.getDuration();
 	}
 
+	/**
+	 * 
+	 * @return the actual playback position in milliseconds or
+	 * @link{Utils#PLAYER_NOT_INITIALIZED if the player is not initialized
+	 */
 	public static int getPlaybackTime() {
 		if (player == null)
-			return -1;
+			return PLAYER_NOT_INITIALIZED;
 		return player.getCurrentPosition();
 	}
 
-	public static void setPlaybackTime(int avgPts) {
+	/**
+	 * Seeks to a position specified in milliseconds.
+	 *
+	 * @param positionMs
+	 *            The seek position.
+	 */
+	public static void setPlaybackTime(int positionMs) {
 		if (player == null)
 			return;
-		player.seekTo(avgPts);
+		player.seekTo(positionMs);
 	}
+
+	/**
+	 * initializes the player
+	 * 
+	 * @param newPlayer
+	 */
 
 	public static void initPlayer(ExoPlayer newPlayer) {
 		player = newPlayer;
 	}
 
+	/**
+	 * Gets an estimate of the absolute position in milliseconds up to which
+	 * data is buffered.
+	 *
+	 * @return An estimate of the absolute position in milliseconds up to which
+	 *         data is buffered, or {@link ExoPlayer#UNKNOWN_TIME} if no
+	 *         estimate is available.
+	 */
 	public static int getBufferPos() {
 		return player.getBufferedPosition();
 	}
 
+	/**
+	 * pauses the player for a specific time
+	 * 
+	 * @param duration
+	 *            how long to pause
+	 */
 	public static void pause(int duration) {
 		player.setPlayWhenReady(false);
 		try {
