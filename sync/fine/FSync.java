@@ -49,17 +49,19 @@ public class FSync {
 	private BloomFilter bloom;
 	/** a list of seen bloom filters */
 	private List<BloomFilter> bloomList;
-
 	/** time when the last avgTs update */
 	private long lastAvgUpdateTs;
 	/** average time stamp at time oldTs */
 	private long avgTs;
+	/** maximum peer id seen so far */
 	private int maxId;
+	/** own peer id */
 	private int myId;
 	/** singleton instance */
 	private static FSync instance;
-
+	/** periodical broadcast server */
 	private Thread workerThread;
+	/** monitor for the avg value */
 	private Object avgMonitor;
 
 	/**
@@ -137,6 +139,15 @@ public class FSync {
 		new FSResponseHandler(fSyncMsg, this, maxId).start();
 	}
 
+	/**
+	 * align the average playback timestamp stored to a specific time stamp
+	 * Caution: does save the aligned value as a side effect! (TODO: have a
+	 * thought whether this is really necessary)
+	 * 
+	 * @param alignTo
+	 *            the time stamp to align to
+	 * @return the aligned time stamp
+	 */
 	long alignAvgTs(long alignTo) {
 		synchronized (avgMonitor) {
 			avgTs += alignTo - lastAvgUpdateTs; // align avgTs
@@ -147,28 +158,36 @@ public class FSync {
 		return avgTs;
 	}
 
+	/**
+	 * initialize the avergae time stamp to the playback time
+	 * 
+	 * @return
+	 */
 	long initAvgTs() {
-		synchronized (avgMonitor) {
-			avgTs = Utils.getPlaybackTime();
-			// lastAvgUpdateTs = Utils.getTimestamp();
-			lastAvgUpdateTs = Clock.getTime();
-
-		}
+		updateAvgTs(Utils.getPlaybackTime());
 		return avgTs;
 	}
 
+	/**
+	 * update the average timstamp and reset the last update time stampt
+	 * 
+	 * @param newValue
+	 *            the value to be set
+	 */
 	void updateAvgTs(long newValue) {
 		synchronized (avgMonitor) {
 			avgTs = newValue;
-			// lastAvgUpdateTs = Utils.getTimestamp();
 			lastAvgUpdateTs = Clock.getTime();
 		}
 	}
 
+	/**
+	 * flood the information so far to the known peers
+	 * 
+	 * @param nts
+	 */
 	void broadcastToPeers(long nts) {
-
 		/* broadcast to known peers */
-
 		FSyncMsg m = new FSyncMsg(avgTs, nts, myId, bloom, maxId, SessionInfo
 				.getInstance().getSeqN());
 
@@ -186,22 +205,42 @@ public class FSync {
 		}
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	BloomFilter getBloom() {
 		return bloom;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	List<BloomFilter> getBloomList() {
 		return bloomList;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	int getMaxId() {
 		return maxId;
 	}
 
+	/**
+	 * 
+	 * @param maxId
+	 */
 	void setMaxId(int maxId) {
 		this.maxId = maxId;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public boolean serverRunning() {
 		return workerThread != null && workerThread.isAlive();
 	}

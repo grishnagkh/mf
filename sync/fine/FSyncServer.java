@@ -25,33 +25,39 @@ import mf.sync.SyncI;
 import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
 
+/**
+ * 
+ * Server periodically broadcasting fine sync messages
+ * 
+ * @author stefan petscharnig
+ *
+ */
 public class FSyncServer extends Thread {
-
+	private static final boolean DEBUG = false;
+	/** FSnyc instance for aligning timestamps */
 	private FSync parent;
 
-	public static final String TAG = "FSync Server";
-
+	/**
+	 * Constructor
+	 * 
+	 * @param parent
+	 */
 	public FSyncServer(FSync parent) {
 		this.parent = parent;
 	}
 
-	public void interrupt() {
-		SessionInfo.getInstance().log("FSync interrupted");
-
-		super.interrupt();
-	}
-
+	/**
+	 * atm we only send 3 message rounds, should work for a network with
+	 * diameter 3
+	 */
 	public void run() {
-
 		int ctr = 0;
-
 		while (!isInterrupted() && ctr++ < 3) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
 				break;
 			}
-
 			/* udpate */
 			synchronized (parent) {
 				// long nts = Utils.getTimestamp();
@@ -59,10 +65,16 @@ public class FSyncServer extends Thread {
 				parent.alignAvgTs(nts);
 				parent.broadcastToPeers(nts);
 			}
-
 		}
-
-		SessionInfo.getInstance().log("FSync thread died");
-
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync thread died");
 	}
+
+	@Override
+	public void interrupt() {
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync interrupted");
+		super.interrupt();
+	}
+
 }

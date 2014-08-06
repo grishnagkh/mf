@@ -28,53 +28,63 @@ import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
 
+/**
+ * Handle fine sync responses
+ * 
+ * @author stefan petscharnig
+ *
+ */
 public class FSResponseHandler extends Thread {
 
+	/** debug messages to the session log? */
+	public static final boolean DEBUG = true;
+	/** the message to process */
 	private FSyncMsg msg;
-
-	public static final String TAG = "FSResponse Handler";
+	/** instance of FSync for avgts */
 	private FSync parent;
-
+	/** maximum id seen so far */
 	private int maxId;
+	/** own id */
 	private int myId;
+	/** bloom filter containing most information available */
 	private BloomFilter bloom;
 
+	/**
+	 * Constructor
+	 * 
+	 * @param fSyncMsg
+	 * @param parent
+	 * @param maxId
+	 */
 	public FSResponseHandler(FSyncMsg fSyncMsg, FSync parent, int maxId) {
-
 		this.msg = fSyncMsg;
-
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
 		this.parent = parent;
 	}
 
+	@Override
 	public void run() {
-
 		/* check sequence number, if received seq n > stored seq n -> resync */
 		synchronized (parent) {
 			checkSeqN();
-
 			bloom = parent.getBloom();
 			if (bloom == null) {
 				SessionInfo.getInstance().log(
 						"bloom is null.. what the heck?!?");
 				return;
 			}
-
+			/* some calculations in advance */
 			int nPeersRcv = msg.bloom.nElements(msg.maxId);
 			int nPeersOwn = bloom.nElements(maxId);
-
 			BloomFilter xor = msg.bloom.clone();
 			BloomFilter and = msg.bloom.clone();
 			xor.xor(bloom);
 			and.and(bloom);
-
 			boolean xorZero = xor.isZero();
 			boolean andZero = and.isZero();
 			boolean intersectContains = and.contains(myId);
-
 			boolean contains = parent.getBloomList().contains(msg.bloom);
-
 			long actTs = Clock.getTime();
 			long avgTs = parent.alignAvgTs(actTs);
 
@@ -85,7 +95,6 @@ public class FSResponseHandler extends Thread {
 				parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
 				updatePlayback();
 			}
-
 			if (!xorZero && !andZero && !contains) {
 				if (nPeersRcv >= nPeersOwn) {
 					if (intersectContains) {
@@ -101,7 +110,6 @@ public class FSResponseHandler extends Thread {
 					updatePlayback();
 				}
 			}
-
 			/* add the received bloom filter to the ones already seen */
 			parent.getBloomList().add(msg.bloom);
 			/* update maxId */
@@ -109,23 +117,36 @@ public class FSResponseHandler extends Thread {
 		}
 	}
 
+	/**
+	 * check the sequence number, if the sequence number received is bigger than
+	 * the stored one, take the received sequence number and do a
+	 * resynchronization
+	 */
 	private void checkSeqN() {
 		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
 			SessionInfo.getInstance().setSeqN(msg.seqN);
 			try {
 				FSync.getInstance().reSync();
 			} catch (NoSuchAlgorithmException e) {
-				SessionInfo.getInstance().log(
-						"no such algorithm.. what the heck?!?");
+				if (DEBUG)
+					SessionInfo.getInstance().log(
+							"no such algorithm.. what the heck?!?");
 			}
 		}
 	}
 
+	/**
+	 * method for updating the playback, when we are in a sufficient range to
+	 * the timestamp to update for (e.g. 2,3 frames) an update would bring us
+	 * out of sync. Moreover we assume that we skip a range of 2000ms at a
+	 * maximum and wait, until our buffer has so much in advance
+	 */
 	public void updatePlayback() {
 		if (Math.abs((int) parent.alignAvgTs(Clock.getTime())
 				- Utils.getPlaybackTime()) < 80) {
 			// dont do something, we are close enough^^
-			SessionInfo.getInstance().log("we are close enough @@");
+			if (DEBUG)
+				SessionInfo.getInstance().log("we are close enough @@");
 			return;
 		}
 
@@ -136,7 +157,8 @@ public class FSResponseHandler extends Thread {
 			} catch (InterruptedException e) {
 			}
 		}
-		SessionInfo.getInstance().log("setting time @@@");
+		if (DEBUG)
+			SessionInfo.getInstance().log("setting time @@@");
 		Utils.setPlaybackTime((int) parent.alignAvgTs(Clock.getTime()));
 
 	}
