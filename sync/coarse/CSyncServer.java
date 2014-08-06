@@ -37,32 +37,38 @@ import mf.sync.utils.Utils;
 
 /**
  * 
- * class handling the initial step of the coarse sync 1 send a request to all
- * known peers 2 wait some time 3 parse and process responses
+ * class handling the initial step of the coarse sync (1) send a request to all
+ * known peers (2) wait some time (3) parse and process responses
  * 
  * @author stefan petscharnig
  *
  */
 public class CSyncServer extends Thread {
-
-	public static final String TAG = "csr";
-	public static final boolean DEBUG_ON_SCREEN = true;
+	/** debug messages in the session log */
+	public static final boolean DEBUG = true;
+	/** segment size, we jump aligned to the segment size */
 	private int SEGSIZE = 2000;
-
+	/** list of messages to process after waiting time span */
 	private List<String> msgQueue;
 
+	/**
+	 * Constructor
+	 * 
+	 * @param messageQueue
+	 *            list of received messages while waiting
+	 */
 	public CSyncServer(List<String> messageQueue) {
-		if (DEBUG_ON_SCREEN) {
+		if (DEBUG) {
 			SessionInfo.getInstance().log("new csync server");
 		}
 		msgQueue = messageQueue;
 	}
 
+	@Override
 	public void run() {
 
 		if (SessionInfo.getInstance().getMySelf() == null) {
-			// for testing without session server // XXX
-			if (DEBUG_ON_SCREEN)
+			if (DEBUG)
 				SessionInfo
 						.getInstance()
 						.log("mySelf was null, so no session info was received, enter playback mode (synced with oneself ;) )");
@@ -77,12 +83,12 @@ public class CSyncServer extends Thread {
 				0, Clock.getTime(), SessionInfo.getInstance().getMySelf()
 						.getId());
 
-		if (DEBUG_ON_SCREEN)
+		if (DEBUG)
 			SessionInfo.getInstance().log("built csync message: " + msg);
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 
-			if (DEBUG_ON_SCREEN)
+			if (DEBUG)
 				SessionInfo.getInstance().log("Processing peer: " + p);
 
 			try {
@@ -90,11 +96,11 @@ public class CSyncServer extends Thread {
 						msg.getSendMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ),
 						p.getAddress(), p.getPort());
 			} catch (SocketException e) {
-				if (DEBUG_ON_SCREEN)
+				if (DEBUG)
 					SessionInfo.getInstance().log(
 							"FATAL: could not send message" + e.toString());
 			} catch (IOException e) {
-				if (DEBUG_ON_SCREEN)
+				if (DEBUG)
 					SessionInfo.getInstance().log(
 							"FATAL: could not send message " + e.toString());
 			}
@@ -111,7 +117,7 @@ public class CSyncServer extends Thread {
 		/* 3 */
 
 		if (msgQueue.size() == 0) {
-			if (DEBUG_ON_SCREEN)
+			if (DEBUG)
 				SessionInfo
 						.getInstance()
 						.log("no messages in response queue, no one seems to be here yet");
@@ -142,7 +148,7 @@ public class CSyncServer extends Thread {
 		// empty request queue
 		msgQueue.clear();
 
-		if (DEBUG_ON_SCREEN)
+		if (DEBUG)
 			SessionInfo.getInstance().log(
 					"calculated average from c synchronization: " + avgPTS);
 
@@ -154,10 +160,9 @@ public class CSyncServer extends Thread {
 		avgPTS = SEGSIZE + avgPTS - avgPTS % SEGSIZE;
 
 		Utils.setPlaybackTime((int) avgPTS);
-		if (DEBUG_ON_SCREEN)
+		if (DEBUG)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		CSync.getInstance().finished = true;
 		while (Utils.getPlaybackTime() < avgPTS + 4000) {
 			/*
 			 * wait for setting the playback time and buffering some data...

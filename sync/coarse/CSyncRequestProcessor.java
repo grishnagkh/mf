@@ -39,21 +39,23 @@ import android.util.Log;
  * @author stefan petscharnig
  */
 public class CSyncRequestProcessor implements Runnable {
-
+	/** the received request */
 	private CSyncMsg req;
 	public static final String TAG = "csprr";
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cSyncMsg
+	 * @throws UnknownHostException
+	 */
 	public CSyncRequestProcessor(CSyncMsg cSyncMsg) throws UnknownHostException {
 		this.req = cSyncMsg;
 	}
 
+	@Override
 	public void run() {
 
-		// CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
-		// .getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
-		// Utils.getPlaybackTime(), Utils.getTimestamp(), SessionInfo
-		// .getInstance().getMySelf().getId());
-		
 		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
 				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
 				Utils.getPlaybackTime(), Clock.getTime(), SessionInfo
@@ -71,7 +73,6 @@ public class CSyncRequestProcessor implements Runnable {
 		}
 
 		if (!SessionInfo.getInstance().getPeers().containsKey(req.peerId)) {
-			Log.d("", "add a new peer");
 			Peer p = new Peer(req.peerId, req.senderIp, req.senderPort);
 			SessionInfo.getInstance().getPeers().put(req.peerId, p);
 		}

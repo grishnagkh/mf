@@ -30,17 +30,13 @@ import mf.sync.utils.SessionInfo;
 /**
  * 
  * @author stefan petscharnig
- *
  */
 
 public class CSync {
+	/** debug messages in the session log */
 	public static final boolean DEBUG = false;
-
-	public static final int SEGSIZE = 2000;// for now^^
-
+	/** server instance */
 	private CSyncServer cSyncServer;
-	boolean finished;
-
 	/** request queue filled by message handler while we are waiting */
 	private List<String> msgQueue;
 	/** singleton instance */
@@ -51,7 +47,6 @@ public class CSync {
 		if (DEBUG) {
 			SessionInfo.getInstance().log("new csync, init message queue");
 		}
-		finished = false;
 		msgQueue = new ArrayList<String>();
 	}
 
@@ -74,7 +69,6 @@ public class CSync {
 		if (DEBUG)
 			SessionInfo.getInstance().log("start sync");
 		stopSync();
-
 		cSyncServer = new CSyncServer(msgQueue);
 		cSyncServer.start();
 	}
@@ -98,7 +92,4 @@ public class CSync {
 		}
 	}
 
-	public boolean isFinished() {
-		return finished;
-	}
 }
