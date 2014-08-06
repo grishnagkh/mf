@@ -47,7 +47,6 @@ public class BloomFilter {
 
 	public void add(int toAdd) {
 		for (int pos : getIndices(getBytes(toAdd), nHashes)) {
-			pos = Math.abs(pos % (bloom.length * 8));
 			bloom[pos / 8] |= (1 << (pos % 8));
 		}
 	}
@@ -174,9 +173,11 @@ public class BloomFilter {
 				tmpHash <<= Byte.SIZE;
 				tmpHash |= digest[i];
 			}
+			tmpHash &= 0x7FFFFFFF; // clear first bit
+			tmpHash %= bloom.length * Byte.SIZE; // align to size of bloom
+													// filter
 			result[j] = tmpHash;
 		}
-
 		return result;
 
 	}
