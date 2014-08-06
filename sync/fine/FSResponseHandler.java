@@ -45,34 +45,33 @@ public class FSResponseHandler extends Thread {
 
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
-
 		this.parent = parent;
 	}
 
 	public void run() {
 
 		/* check sequence number, if received seq n > stored seq n -> resync */
-		checkSeqN();
-
-		bloom = parent.getBloom();
-		if (bloom == null) {
-			SessionInfo.getInstance().log("bloom is null.. what the heck?!?");
-			return;
-		}
-
-		int nPeersRcv = msg.bloom.nElements(msg.maxId);
-		int nPeersOwn = bloom.nElements(maxId);
-
-		BloomFilter xor = msg.bloom.clone();
-		BloomFilter and = msg.bloom.clone();
-		xor.xor(bloom);
-		and.and(bloom);
-
-		boolean xorZero = xor.isZero();
-		boolean andZero = and.isZero();
-		boolean intersectContains = and.contains(myId);
-
 		synchronized (parent) {
+			checkSeqN();
+
+			bloom = parent.getBloom();
+			if (bloom == null) {
+				SessionInfo.getInstance().log(
+						"bloom is null.. what the heck?!?");
+				return;
+			}
+
+			int nPeersRcv = msg.bloom.nElements(msg.maxId);
+			int nPeersOwn = bloom.nElements(maxId);
+
+			BloomFilter xor = msg.bloom.clone();
+			BloomFilter and = msg.bloom.clone();
+			xor.xor(bloom);
+			and.and(bloom);
+
+			boolean xorZero = xor.isZero();
+			boolean andZero = and.isZero();
+			boolean intersectContains = and.contains(myId);
 
 			boolean contains = parent.getBloomList().contains(msg.bloom);
 
@@ -123,10 +122,22 @@ public class FSResponseHandler extends Thread {
 	}
 
 	public void updatePlayback() {
-		// long t = Utils.getTimestamp();
-		long t = Clock.getTime();
-		int t1 = (int) parent.alignAvgTs(t);
-		SessionInfo.getInstance().log("setting time: " + t1 + " @ " + t);
-		Utils.setPlaybackTime(t1);
+		if (Math.abs((int) parent.alignAvgTs(Clock.getTime())
+				- Utils.getPlaybackTime()) < 80) {
+			// dont do something, we are close enough^^
+			SessionInfo.getInstance().log("we are close enough @@");
+			return;
+		}
+
+		// enforce only skipping to positions which are buffered...
+		while ((int) parent.alignAvgTs(Clock.getTime()) > Utils.getBufferPos() - 2000) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+			}
+		}
+		SessionInfo.getInstance().log("setting time @@@");
+		Utils.setPlaybackTime((int) parent.alignAvgTs(Clock.getTime()));
+
 	}
 }

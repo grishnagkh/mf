@@ -45,7 +45,7 @@ public class FSyncServer extends Thread {
 
 		int ctr = 0;
 
-		while (!isInterrupted() && ctr++ < 5) {
+		while (!isInterrupted() && ctr++ < 3) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {

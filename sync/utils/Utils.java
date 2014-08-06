@@ -85,6 +85,20 @@ public class Utils {
 
 	public static void initPlayer(ExoPlayer newPlayer) {
 		player = newPlayer;
+	}
+
+	public static int getBufferPos() {
+		return player.getBufferedPosition();
+	}
+
+	public static void pause(int duration) {
+		player.setPlayWhenReady(false);
+		try {
+			Thread.sleep(duration);
+		} catch (InterruptedException e) {
+
+		}
+		player.setPlayWhenReady(true);
 
 	}
 

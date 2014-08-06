@@ -52,15 +52,16 @@ public interface SyncI {
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
 	 */
+	
 	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 1000;
 
 	public static final String DELIM = ":";
 
-	/** bloom filter length: n_exp_elem * bits_per_elem */
+	/** bloom filter length [byte]: n_exp_elem * bits_per_elem */
 	public static final int N_EXP_ELEM = 2;
-	public static final int BYPE_PER_ELEM = 4;
+	public static final int BYTE_PER_ELEM = 4;
 	/** number of used hash functions in the bloom filter **/
 	public static final int N_HASHES = 2;
 

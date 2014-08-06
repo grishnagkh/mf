@@ -73,7 +73,7 @@ public class FSync {
 		maxId = myId;
 		avgMonitor = this;
 		try {
-			bloom = new BloomFilter(SyncI.BYPE_PER_ELEM * SyncI.N_EXP_ELEM,
+			bloom = new BloomFilter(SyncI.BYTE_PER_ELEM * SyncI.N_EXP_ELEM,
 					SyncI.N_HASHES);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
@@ -98,9 +98,18 @@ public class FSync {
 	 * 
 	 * @throws NoSuchAlgorithmException
 	 */
-	public void startSync() throws NoSuchAlgorithmException {
+	public void startSync() {
 
 		initAvgTs();
+		bloomList.clear();
+		try {
+			bloom = new BloomFilter(SyncI.BYTE_PER_ELEM * SyncI.N_EXP_ELEM,
+					SyncI.N_HASHES);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		bloom.add(SessionInfo.getInstance().getMySelf().getId());
+		bloomList.add(bloom);
 
 		maxId = myId;
 		workerThread = new FSyncServer(this);
@@ -111,12 +120,6 @@ public class FSync {
 	public void reSync() throws NoSuchAlgorithmException {
 		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
-		bloomList.clear();
-
-		bloom = new BloomFilter(SyncI.BYPE_PER_ELEM * SyncI.N_EXP_ELEM,
-				SyncI.N_HASHES);
-		bloom.add(SessionInfo.getInstance().getMySelf().getId());
-		bloomList.add(bloom);
 
 		startSync();
 
@@ -133,13 +136,6 @@ public class FSync {
 	public void processRequest(FSyncMsg fSyncMsg) {
 		new FSResponseHandler(fSyncMsg, this, maxId).start();
 	}
-
-	/**
-	 * sent a message periodically to the neighbour
-	 * 
-	 * @author stefan petscharnig
-	 *
-	 */
 
 	long alignAvgTs(long alignTo) {
 		synchronized (avgMonitor) {
