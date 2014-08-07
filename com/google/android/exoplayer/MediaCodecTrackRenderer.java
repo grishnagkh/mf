@@ -15,14 +15,6 @@
  */
 package mf.com.google.android.exoplayer;
 
-import android.annotation.TargetApi;
-import android.media.MediaCodec;
-import android.media.MediaCodec.CryptoException;
-import android.media.MediaCrypto;
-import android.media.MediaExtractor;
-import android.os.Handler;
-import android.os.SystemClock;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
@@ -32,6 +24,14 @@ import java.util.UUID;
 import mf.com.google.android.exoplayer.drm.DrmSessionManager;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.Util;
+import mf.sync.utils.SessionInfo;
+import android.annotation.TargetApi;
+import android.media.MediaCodec;
+import android.media.MediaCodec.CryptoException;
+import android.media.MediaCrypto;
+import android.media.MediaExtractor;
+import android.os.Handler;
+import android.os.SystemClock;
 
 /**
  * An abstract {@link TrackRenderer} that uses {@link MediaCodec} to decode
@@ -277,6 +277,7 @@ public abstract class MediaCodecTrackRenderer extends TrackRenderer {
 			codec.start();
 			inputBuffers = codec.getInputBuffers();
 			outputBuffers = codec.getOutputBuffers();
+
 		} catch (Exception e) {
 			DecoderInitializationException exception = new DecoderInitializationException(
 					selectedDecoderName, format, e);
@@ -656,6 +657,8 @@ public abstract class MediaCodecTrackRenderer extends TrackRenderer {
 			codecReconfigured = true;
 			codecReconfigurationState = RECONFIGURATION_STATE_WRITE_PENDING;
 		} else {
+			SessionInfo.getInstance().log("input format changed");// XXX
+
 			releaseCodec();
 			maybeInitCodec();
 		}

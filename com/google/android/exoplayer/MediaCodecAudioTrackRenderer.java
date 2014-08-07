@@ -464,6 +464,7 @@ public class MediaCodecAudioTrackRenderer extends MediaCodecTrackRenderer {
 		super.onStarted();
 		if (audioTrack != null) {
 			audioTrackResumeSystemTimeUs = System.nanoTime() / 1000;
+
 			audioTrack.play();
 		}
 	}
@@ -858,6 +859,12 @@ public class MediaCodecAudioTrackRenderer extends MediaCodecTrackRenderer {
 			return audioTimestamp.framePosition;
 		}
 
+	}
+
+	@Override
+	public void setPlaybackRate(float f) {
+		// TODO: check whether use of sample rate is ok
+		audioTrack.setPlaybackRate((int) (f * sampleRate));
 	}
 
 }

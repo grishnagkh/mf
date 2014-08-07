@@ -317,4 +317,10 @@ public class TextTrackRenderer extends TrackRenderer implements Callback {
 		}
 	}
 
+	@Override
+	public void setPlaybackRate(float f) {
+		// do nothing: not supported for text track renderer
+
+	}
+
 }

@@ -128,11 +128,11 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			} else if (isStartTag(xpp, "Period")) {
 				periods.add(parsePeriod(xpp, contentId, baseUrl, durationMs));
 			} else if (isStartTag(xpp, "session")) {
-				parseSession(xpp); // XXX
+				parseSession(xpp); 
 			}
 		} while (!isEndTag(xpp, "MPD"));
 
-		CSync.getInstance().startSync();// XXX
+		CSync.getInstance().startSync();
 		return new MediaPresentationDescription(durationMs, minBufferTimeMs,
 				dynamic, minUpdateTimeMs, periods);
 	}

@@ -73,8 +73,8 @@ public class DashMp4ChunkSource implements ChunkSource {
     this.extractors = new HashMap<String, FragmentedMp4Extractor>();
     this.segmentIndexes = new HashMap<String, DashSegmentIndex>();
     this.representations = new HashMap<String, Representation>();
-    this.trackInfo = new TrackInfo(representations[0].format.mimeType,
-        representations[0].periodDurationMs * 1000);
+		this.trackInfo = new TrackInfo(representations[0].format.mimeType,
+				representations[0].periodDurationMs * 1000);
     this.evaluation = new Evaluation();
     int maxWidth = 0;
     int maxHeight = 0;
