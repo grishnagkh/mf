@@ -203,8 +203,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		builder.buildRenderers(callback);
 
 		Utils.initPlayer(player);
-
-		MessageHandler.getInstance().startHandling(); // XXX
+		MessageHandler.getInstance().startHandling(); 
 
 	}
 
@@ -221,7 +220,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
 
-		MessageHandler.getInstance().stopHandling(); // XXX
+		MessageHandler.getInstance().stopHandling(); 
 	}
 
 	// Public methods

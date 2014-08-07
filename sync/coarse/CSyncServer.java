@@ -122,6 +122,18 @@ public class CSyncServer extends Thread {
 						.getInstance()
 						.log("no messages in response queue, no one seems to be here yet");
 
+			/* test for setting playback rate */
+
+			// try {
+			// Utils.setPlaybackRate(2);
+			// Thread.sleep(5000);
+			// Utils.setPlaybackRate(0.5f);
+			// Thread.sleep(5000);
+			// Utils.setPlaybackRate(1);
+			// } catch (InterruptedException e) {
+			//
+			// }
+
 			/*
 			 * i think this is not necessary anymore... remember that nobody
 			 * seems to be here?

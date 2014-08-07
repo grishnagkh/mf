@@ -128,6 +128,7 @@ import android.os.Handler;
 		ChunkSampleSource videoSampleSource = new ChunkSampleSource(
 				videoChunkSource, loadControl, VIDEO_BUFFER_SEGMENTS
 						* BUFFER_SEGMENT_SIZE, true);
+
 		MediaCodecVideoTrackRenderer videoRenderer = new MediaCodecVideoTrackRenderer(
 				videoSampleSource, MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT,
 				0, mainHandler, playerActivity, 50);
@@ -143,6 +144,7 @@ import android.os.Handler;
 		MediaCodecAudioTrackRenderer audioRenderer = new MediaCodecAudioTrackRenderer(
 				audioSampleSource);
 		callback.onRenderers(videoRenderer, audioRenderer);
+		
 	}
 
 }

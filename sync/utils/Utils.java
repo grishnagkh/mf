@@ -43,6 +43,10 @@ public class Utils {
 	/** player instance for playback control */
 	private static ExoPlayer player;
 
+	public static void setPlaybackRate(float f) {
+		player.setPlaybackRate(f);
+	}
+
 	/**
 	 * @param c
 	 *            the application cotnext

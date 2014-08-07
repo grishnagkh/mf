@@ -126,7 +126,7 @@ public class MessageHandler {
 		check.update(msg.getBytes());
 
 		msg = check.getValue() + "#" + msg;
-	
+
 		DatagramSocket clientSocket = new DatagramSocket();
 		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
 				msg.getBytes().length, address, port);
@@ -142,6 +142,7 @@ public class MessageHandler {
 		Log.d(TAG, "start handling");
 		srv = new HandlerServer();
 		srv.start(port);
+
 	}
 
 	/** stop the listener for requests */

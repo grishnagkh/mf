@@ -157,6 +157,10 @@ public class FSResponseHandler extends Thread {
 			} catch (InterruptedException e) {
 			}
 		}
+
+		// TODO: instead of waiting, just skip to the time and make the rest
+		// with increase/decrease of playback rate
+
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting time @@@");
 		Utils.setPlaybackTime((int) parent.alignAvgTs(Clock.getTime()));
