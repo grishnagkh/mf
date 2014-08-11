@@ -34,26 +34,25 @@ public class Clock {
 		for (int i = 0; i < NTP_HOSTS.length; i++) {
 			try {
 				NTPUDPClient client = new NTPUDPClient();
-				client.setDefaultTimeout(100);
+				client.setDefaultTimeout(200);
 				InetAddress hostAddr = InetAddress.getByName(NTP_HOSTS[i]);
 
 				TimeInfo info = client.getTime(hostAddr);
-				updateTime = System.currentTimeMillis();
+
+				updateTime = info.getReturnTime();
+				info.computeDetails();
+				nts = updateTime + info.getOffset();
 
 				if (DEBUG)
 					SessionInfo.getInstance().log(
-							"update ntp time from " + NTP_HOSTS[i] + " to "
-									+ nts);
-
-				nts = info.getReturnTime();
-
+							"offset time from " + NTP_HOSTS[i] + " : "
+									+ info.getOffset());
 				client.close();
-
 				break;
 			} catch (Exception e) {
 				/*
 				 * ntp servers not reachable... does not matter, take the old
-				 * timestamp or the system clock per defaults
+				 * timestamp or the system clock per defaults 
 				 */
 				if (DEBUG)
 					SessionInfo.getInstance().log(
@@ -63,12 +62,10 @@ public class Clock {
 	}
 
 	/**
-	 *  
+	 * 
 	 * @return a (if possible) ntp-synced time stamp
 	 */
 	public static long getTime() {
-//		if (3 > 1)
-//			return System.currentTimeMillis(); // FIXME this is a test
 		/*
 		 * the ntp server produces different times, -> clocks are obviously not
 		 * synced, so manually try to sync them
