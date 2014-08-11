@@ -465,6 +465,8 @@ public interface ExoPlayer {
 	 * renderer
 	 */
 	public void setPlaybackRate(float f);
-	
+
 	public long getPositionUs();
+
+	public float getPlaybackRate();
 }

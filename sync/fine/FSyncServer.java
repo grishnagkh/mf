@@ -22,7 +22,6 @@
 package mf.sync.fine;
 
 import mf.sync.SyncI;
-import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
 
 /**
@@ -33,7 +32,7 @@ import mf.sync.utils.SessionInfo;
  *
  */
 public class FSyncServer extends Thread {
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	/** FSnyc instance for aligning timestamps */
 	private FSync parent;
 
@@ -52,18 +51,14 @@ public class FSyncServer extends Thread {
 	 */
 	public void run() {
 		int ctr = 0;
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync thread started");
 		while (!isInterrupted() && ctr++ < 3) {
+			parent.broadcastToPeers();
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
 			} catch (InterruptedException iex) {
 				break;
-			}
-			/* udpate */
-			synchronized (parent) {
-				// long nts = Utils.getTimestamp();
-				long nts = Clock.getTime();
-				parent.alignAvgTs(nts);
-				parent.broadcastToPeers(nts);
 			}
 		}
 		if (DEBUG)

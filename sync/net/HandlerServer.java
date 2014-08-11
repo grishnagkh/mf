@@ -45,7 +45,7 @@ import android.util.SparseIntArray;
 public class HandlerServer extends Thread {
 
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	/** length of the receive buffer */
 	public static final int RCF_BUF_LEN = 4096; // let us have a 4k buffer..
 	/** handler thread object */
@@ -193,9 +193,6 @@ public class HandlerServer extends Thread {
 						.getInstance()
 						.log("got a message which is neither a fsync msg nor a csync message");
 			}
-
-			SessionInfo.getInstance().log(
-					"handler server interrupted? " + isInterrupted());
 		}
 		SessionInfo.getInstance().log("handler server stopped");
 	}

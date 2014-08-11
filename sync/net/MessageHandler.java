@@ -26,13 +26,11 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-
 import mf.com.google.android.exoplayer.dash.mpd.MediaPresentationDescriptionParser;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
-import android.util.Log;
 
 /**
  * 
@@ -45,7 +43,6 @@ import android.util.Log;
 
 public class MessageHandler {
 	/** Tag for android Log */
-	public static final String TAG = "message handler";
 
 	/** default port where we listen for synchronization messages */
 	public static final int PORT = 12346;
@@ -149,7 +146,6 @@ public class MessageHandler {
 	public void startHandling() {
 
 		if (srv == null) {
-			Log.d(TAG, "create new server and start handling");
 			srv = new HandlerServer();
 			srv.start(port);
 			if (MediaPresentationDescriptionParser.init)

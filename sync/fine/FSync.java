@@ -21,9 +21,6 @@
 
 package mf.sync.fine;
 
-import java.io.IOException;
-import java.net.SocketException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,9 +47,9 @@ public class FSync {
 	/** a list of seen bloom filters */
 	private List<BloomFilter> bloomList;
 	/** time when the last avgTs update */
-	private long lastAvgUpdateTs;
+	long lastAvgUpdateTs;
 	/** average time stamp at time oldTs */
-	private long avgTs;
+	long avgTs;
 	/** maximum peer id seen so far */
 	private int maxId;
 	/** own peer id */
@@ -64,6 +61,8 @@ public class FSync {
 	/** monitor for the avg value */
 	private Object avgMonitor;
 
+	public static final boolean DEBUG = false;
+
 	/**
 	 * Constructor
 	 */
@@ -74,14 +73,12 @@ public class FSync {
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		maxId = myId;
 		avgMonitor = this;
-		try {
-			bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
+
+		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+
 		bloom.add(SessionInfo.getInstance().getMySelf().getId());
 		bloomList.add(bloom);
-
+		initAvgTs();
 	}
 
 	/**
@@ -96,18 +93,14 @@ public class FSync {
 
 	/**
 	 * start fine sync message sending in a new thread
-	 * 
-	 * @throws NoSuchAlgorithmException
 	 */
 	public void startSync() {
-
+		SessionInfo.getInstance().log("start fine sync (with reset)");
 		initAvgTs();
 		bloomList.clear();
-		try {
-			bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
+
+		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+
 		bloom.add(SessionInfo.getInstance().getMySelf().getId());
 		bloomList.add(bloom);
 
@@ -117,12 +110,17 @@ public class FSync {
 
 	}
 
-	public void reSync() throws NoSuchAlgorithmException {
+	public void startWoReset() {
+		stopSync();
+		SessionInfo.getInstance().log("start fine sync (without reset)");
+		workerThread = new FSyncServer(this);
+		workerThread.start();
+	}
+
+	public void reSync() {
 		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
-
 		startSync();
-
 	}
 
 	public void stopSync() {
@@ -139,21 +137,13 @@ public class FSync {
 
 	/**
 	 * align the average playback timestamp stored to a specific time stamp
-	 * Caution: does save the aligned value as a side effect! (TODO: have a
-	 * thought whether this is really necessary)
 	 * 
 	 * @param alignTo
 	 *            the time stamp to align to
 	 * @return the aligned time stamp
 	 */
-	long alignAvgTs(long alignTo) {
-		synchronized (avgMonitor) {
-			avgTs += alignTo - lastAvgUpdateTs; // align avgTs
-			// lastAvgUpdateTs = Utils.getTimestamp();
-			lastAvgUpdateTs = Clock.getTime();
-
-		}
-		return avgTs;
+	long alignedAvgTs(long alignTo) {
+		return avgTs + alignTo - lastAvgUpdateTs;
 	}
 
 	/**
@@ -162,7 +152,9 @@ public class FSync {
 	 * @return
 	 */
 	long initAvgTs() {
-		updateAvgTs(Utils.getPlaybackTime());
+		avgTs = Utils.getPlaybackTime();
+		lastAvgUpdateTs = Clock.getTime();
+
 		return avgTs;
 	}
 
@@ -172,11 +164,14 @@ public class FSync {
 	 * @param newValue
 	 *            the value to be set
 	 */
-	void updateAvgTs(long newValue) {
+	void updateAvgTs(long newValue, long updateTime) {
+		SessionInfo.getInstance().log("waiting for avgMonitor");
 		synchronized (avgMonitor) {
+			SessionInfo.getInstance().log("got avgMonitor");
 			avgTs = newValue;
-			lastAvgUpdateTs = Clock.getTime();
+			lastAvgUpdateTs = updateTime;
 		}
+		SessionInfo.getInstance().log("release avgMonitor");
 	}
 
 	/**
@@ -184,22 +179,22 @@ public class FSync {
 	 * 
 	 * @param nts
 	 */
-	void broadcastToPeers(long nts) {
+	void broadcastToPeers() {
 		/* broadcast to known peers */
-		FSyncMsg m = new FSyncMsg(avgTs, nts, myId, bloom, maxId, SessionInfo
-				.getInstance().getSeqN());
+		long nts = Clock.getTime();
+		FSyncMsg m = new FSyncMsg(alignedAvgTs(nts), nts, myId, bloom, maxId,
+				SessionInfo.getInstance().getSeqN());
 
-		String msg = m.getMessageString(SyncI.DELIM, SyncI.TYPE_FINE);
+		if (DEBUG) {
+			SessionInfo.getInstance().log("avg" + m.avg + "@" + m.nts);
+			SessionInfo.getInstance().log(
+					"pts" + Utils.getPlaybackTime() + "@" + Clock.getTime());
+		}
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			try {
-				MessageHandler.getInstance().sendMsg(msg, p.getAddress(),
-						p.getPort());
-			} catch (SocketException e) {
-				/* ignore */
-			} catch (IOException e) {
-				/* ignore */
-			}
+			m.address = p.getAddress();
+			m.port = p.getPort();
+			MessageHandler.getInstance().sendMsg(m);
 		}
 	}
 
@@ -242,4 +237,5 @@ public class FSync {
 	public boolean serverRunning() {
 		return workerThread != null && workerThread.isAlive();
 	}
+
 }

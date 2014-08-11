@@ -70,4 +70,9 @@ public class DummyTrackRenderer extends TrackRenderer {
 		throw new IllegalStateException();
 	}
 
+	@Override
+	public float getPlaybackRate() {
+		throw new IllegalStateException();
+	}
+
 }

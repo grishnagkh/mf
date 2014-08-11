@@ -141,4 +141,8 @@ public class Utils {
 
 	}
 
+	public static float getSpeed() {
+		return player.getPlaybackRate();
+	}
+
 }

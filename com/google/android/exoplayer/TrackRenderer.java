@@ -382,4 +382,6 @@ public abstract class TrackRenderer implements ExoPlayerComponent {
 	
 	public abstract void setPlaybackRate(float f);
 
+	public abstract float getPlaybackRate();
+
 }

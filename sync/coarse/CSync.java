@@ -38,7 +38,7 @@ public class CSync {
 	/** server instance */
 	private CSyncServer cSyncServer;
 	/** request queue filled by message handler while we are waiting */
-	private List<String> msgQueue;
+	private List<CSyncMsg> msgQueue;
 	/** singleton instance */
 	private static CSync instance;
 
@@ -47,7 +47,7 @@ public class CSync {
 		if (DEBUG) {
 			SessionInfo.getInstance().log("new csync, init message queue");
 		}
-		msgQueue = new ArrayList<String>();
+		msgQueue = new ArrayList<CSyncMsg>();
 	}
 
 	/** Singleton method */
@@ -58,7 +58,7 @@ public class CSync {
 	}
 
 	/** method for filling the queue response */
-	public void coarseResponse(String msg) {
+	public void coarseResponse(CSyncMsg msg) {
 		if (DEBUG)
 			SessionInfo.getInstance().log("process coarse response");
 		msgQueue.add(msg);
@@ -78,7 +78,7 @@ public class CSync {
 	 * 
 	 * @throws UnknownHostException
 	 */
-	public void processRequest(CSyncMsg cSyncMsg) throws UnknownHostException {
+	public void processRequest(CSyncMsg cSyncMsg) {
 		if (DEBUG)
 			SessionInfo.getInstance().log("process coarse request");
 		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();

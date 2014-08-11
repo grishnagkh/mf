@@ -529,4 +529,9 @@ public class MediaCodecVideoTrackRenderer extends MediaCodecTrackRenderer {
 		// do nothing: not supported for video track renderers
 	}
 
+	@Override
+	public float getPlaybackRate() {
+		return 1; // rate is constant
+	}
+
 }

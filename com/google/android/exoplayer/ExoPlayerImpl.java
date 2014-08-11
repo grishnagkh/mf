@@ -227,4 +227,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 		return internalPlayer.getPositionUs();
 	}
 
+	@Override
+	public float getPlaybackRate() {
+		return internalPlayer.getPlaybackRate();
+	}
+
 }

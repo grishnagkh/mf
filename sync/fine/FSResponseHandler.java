@@ -20,8 +20,6 @@
  */
 package mf.sync.fine;
 
-import java.security.NoSuchAlgorithmException;
-
 import mf.bloomfilter.BloomFilter;
 import mf.sync.net.FSyncMsg;
 import mf.sync.utils.Clock;
@@ -65,9 +63,11 @@ public class FSResponseHandler extends Thread {
 
 	@Override
 	public void run() {
-		/* check sequence number, if received seq n > stored seq n -> resync */
-		synchronized (parent) {
+
+		synchronized (FSync.getInstance()) {
+			/* check sequence number */
 			checkSeqN();
+
 			bloom = parent.getBloom();
 			if (bloom == null) {
 				SessionInfo.getInstance().log(
@@ -75,38 +75,80 @@ public class FSResponseHandler extends Thread {
 				return;
 			}
 			/* some calculations in advance */
+
 			int nPeersRcv = msg.bloom.nElements(msg.maxId);
 			int nPeersOwn = bloom.nElements(maxId);
+
 			BloomFilter xor = msg.bloom.clone();
-			BloomFilter and = msg.bloom.clone();
 			xor.xor(bloom);
+			BloomFilter and = msg.bloom.clone();
 			and.and(bloom);
+
+			boolean intersectContains;
+			boolean contains = parent.getBloomList().contains(msg.bloom);
+			long actTs, avgTs, wSum;
+
 			boolean xorZero = xor.isZero();
 			boolean andZero = and.isZero();
-			boolean intersectContains = and.contains(myId);
-			boolean contains = parent.getBloomList().contains(msg.bloom);
-			long actTs = Clock.getTime();
-			long avgTs = parent.alignAvgTs(actTs);
 
 			if (!xorZero && andZero) {
-				bloom.or(msg.bloom);
-				long wSum = (avgTs * nPeersOwn) + (msg.avg + (actTs - msg.nts))
+				if (DEBUG) {
+					SessionInfo.getInstance().log("npeersown: " + nPeersOwn);
+					SessionInfo.getInstance().log("npeersrcv: " + nPeersRcv);
+				}
+
+				actTs = Clock.getTime();
+				avgTs = parent.alignedAvgTs(actTs);
+
+				wSum = (avgTs * nPeersOwn) + (msg.avg + (actTs - msg.nts))
 						* nPeersRcv;
-				parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn));
+
+				parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn), actTs);
+				if (DEBUG) {
+					SessionInfo.getInstance().log("my avg: " + avgTs);
+					long d = (msg.avg + (actTs - msg.nts));
+					SessionInfo.getInstance().log(
+							"corrected received avg: " + d);
+					SessionInfo.getInstance().log(
+							"new avg: " + parent.alignedAvgTs(actTs));
+				}
 				updatePlayback();
+				bloom.or(msg.bloom);
 			}
 			if (!xorZero && !andZero && !contains) {
+				if (DEBUG) {
+					SessionInfo.getInstance().log("npeersown: " + nPeersOwn);
+					SessionInfo.getInstance().log("npeersrcv: " + nPeersRcv);
+				}
 				if (nPeersRcv >= nPeersOwn) {
+					intersectContains = and.contains(myId);
+					actTs = Clock.getTime();
+
 					if (intersectContains) {
-						parent.updateAvgTs(msg.avg + (actTs - msg.nts));
+						parent.updateAvgTs(msg.avg + (actTs - msg.nts), actTs);
+						if (DEBUG) {
+							long d = (msg.avg + (actTs - msg.nts));
+							SessionInfo.getInstance().log(
+									"corrected received avg: " + d);
+						}
 						bloom = msg.bloom;
 					} else {
-						long wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
+						avgTs = parent.alignedAvgTs(actTs);
+						wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
 								+ avgTs;
-						parent.updateAvgTs(wSum / (nPeersRcv + 1));
+						parent.updateAvgTs(wSum / (nPeersRcv + 1), actTs);
+						if (DEBUG) {
+							SessionInfo.getInstance().log("my avg: " + avgTs);
+							long d = (msg.avg + (actTs - msg.nts));
+							SessionInfo.getInstance().log(
+									"corrected received avg: " + d);
+							SessionInfo.getInstance().log(
+									"new avg: " + parent.alignedAvgTs(actTs));
+						}
 						bloom = msg.bloom;
 						bloom.add(myId);
 					}
+
 					updatePlayback();
 				}
 			}
@@ -123,14 +165,92 @@ public class FSResponseHandler extends Thread {
 	 * resynchronization
 	 */
 	private void checkSeqN() {
+
 		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
 			SessionInfo.getInstance().setSeqN(msg.seqN);
+			FSync.getInstance().reSync(); // hard resync, reset
+		} else if (!FSync.getInstance().serverRunning()) {
+			SessionInfo.getInstance().log("(re) start wo reset");
+			FSync.getInstance().startWoReset();
+		}
+		try {
+			Thread.sleep(20);
+		} catch (InterruptedException e) {
+		}
+	}
+
+	public void updatePlayback() {
+
+		float newPlaybackRate;
+
+		long pbt = Utils.getPlaybackTime();
+		long t = Clock.getTime();
+		long asyncMillis = parent.alignedAvgTs(t) - pbt;
+
+		SessionInfo.getInstance().log(
+				"update playback time: calculated average: "
+						+ parent.alignedAvgTs(t) + "@timestamp:" + t
+						+ "@async:" + asyncMillis + "@pbt:" + pbt);
+
+		long timeMillis = 3 * Math.abs(asyncMillis);
+
+		if (asyncMillis > 0) {
+			newPlaybackRate = 1.33f;//(float) 4 / 3;
+		} else {
+			newPlaybackRate = 0.66f;//(float) 2 / 3;
+		}
+
+		if (DEBUG)
+			SessionInfo.getInstance().log(
+					"asynchronism: " + asyncMillis + "ms\nnew playback rate: "
+							+ newPlaybackRate + "\ntime changed: " + timeMillis
+							+ "ms");
+
+		if (newPlaybackRate > 1) {
+			// if we go faster, we want to ensure that we have buffered a lot
+			ensureBuffered(4 * timeMillis);
+		} else {
+			// despite it is theoretically not necessary, ensure we have
+			// buffered at least a bit
+			ensureBuffered(timeMillis);
+		}
+		Utils.setPlaybackRate(newPlaybackRate);
+
+		try {
+			Thread.sleep((long) (timeMillis));
+		} catch (InterruptedException e) {
+			SessionInfo.getInstance().log("got interrupted, skip to val");
+			updatePlayback(true);
+		}
+
+		Utils.setPlaybackRate(1);
+
+		if (DEBUG) {
+
 			try {
-				FSync.getInstance().reSync();
-			} catch (NoSuchAlgorithmException e) {
-				if (DEBUG)
-					SessionInfo.getInstance().log(
-							"no such algorithm.. what the heck?!?");
+				Thread.sleep(700);
+			} catch (Exception e) {
+			}
+			asyncMillis = (parent.alignedAvgTs(Clock.getTime()) - Utils
+					.getPlaybackTime());
+			SessionInfo.getInstance().log(
+					"asynchronism after playback adjustment: " + asyncMillis);
+
+		}
+
+	}
+
+	/**
+	 * ensure we have enough data in buffer
+	 * 
+	 * @param time
+	 */
+	private void ensureBuffered(long time) {
+		// simply busy wait until we have buffered more
+		while (Utils.getBufferPos() - Utils.getPlaybackTime() < time) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
 			}
 		}
 	}
@@ -141,29 +261,25 @@ public class FSResponseHandler extends Thread {
 	 * out of sync. Moreover we assume that we skip a range of 2000ms at a
 	 * maximum and wait, until our buffer has so much in advance
 	 */
-	public void updatePlayback() {
-		if (Math.abs((int) parent.alignAvgTs(Clock.getTime())
-				- Utils.getPlaybackTime()) < 80) {
+	@Deprecated
+	public void updatePlayback(boolean noSkipIfNear) {
+		if (noSkipIfNear
+				&& Math.abs((int) parent.alignedAvgTs(Clock.getTime())
+						- Utils.getPlaybackTime()) < 80) {
 			// dont do something, we are close enough^^
 			if (DEBUG)
 				SessionInfo.getInstance().log("we are close enough @@");
 			return;
 		}
 
-		// enforce only skipping to positions which are buffered...
-		while ((int) parent.alignAvgTs(Clock.getTime()) > Utils.getBufferPos() - 2000) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-			}
-		}
+		ensureBuffered(4000);
 
 		// TODO: instead of waiting, just skip to the time and make the rest
 		// with increase/decrease of playback rate
 
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting time @@@");
-		Utils.setPlaybackTime((int) parent.alignAvgTs(Clock.getTime()));
+		Utils.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
 
 	}
 }

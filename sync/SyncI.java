@@ -53,12 +53,12 @@ public interface SyncI {
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 1000;
 
-	public static final String DELIM = ":";
+	public static final String DELIM = "I";
 
 	/** bloom filter length [byte] */
 	public static final int BLOOM_FILTER_LEN_BYTE = 8;
 	/** number of used hash functions in the bloom filter **/
-	public static final int N_HASHES = 2;
+	public static final int N_HASHES = 3;
 
 	/** constants for message types */
 	public static final int TYPE_COARSE_REQ = 1;

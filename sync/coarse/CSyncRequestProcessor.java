@@ -20,8 +20,6 @@
  */
 package mf.sync.coarse;
 
-import java.io.IOException;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import mf.sync.SyncI;
@@ -31,7 +29,6 @@ import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
-import android.util.Log;
 
 /**
  * class processing a coarse sync request
@@ -41,7 +38,6 @@ import android.util.Log;
 public class CSyncRequestProcessor implements Runnable {
 	/** the received request */
 	private CSyncMsg req;
-	public static final String TAG = "csprr";
 
 	/**
 	 * Constructor
@@ -49,7 +45,7 @@ public class CSyncRequestProcessor implements Runnable {
 	 * @param cSyncMsg
 	 * @throws UnknownHostException
 	 */
-	public CSyncRequestProcessor(CSyncMsg cSyncMsg) throws UnknownHostException {
+	public CSyncRequestProcessor(CSyncMsg cSyncMsg) {
 		this.req = cSyncMsg;
 	}
 
@@ -62,15 +58,12 @@ public class CSyncRequestProcessor implements Runnable {
 						.getInstance().getMySelf().getId());
 
 		// send response
-		try {
-			MessageHandler.getInstance().sendMsg(
-					msg.getSendMessage(SyncI.DELIM, SyncI.TYPE_COARSE_RESP),
-					req.senderIp, req.senderPort);
-		} catch (SocketException e) {
-			Log.e(TAG, "could not send message");
-		} catch (IOException e) {
-			Log.e(TAG, "could not send message");
-		}
+		msg.address = req.senderIp;
+		msg.port = req.senderPort;
+		msg.senderIp = SessionInfo.getInstance().getMySelf().getAddress();
+		msg.senderPort = SessionInfo.getInstance().getMySelf().getPort();
+		msg.type = SyncI.TYPE_COARSE_RESP;
+		MessageHandler.getInstance().sendMsg(msg);
 
 		if (!SessionInfo.getInstance().getPeers().containsKey(req.peerId)) {
 			Peer p = new Peer(req.peerId, req.senderIp, req.senderPort);

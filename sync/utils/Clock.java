@@ -15,7 +15,7 @@ import org.apache.commons.net.ntp.TimeInfo;
 public class Clock {
 
 	/** minimum interval in which there is NO synchronization */
-	public static final int CLOCL_SYNC_INTERVAL_MS = 1000;
+	public static final int CLOCK_SYNC_INTERVAL_MS = 1000;
 	/** produce debug output to the session info logger ? */
 	public static final boolean DEBUG = false;
 	/** list of ntp hosts */
@@ -38,11 +38,12 @@ public class Clock {
 				InetAddress hostAddr = InetAddress.getByName(NTP_HOSTS[i]);
 
 				TimeInfo info = client.getTime(hostAddr);
-
 				updateTime = System.currentTimeMillis();
+
 				if (DEBUG)
 					SessionInfo.getInstance().log(
-							"update ntp time from " + NTP_HOSTS[i]);
+							"update ntp time from " + NTP_HOSTS[i] + " to "
+									+ nts);
 
 				nts = info.getReturnTime();
 
@@ -62,12 +63,18 @@ public class Clock {
 	}
 
 	/**
-	 * 
+	 *  
 	 * @return a (if possible) ntp-synced time stamp
 	 */
 	public static long getTime() {
+//		if (3 > 1)
+//			return System.currentTimeMillis(); // FIXME this is a test
+		/*
+		 * the ntp server produces different times, -> clocks are obviously not
+		 * synced, so manually try to sync them
+		 */
 		/* check whether a update should be done */
-		if (System.currentTimeMillis() - updateTime > CLOCL_SYNC_INTERVAL_MS) {
+		if (System.currentTimeMillis() - updateTime > CLOCK_SYNC_INTERVAL_MS) {
 			/* perform the update in a new thread */
 			new Thread(new Runnable() {
 				@Override

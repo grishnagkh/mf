@@ -323,4 +323,9 @@ public class TextTrackRenderer extends TrackRenderer implements Callback {
 
 	}
 
+	@Override
+	public float getPlaybackRate() {
+		return 1; //rate is constant 1
+	}
+
 }

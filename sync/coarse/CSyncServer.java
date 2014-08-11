@@ -20,9 +20,7 @@
  */
 package mf.sync.coarse;
 
-import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.InetAddress;
 import java.util.List;
 
 import mf.player.gui.MainActivity;
@@ -49,7 +47,7 @@ public class CSyncServer extends Thread {
 	/** segment size, we jump aligned to the segment size */
 	private int SEGSIZE = 2000;
 	/** list of messages to process after waiting time span */
-	private List<String> msgQueue;
+	private List<CSyncMsg> msgQueue;
 
 	/**
 	 * Constructor
@@ -57,7 +55,7 @@ public class CSyncServer extends Thread {
 	 * @param messageQueue
 	 *            list of received messages while waiting
 	 */
-	public CSyncServer(List<String> messageQueue) {
+	public CSyncServer(List<CSyncMsg> messageQueue) {
 		if (DEBUG) {
 			SessionInfo.getInstance().log("new csync server");
 		}
@@ -86,24 +84,24 @@ public class CSyncServer extends Thread {
 		if (DEBUG)
 			SessionInfo.getInstance().log("built csync message: " + msg);
 
+		InetAddress myAdress = SessionInfo.getInstance().getMySelf()
+				.getAddress();
+		int myPort = SessionInfo.getInstance().getMySelf().getPort();
+		int myId = SessionInfo.getInstance().getMySelf().getId();
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 
 			if (DEBUG)
 				SessionInfo.getInstance().log("Processing peer: " + p);
 
-			try {
-				MessageHandler.getInstance().sendMsg(
-						msg.getSendMessage(SyncI.DELIM, SyncI.TYPE_COARSE_REQ),
-						p.getAddress(), p.getPort());
-			} catch (SocketException e) {
-				if (DEBUG)
-					SessionInfo.getInstance().log(
-							"FATAL: could not send message" + e.toString());
-			} catch (IOException e) {
-				if (DEBUG)
-					SessionInfo.getInstance().log(
-							"FATAL: could not send message " + e.toString());
-			}
+			msg.senderIp = myAdress;
+			msg.senderPort = myPort;
+			msg.myId = myId;
+			msg.address = p.getAddress();
+			msg.port = p.getPort();
+			msg.type = SyncI.TYPE_COARSE_REQ;
+
+			MessageHandler.getInstance().sendMsg(msg);
+
 		}
 		/* 2 */
 		try {
@@ -122,18 +120,6 @@ public class CSyncServer extends Thread {
 						.getInstance()
 						.log("no messages in response queue, no one seems to be here yet");
 
-			/* test for setting playback rate */
-
-			// try {
-			// Utils.setPlaybackRate(2);
-			// Thread.sleep(5000);
-			// Utils.setPlaybackRate(0.5f);
-			// Thread.sleep(5000);
-			// Utils.setPlaybackRate(1);
-			// } catch (InterruptedException e) {
-			//
-			// }
-
 			/*
 			 * i think this is not necessary anymore... remember that nobody
 			 * seems to be here?
@@ -141,18 +127,11 @@ public class CSyncServer extends Thread {
 			return;
 		}
 
-		CSyncMsg resp;
 		int ctr = 0;
 
-		for (String response : msgQueue) {
-			try {
-				resp = CSyncMsg.fromString(response);
-				// avgPTS += resp.pts + (Utils.getTimestamp() - resp.nts);
-				avgPTS += resp.pts + (Clock.getTime() - resp.nts);
-				ctr++;
-			} catch (UnknownHostException e) {
-				/* could not get ip; ignore */
-			}
+		for (CSyncMsg resp : msgQueue) {
+			avgPTS += resp.pts + (Clock.getTime() - resp.nts);
+			ctr++;
 		}
 		if (ctr != 0)
 			avgPTS /= ctr;
@@ -184,6 +163,11 @@ public class CSyncServer extends Thread {
 			} catch (InterruptedException e) {
 			}
 		}
+		try {
+			Thread.sleep(1000); // wait some time for buffers and so on
+		} catch (InterruptedException e) {
+		}
+
 		FSync.getInstance().startSync();
 	}
 }

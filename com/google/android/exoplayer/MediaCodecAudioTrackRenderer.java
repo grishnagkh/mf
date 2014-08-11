@@ -865,4 +865,9 @@ public class MediaCodecAudioTrackRenderer extends MediaCodecTrackRenderer {
 		audioTrack.setPlaybackRate((int) (f * sampleRate));
 	}
 
+	@Override
+	public float getPlaybackRate() {
+		return (float) audioTrack.getPlaybackRate() / sampleRate;
+	}
+
 }

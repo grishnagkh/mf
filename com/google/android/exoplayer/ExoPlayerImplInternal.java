@@ -622,4 +622,8 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		timeSourceTrackRenderer.setPlaybackRate(f);
 	}
 
+	public float getPlaybackRate() {		
+		return timeSourceTrackRenderer.getPlaybackRate();
+	}
+
 }

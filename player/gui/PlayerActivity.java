@@ -66,6 +66,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	}
 
+	boolean shouldStart = false;
+
 	public static final int RENDERER_COUNT = 2;
 	public static final int TYPE_VIDEO = 0;
 	public static final int TYPE_AUDIO = 1;
@@ -108,8 +110,6 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
 					}
 					try {
 						runOnUiThread(new Runnable() {
@@ -164,14 +164,21 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		String rcvStr = "message received\n", senStr = "messages sent\n", peeStr = "known peers\n", dText = "DEBUG\n";
 
 		long now = Clock.getTime();
+		String speed = "0";
+		try {
+			speed = "" + Utils.getSpeed();
+		} catch (Exception e) {
+		}
 
-		dText += "Ntp Time: " + new Date(now) + "(" + now + ")" + "\n"
+		dText += "Ntp Time: " + new Date(now) + "(" + now + ") Playback time:"
+				+ (Utils.getPlaybackTime()) + " speed x" + speed +"\n"
 				+ SessionInfo.getInstance().getLog().toString();
 		senStr += MessageHandler.getInstance().getSendLog().toString();
 		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
 
 		Map<Integer, Peer> map = (Map<Integer, Peer>) SessionInfo.getInstance()
 				.getPeers();
+
 		if (map != null) {
 			Collection<Peer> l2 = map.values();
 			List<Peer> l1 = new ArrayList<Peer>();
@@ -203,7 +210,9 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		builder.buildRenderers(callback);
 
 		Utils.initPlayer(player);
-		MessageHandler.getInstance().startHandling(); 
+
+		MessageHandler.getInstance().startHandling();
+		shouldStart = false;
 
 	}
 
@@ -220,7 +229,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
 
-		MessageHandler.getInstance().stopHandling(); 
+		MessageHandler.getInstance().stopHandling(true);
+		shouldStart = true;
 	}
 
 	// Public methods
@@ -278,6 +288,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 			player.setPlayWhenReady(true);
 			autoPlay = false;
 		}
+
 	}
 
 	private void onRenderersError(RendererBuilderCallback callback, Exception e) {
@@ -303,7 +314,18 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	@Override
 	public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-		// Do nothing.
+
+		// if (playWhenReady) {
+		// if (playbackState == ExoPlayer.STATE_READY) {
+		// SessionInfo.getInstance().log("(re)start message handler");
+		// MessageHandler.getInstance().startHandling();
+		// shouldStart = false;
+		// }
+		// } else {
+		// SessionInfo.getInstance().log("stop message handler");
+		// MessageHandler.getInstance().stopHandling(false);
+		// shouldStart = true;
+		// }
 	}
 
 	@Override
