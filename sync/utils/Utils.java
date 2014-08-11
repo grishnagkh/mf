@@ -81,7 +81,7 @@ public class Utils {
 	/**
 	 * 
 	 * @return the actual playback position in milliseconds or
-	 * PLAYER_NOT_INITIALIZED if the player is not initialized
+	 *         PLAYER_NOT_INITIALIZED if the player is not initialized
 	 */
 	public static int getPlaybackTime() {
 		if (player == null)
@@ -145,4 +145,33 @@ public class Utils {
 		return player.getPlaybackRate();
 	}
 
+	/**
+	 * ensure we have enough data in buffer
+	 * 
+	 * @param time
+	 */
+
+	public static void ensureBuffered(long time) {
+		// simply busy wait until we have buffered more
+		while (getBufferPos() - getPlaybackTime() < time) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+			}
+		}
+	}
+
+	/**
+	 * ensure, playback is after l+2000
+	 * 
+	 * @param l
+	 */
+	public static void ensureTime(long target, long padding) {
+		while (getPlaybackTime() < target + padding) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+			}
+		}
+	}
 }

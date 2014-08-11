@@ -26,9 +26,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import mf.com.google.android.exoplayer.dash.mpd.MediaPresentationDescriptionParser;
-import mf.sync.coarse.CSync;
-import mf.sync.fine.FSync;
+
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
 
@@ -88,6 +86,12 @@ public class MessageHandler {
 		return HandlerServer.rcvLog;
 	}
 
+	static int cnt;
+
+	static {
+		cnt = 0;
+	}
+
 	/**
 	 * Method for sending messages via UDP
 	 * 
@@ -97,15 +101,7 @@ public class MessageHandler {
 	 *            receive Inetaddress
 	 * @param port
 	 *            receive prot
-	 * @throws SocketException
-	 * @throws IOException
 	 */
-
-	static int cnt;
-
-	static {
-		cnt = 0;
-	}
 
 	public synchronized void sendMsg(SyncMsg msg) {
 
@@ -143,13 +139,11 @@ public class MessageHandler {
 	 * start the handling of messages, starts a thread waiting for incoming
 	 * messages and distributing the work to the sync modules
 	 */
-	public void startHandling() {
 
+	public void startHandling() {
 		if (srv == null) {
 			srv = new HandlerServer();
 			srv.start(port);
-			if (MediaPresentationDescriptionParser.init)
-				CSync.getInstance().startSync();
 		}
 	}
 
@@ -161,23 +155,9 @@ public class MessageHandler {
 	public void stopHandling(boolean clearSessionData) {
 		if (clearSessionData) {
 			SessionInfo.getInstance().log("clear sessiong data...");
-
-			SessionInfo.getInstance().getLog().clear();
-			SessionInfo.getInstance().log("clear message log");
 			SessionInfo.getInstance().log("clear peers...");
 			SessionInfo.getInstance().getPeers().clear();
-
-			try {
-				getRcvLog().clear();
-				getSendLog().clear();
-			} catch (NullPointerException e) {
-				SessionInfo.getInstance().log(
-						"could not clear messag logs.. pf");
-			}
 		}
-
-		SessionInfo.getInstance().log("stopping fine sync");
-		FSync.getInstance().stopSync();
 
 		if (srv != null) {
 			SessionInfo.getInstance()
@@ -186,6 +166,18 @@ public class MessageHandler {
 		}
 		SessionInfo.getInstance().log("setting message handler to null");
 		srv = null;
+	}
+
+	public void resumeHandling() {
+		if(srv != null){
+			srv.ignoreIncoming(false);
+		}
+	}
+
+	public void pauseHandling() {
+		if(srv != null){
+			srv.ignoreIncoming(true);
+		}
 	}
 
 }

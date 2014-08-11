@@ -29,6 +29,8 @@ import mf.com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializa
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.com.google.android.exoplayer.util.PlayerControl;
+import mf.sync.coarse.CSync;
+import mf.sync.fine.FSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
@@ -61,12 +63,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	 * Builds renderers for the player.
 	 */
 	public interface RendererBuilder {
-
 		void buildRenderers(RendererBuilderCallback callback);
-
 	}
-
-	boolean shouldStart = false;
 
 	public static final int RENDERER_COUNT = 2;
 	public static final int TYPE_VIDEO = 0;
@@ -95,35 +93,38 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	private int contentType;
 	private String contentId;
 
+	public static final boolean DEBUG = true;
+
 	// Activity lifecycle
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		if (DEBUG) {
+			new Thread(new Runnable() {
 
-		new Thread(new Runnable() {
+				@Override
+				public void run() {
+					// update debug pane
+					for (int i = 0; i < 1000000; i++) {
+						try {
+							Thread.sleep(500);
+						} catch (InterruptedException e) {
+						}
+						try {
+							runOnUiThread(new Runnable() {
 
-			@Override
-			public void run() {
-
-				for (int i = 0; i < 1000000; i++) {
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException e) {
-					}
-					try {
-						runOnUiThread(new Runnable() {
-
-							@Override
-							public void run() {
-								updateDebugViews();
-							}
-						});
-					} catch (Exception e) {
+								@Override
+								public void run() {
+									updateDebugViews();
+								}
+							});
+						} catch (Exception e) {
+						}
 					}
 				}
-			}
-		}).start();
+			}).start();
+		}
 
 		Intent intent = getIntent();
 		contentUri = intent.getData();
@@ -171,7 +172,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		}
 
 		dText += "Ntp Time: " + new Date(now) + "(" + now + ") Playback time:"
-				+ (Utils.getPlaybackTime()) + " speed x" + speed +"\n"
+				+ (Utils.getPlaybackTime()) + " speed x" + speed + "\n"
 				+ SessionInfo.getInstance().getLog().toString();
 		senStr += MessageHandler.getInstance().getSendLog().toString();
 		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
@@ -210,10 +211,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		builder.buildRenderers(callback);
 
 		Utils.initPlayer(player);
-
 		MessageHandler.getInstance().startHandling();
-		shouldStart = false;
-
 	}
 
 	@Override
@@ -230,7 +228,6 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		shutterView.setVisibility(View.VISIBLE);
 
 		MessageHandler.getInstance().stopHandling(true);
-		shouldStart = true;
 	}
 
 	// Public methods
@@ -314,23 +311,20 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	@Override
 	public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-
-		// if (playWhenReady) {
-		// if (playbackState == ExoPlayer.STATE_READY) {
-		// SessionInfo.getInstance().log("(re)start message handler");
-		// MessageHandler.getInstance().startHandling();
-		// shouldStart = false;
-		// }
-		// } else {
-		// SessionInfo.getInstance().log("stop message handler");
-		// MessageHandler.getInstance().stopHandling(false);
-		// shouldStart = true;
-		// }
+		// Do nothing.
 	}
 
 	@Override
 	public void onPlayWhenReadyCommitted() {
 		// Do nothing.
+		if (player.getPlayWhenReady()) {
+			MessageHandler.getInstance().resumeHandling();
+			CSync.getInstance().startSync();
+		} else {
+			CSync.getInstance().stopSync(); // if we do a coarse sync, stop it
+			FSync.getInstance().stopSync(); // if we do a fine sync, stop it
+			MessageHandler.getInstance().pauseHandling();
+		}
 	}
 
 	@Override

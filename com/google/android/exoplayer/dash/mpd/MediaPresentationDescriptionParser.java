@@ -32,8 +32,6 @@ import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SingleSegmentBase;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.MimeTypes;
 import mf.player.gui.MainActivity;
-import mf.sync.coarse.CSync;
-import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.Utils;
@@ -132,13 +130,9 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 			}
 		} while (!isEndTag(xpp, "MPD"));
 
-		CSync.getInstance().startSync();
-		init = true;
 		return new MediaPresentationDescription(durationMs, minBufferTimeMs,
 				dynamic, minUpdateTimeMs, periods);
 	}
-
-	public static boolean init = false;
 
 	/* erweiterter google code.. yey! */
 	@SuppressLint("UseSparseArrays")
@@ -189,8 +183,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		 * should not happen because of the server, but when it does (testing
 		 * with dummy data) we are prepared^^
 		 */
-		if (mySelf == null)
-			mySelf = new Peer(31, ownAddress, MessageHandler.PORT);
+
 		SessionInfo.getInstance().setMySelf(mySelf);
 
 	}/* erweiterter google code.. yey ende! */

@@ -154,20 +154,8 @@ public class CSyncServer extends Thread {
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		while (Utils.getPlaybackTime() < avgPTS + 4000) {
-			/*
-			 * wait for setting the playback time and buffering some data...
-			 */
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-			}
-		}
-		try {
-			Thread.sleep(1000); // wait some time for buffers and so on
-		} catch (InterruptedException e) {
-		}
-
+		Utils.ensureTime(avgPTS, 2000);
+		Utils.ensureBuffered(2000);
 		FSync.getInstance().startSync();
 	}
 }

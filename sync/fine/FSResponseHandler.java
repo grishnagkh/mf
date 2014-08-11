@@ -173,10 +173,6 @@ public class FSResponseHandler extends Thread {
 			SessionInfo.getInstance().log("(re) start wo reset");
 			FSync.getInstance().startWoReset();
 		}
-		try {
-			Thread.sleep(20);
-		} catch (InterruptedException e) {
-		}
 	}
 
 	public void updatePlayback() {
@@ -195,9 +191,9 @@ public class FSResponseHandler extends Thread {
 		long timeMillis = 3 * Math.abs(asyncMillis);
 
 		if (asyncMillis > 0) {
-			newPlaybackRate = 1.33f;//(float) 4 / 3;
+			newPlaybackRate = 1.33f;// (float) 4 / 3;
 		} else {
-			newPlaybackRate = 0.66f;//(float) 2 / 3;
+			newPlaybackRate = 0.66f;// (float) 2 / 3;
 		}
 
 		if (DEBUG)
@@ -208,17 +204,18 @@ public class FSResponseHandler extends Thread {
 
 		if (newPlaybackRate > 1) {
 			// if we go faster, we want to ensure that we have buffered a lot
-			ensureBuffered(4 * timeMillis);
+			Utils.ensureBuffered(4 * timeMillis);
 		} else {
 			// despite it is theoretically not necessary, ensure we have
 			// buffered at least a bit
-			ensureBuffered(timeMillis);
+			Utils.ensureBuffered(timeMillis);
 		}
 		Utils.setPlaybackRate(newPlaybackRate);
 
 		try {
 			Thread.sleep((long) (timeMillis));
 		} catch (InterruptedException e) {
+			Utils.setPlaybackRate(1);
 			SessionInfo.getInstance().log("got interrupted, skip to val");
 			updatePlayback(true);
 		}
@@ -241,21 +238,6 @@ public class FSResponseHandler extends Thread {
 	}
 
 	/**
-	 * ensure we have enough data in buffer
-	 * 
-	 * @param time
-	 */
-	private void ensureBuffered(long time) {
-		// simply busy wait until we have buffered more
-		while (Utils.getBufferPos() - Utils.getPlaybackTime() < time) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-			}
-		}
-	}
-
-	/**
 	 * method for updating the playback, when we are in a sufficient range to
 	 * the timestamp to update for (e.g. 2,3 frames) an update would bring us
 	 * out of sync. Moreover we assume that we skip a range of 2000ms at a
@@ -272,10 +254,7 @@ public class FSResponseHandler extends Thread {
 			return;
 		}
 
-		ensureBuffered(4000);
-
-		// TODO: instead of waiting, just skip to the time and make the rest
-		// with increase/decrease of playback rate
+		Utils.ensureBuffered(4000);
 
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting time @@@");

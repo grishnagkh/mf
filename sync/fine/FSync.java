@@ -73,9 +73,7 @@ public class FSync {
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		maxId = myId;
 		avgMonitor = this;
-
 		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-
 		bloom.add(SessionInfo.getInstance().getMySelf().getId());
 		bloomList.add(bloom);
 		initAvgTs();
@@ -96,9 +94,9 @@ public class FSync {
 	 */
 	public void startSync() {
 		SessionInfo.getInstance().log("start fine sync (with reset)");
-		initAvgTs();
+		
 		bloomList.clear();
-
+		initAvgTs();
 		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
 
 		bloom.add(SessionInfo.getInstance().getMySelf().getId());
@@ -113,6 +111,7 @@ public class FSync {
 	public void startWoReset() {
 		stopSync();
 		SessionInfo.getInstance().log("start fine sync (without reset)");
+		initAvgTs();
 		workerThread = new FSyncServer(this);
 		workerThread.start();
 	}

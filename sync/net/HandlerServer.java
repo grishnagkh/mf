@@ -43,7 +43,7 @@ import android.util.SparseIntArray;
  */
 
 public class HandlerServer extends Thread {
-
+	private static boolean discardMessages = false;
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
 	private static final boolean DEBUG = false;
 	/** length of the receive buffer */
@@ -143,15 +143,17 @@ public class HandlerServer extends Thread {
 				readObj = is.readObject();
 
 			} catch (IOException e) {
-				// SessionInfo.getInstance().log(e.toString());
 				continue;
 			} catch (ClassNotFoundException e) {
-				// SessionInfo.getInstance().log(
-				// "class not found exception in handler server");
 				continue;
 			} catch (Exception e) {
 				e.printStackTrace();
 				break;
+			}
+			if (discardMessages) {
+				SessionInfo.getInstance().log(
+						"message was discarded, because we take a break ;) ");
+				continue;
 			}
 			if (readObj instanceof SyncMsg) {
 				SyncMsg m = (SyncMsg) readObj;
@@ -195,6 +197,11 @@ public class HandlerServer extends Thread {
 			}
 		}
 		SessionInfo.getInstance().log("handler server stopped");
+	}
+
+	public void ignoreIncoming(boolean b) {
+		discardMessages = b;
+
 	}
 
 }
