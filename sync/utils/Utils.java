@@ -81,12 +81,13 @@ public class Utils {
 	/**
 	 * 
 	 * @return the actual playback position in milliseconds or
-	 * @link{Utils#PLAYER_NOT_INITIALIZED if the player is not initialized
+	 * PLAYER_NOT_INITIALIZED if the player is not initialized
 	 */
 	public static int getPlaybackTime() {
 		if (player == null)
 			return PLAYER_NOT_INITIALIZED;
-		return player.getCurrentPosition();
+		// return player.getCurrentPosition();
+		return (int) player.getPositionUs() / 1000;
 	}
 
 	/**

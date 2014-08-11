@@ -25,7 +25,6 @@ import java.util.Map;
 import mf.sync.utils.log.SyncLogger;
 import android.annotation.SuppressLint;
 import android.support.v4.util.ArrayMap;
-import android.util.Log;
 
 public class SessionInfo {
 
@@ -79,7 +78,6 @@ public class SessionInfo {
 	 * @param peers
 	 */
 	public void setPeers(Map<Integer, Peer> peers) {
-		Log.d("SessionInfo", "setting peers: " + peers);
 		this.peers = peers;
 	}
 
