@@ -24,7 +24,6 @@ import java.util.UUID;
 import mf.com.google.android.exoplayer.drm.DrmSessionManager;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.Util;
-import mf.sync.utils.SessionInfo;
 import android.annotation.TargetApi;
 import android.media.MediaCodec;
 import android.media.MediaCodec.CryptoException;
@@ -657,8 +656,6 @@ public abstract class MediaCodecTrackRenderer extends TrackRenderer {
 			codecReconfigured = true;
 			codecReconfigurationState = RECONFIGURATION_STATE_WRITE_PENDING;
 		} else {
-			SessionInfo.getInstance().log("input format changed");// XXX
-
 			releaseCodec();
 			maybeInitCodec();
 		}

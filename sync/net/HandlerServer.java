@@ -20,19 +20,20 @@
  */
 package mf.sync.net;
 
-import android.annotation.SuppressLint;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.zip.CRC32;
+
 import mf.sync.SyncI;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
+import android.util.SparseIntArray;
 
 /**
  * Class implementing the distribution behaviour for the MessageHandler
@@ -40,14 +41,13 @@ import mf.sync.utils.log.SyncLogger;
  * @author stefan petscahrnig
  *
  */
-@SuppressLint("UseSparseArrays")
+
 public class HandlerServer extends Thread {
 
-	private static final boolean DEBUG_CRC = false;
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	/** length of the receive buffer */
-	public static final int RCF_BUF_LEN = 2048; // let us have a 2k buffer..
+	public static final int RCF_BUF_LEN = 4096; // let us have a 4k buffer..
 	/** handler thread object */
 	private Thread t;
 	/** UDP socket for receiving messages */
@@ -60,14 +60,13 @@ public class HandlerServer extends Thread {
 	 * data structure for storing received messages, we store the highest
 	 * message id per peer
 	 */
-	private Map<Integer, Integer> received;
+	private SparseIntArray received;// Map<Integer, Integer> received;
 	/**
 	 * debug log for received messages
 	 */
 	static SyncLogger rcvLog;
 
-	static {
-		/* init logger */
+	static void createLogger() {
 		rcvLog = new SyncLogger(5);
 	}
 
@@ -75,20 +74,36 @@ public class HandlerServer extends Thread {
 	 * Constructor
 	 */
 	public HandlerServer() {
+		createLogger();
 		if (DEBUG)
 			SessionInfo.getInstance().log("new handler server");
 	}
 
+	ByteArrayInputStream byteStream;
+	ObjectInputStream is;
+
 	@Override
 	public void interrupt() {
 		if (DEBUG)
-			SessionInfo.getInstance().log("Interrupt message handler server");
+			SessionInfo.getInstance().log(
+					"Interrupting message handler server...");
 
 		received.clear();
 
-		if (serverSocket != null) {
-			serverSocket.close();
+		if (serverSocket != null && is != null) {
+			try {
+				is.close();
+				SessionInfo.getInstance().log(
+						"server socket closed? " + serverSocket.isClosed());
+				if (!serverSocket.isClosed())
+					serverSocket.close();
+			} catch (IOException e) {
+			}
 		}
+
+		if (DEBUG)
+			SessionInfo.getInstance().log("message handler server interrupted");
+
 		super.interrupt();
 	}
 
@@ -107,85 +122,82 @@ public class HandlerServer extends Thread {
 	/** worker method */
 	@Override
 	public void run() {
-		// received = new ArrayList<String>();
-		received = new HashMap<Integer, Integer>();
+
+		received = new SparseIntArray();
 		try {
 			serverSocket = new DatagramSocket(port);
 			serverSocket.setSoTimeout(0);
 		} catch (SocketException e1) {
-			SessionInfo.getInstance().log(e1.toString());
 		}
 		DatagramPacket rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
 
 		while (!isInterrupted()) {
+			Object readObj = null;
+
 			try {
 				rcv.setLength(RCF_BUF_LEN);
 				serverSocket.receive(rcv);
-				String msg = new String(rcv.getData());
 
-				int idx = msg.indexOf('#') + 1;
+				byteStream = new ByteArrayInputStream(rcvBuf);
+				is = new ObjectInputStream(new BufferedInputStream(byteStream));
+				readObj = is.readObject();
 
-				String crc = msg.substring(0, idx - 1);
-				msg = msg.substring(idx);
-				msg = msg.trim();
-
-				/* CRC check */
-				long checkSum = Long.parseLong(crc);
-				CRC32 check = new CRC32();
-				check.update(msg.getBytes());
-				if (checkSum != check.getValue()) {
-					if (DEBUG_CRC)
-						SessionInfo.getInstance().log("crc check not passed");
-					continue;
-				}
-				if (DEBUG_CRC)
-					SessionInfo.getInstance().log("crc check passed");
-
-				idx = msg.indexOf('#') + 1;
-				/* duplicate message check */
-				String id = msg.substring(0, idx - 1);
-				int peerId = Integer.parseInt(id.split("\\.")[0]);
-				int msgId = Integer.parseInt(id.split("\\.")[1]);
-
-				if (received.get(peerId) != null
-						&& received.get(peerId) >= msgId) {
+			} catch (IOException e) {
+				// SessionInfo.getInstance().log(e.toString());
+				continue;
+			} catch (ClassNotFoundException e) {
+				// SessionInfo.getInstance().log(
+				// "class not found exception in handler server");
+				continue;
+			} catch (Exception e) {
+				e.printStackTrace();
+				break;
+			}
+			if (readObj instanceof SyncMsg) {
+				SyncMsg m = (SyncMsg) readObj;
+				if (received.get(m.peerId) > m.msgId) {
 					if (DEBUG_DUPLICATE_MESSAGES)
 						SessionInfo.getInstance().log(
 								"duplicate message, dropping...");
 					continue; // we already have received this message
+
 				} else {
 					if (DEBUG_DUPLICATE_MESSAGES)
 						SessionInfo.getInstance().log(
 								"message id unseen, adding to seen list");
-					received.put(peerId, msgId);
+					received.put(m.peerId, m.msgId);
 				}
-
-				msg = msg.substring(idx);
-
-				if (msg.length() < 50) {
-					rcvLog.append(msg);
-				} else {
-					rcvLog.append(msg.substring(0, 49) + "...");
-				}
-
-				/* distribute the message */
-				if (msg.startsWith("" + SyncI.TYPE_COARSE_REQ)) {
-					CSync.getInstance()
-							.processRequest(CSyncMsg.fromString(msg));
-
-				} else if (msg.startsWith("" + SyncI.TYPE_COARSE_RESP)) {
-					CSync.getInstance().coarseResponse(msg);
-				} else if (msg.startsWith("" + SyncI.TYPE_FINE)) {
-					FSync.getInstance()
-							.processRequest(FSyncMsg.fromString(msg));
-				} else {
-					// other requests, really? should not happen
-				}
-			} catch (IOException e) {
-
+			} else {
+				continue;
 			}
 
+			if (readObj instanceof FSyncMsg) {
+				FSyncMsg msg = (FSyncMsg) readObj;
+				rcvLog.append(msg.getMessageString("I", SyncI.TYPE_FINE));
+				FSync.getInstance().processRequest(msg);
+			} else if (readObj instanceof CSyncMsg) {
+				CSyncMsg msg = (CSyncMsg) readObj;
+				rcvLog.append(msg.getSendMessage("I", msg.type));
+				if (msg.type == SyncI.TYPE_COARSE_REQ) {
+					CSync.getInstance().processRequest(msg);
+				} else if (msg.type == SyncI.TYPE_COARSE_RESP) {
+					CSync.getInstance().coarseResponse(msg);
+				} else {
+					// do nothing
+					SessionInfo.getInstance().log(
+							"got a csync message with wrong message type");
+				}
+			} else {
+				// do nothing
+				SessionInfo
+						.getInstance()
+						.log("got a message which is neither a fsync msg nor a csync message");
+			}
+
+			SessionInfo.getInstance().log(
+					"handler server interrupted? " + isInterrupted());
 		}
+		SessionInfo.getInstance().log("handler server stopped");
 	}
 
 }

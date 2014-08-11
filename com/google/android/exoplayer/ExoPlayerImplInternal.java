@@ -609,6 +609,15 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		}
 	}
 
+	/*
+	 * additions
+	 */
+	public long getPositionUs() {
+		return timeSourceTrackRenderer != null
+				&& enabledRenderers.contains(timeSourceTrackRenderer) ? timeSourceTrackRenderer
+				.getCurrentPositionUs() : mediaClock.getTimeUs();
+	}
+
 	public void setPlaybackRate(float f) {
 		timeSourceTrackRenderer.setPlaybackRate(f);
 	}

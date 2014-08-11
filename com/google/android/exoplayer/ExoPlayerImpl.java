@@ -216,9 +216,15 @@ import java.util.concurrent.CopyOnWriteArraySet;
 		}
 	}
 
+	/* additions */
 	@Override
 	public void setPlaybackRate(float f) {
 		internalPlayer.setPlaybackRate(f);
+	}
+
+	@Override
+	public long getPositionUs() {
+		return internalPlayer.getPositionUs();
 	}
 
 }

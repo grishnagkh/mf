@@ -26,8 +26,9 @@ import java.security.NoSuchAlgorithmException;
 import mf.bloomfilter.BloomFilter;
 import mf.sync.SyncI;
 
-public class FSyncMsg {
+public class FSyncMsg extends SyncMsg {
 
+	private static final long serialVersionUID = 6736024082413117802L;
 	/** message fields */
 	public int seqN, maxId, myId;
 	public long avg, nts;

@@ -15,9 +15,6 @@
  */
 package mf.com.google.android.exoplayer;
 
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +22,8 @@ import java.util.Collections;
 import java.util.List;
 
 import mf.com.google.android.exoplayer.util.Util;
-import mf.sync.utils.SessionInfo;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 
 /**
  * Encapsulates the information describing the format of media data, be it audio

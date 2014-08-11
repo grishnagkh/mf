@@ -21,20 +21,19 @@
 
 package mf.bloomfilter;
 
-import java.security.MessageDigest;
+import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 
 /**
  * Bloom filter implementation for integer keys using byte arrays
  */
-public class BloomFilter {
+public class BloomFilter implements Serializable {
 
+	private static final long serialVersionUID = -6253484899527882578L;
 	/** the actual data structure */
 	private byte[] bloom;
 	/** number of hashes per element */
 	private int nHashes;
-	/** message digest object for hashing */
-	private MessageDigest md;
 
 	/**
 	 * Constructor
@@ -52,11 +51,9 @@ public class BloomFilter {
 	 * @param nHashes
 	 * @throws NoSuchAlgorithmException
 	 */
-	public BloomFilter(int sizeBytes, int nHashes)
-			throws NoSuchAlgorithmException {
+	public BloomFilter(int sizeBytes, int nHashes) {
 		bloom = new byte[sizeBytes];
 		this.nHashes = nHashes;
-		md = MessageDigest.getInstance("SHA-1");
 	}
 
 	/**
@@ -210,6 +207,13 @@ public class BloomFilter {
 	 * @return byte[] representation of an integer
 	 */
 	private byte[] getBytes(int toConvert) {
+		// came across this in stackoverflow...
+		// // int -> byte[]
+		// for (int i = 0; i < 4; ++i) {
+		// int shift = i << 3; // i * 8
+		// data[3-i] = (byte)((number & (0xff << shift)) >>> shift);
+		// }
+
 		byte[] ret = new byte[Integer.SIZE / Byte.SIZE];
 		int ctr = -1;
 		while (++ctr < ret.length) {
@@ -232,11 +236,12 @@ public class BloomFilter {
 	private int[] getIndices(byte[] data, int hashes) {
 
 		int[] result = new int[hashes];
-		byte salt = 1;
 
+		byte salt = 0;
 		for (int j = 0; j < hashes; j++) {
-			md.update(salt++);
-			byte[] digest = md.digest(data);
+			// md.update(salt++);
+			// byte[] digest = md.digest(data);
+			byte[] digest = hash(data, salt);
 			int tmpHash = digest[0];
 			for (int i = 1; i < Integer.SIZE / Byte.SIZE && i < digest.length; i++) {
 				tmpHash <<= Byte.SIZE;
@@ -252,14 +257,22 @@ public class BloomFilter {
 
 	}
 
+	private byte[] hash(byte[] data, byte salt) {
+		SHA1 sha1 = new SHA1();
+		sha1.update(salt);
+		sha1.update(data);
+		byte[] res = new byte[20];
+		sha1.digest(res);
+		return res;
+	}
+
 	@Override
 	public BloomFilter clone() {
 		BloomFilter bbf = null;
-		try {
-			bbf = new BloomFilter(bloom.length, nHashes);
-			bbf.or(this);
-		} catch (NoSuchAlgorithmException e) {
-		}
+
+		bbf = new BloomFilter(bloom.length, nHashes);
+		bbf.or(this);
+
 		return bbf;
 	}
 

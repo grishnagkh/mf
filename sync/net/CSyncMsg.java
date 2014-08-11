@@ -26,11 +26,12 @@ import java.net.UnknownHostException;
 
 import mf.sync.SyncI;
 
-public class CSyncMsg {
+public class CSyncMsg extends SyncMsg {
+	private static final long serialVersionUID = -3482596285327476854L;
 	/** message fields */
 	public InetAddress senderIp;
 	public long pts, nts;
-	public int peerId, myId, senderPort;
+	public int myId, senderPort, type;
 
 	/**
 	 * Constructor

@@ -20,13 +20,15 @@
  */
 package mf.sync.net;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.util.zip.CRC32;
 
+import mf.com.google.android.exoplayer.dash.mpd.MediaPresentationDescriptionParser;
+import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
@@ -78,7 +80,7 @@ public class MessageHandler {
 	private MessageHandler(int port) {
 		this.port = port;
 		sendLog = new SyncLogger(5);
-		SessionInfo.getInstance().getLog().append("create new message handler");
+		HandlerServer.createLogger();
 	}
 
 	public SyncLogger getSendLog() {
@@ -86,9 +88,7 @@ public class MessageHandler {
 	}
 
 	public SyncLogger getRcvLog() {
-		if (srv != null)
-			return HandlerServer.rcvLog;
-		return null;
+		return HandlerServer.rcvLog;
 	}
 
 	/**
@@ -110,28 +110,36 @@ public class MessageHandler {
 		cnt = 0;
 	}
 
-	public synchronized void sendMsg(String msg, InetAddress address, int port)
-			throws SocketException, IOException {
+	public synchronized void sendMsg(SyncMsg msg) {
 
-		msg = SessionInfo.getInstance().getMySelf().getId() + "." + cnt++ + "#"
-				+ msg;
+		try {
+			msg.msgId = cnt++;
+			msg.peerId = SessionInfo.getInstance().getMySelf().getId();
 
-		if (msg.length() < 50) {
-			sendLog.append(msg);
-		} else {
-			sendLog.append(msg.substring(0, 49) + "...");
+			ByteArrayOutputStream byteStream = new ByteArrayOutputStream(4092);
+			ObjectOutputStream os = new ObjectOutputStream(
+					new BufferedOutputStream(byteStream));
+			os.flush();
+			os.writeObject(msg);
+			os.flush();
+
+			byte[] sendBuf = byteStream.toByteArray();
+			DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length,
+					msg.address, msg.port);
+			DatagramSocket clientSocket = new DatagramSocket();
+			clientSocket.send(packet);
+			clientSocket.close();
+			os.close();
+		} catch (IOException e) {
+
+			sendLog.append("error");
+
+			sendLog.append(e.toString());
+			return;
 		}
+		sendLog.append(msg.peerId + "." + msg.msgId + " " + " " + msg.address
+				+ ":" + msg.port);
 
-		CRC32 check = new CRC32();
-		check.update(msg.getBytes());
-
-		msg = check.getValue() + "#" + msg;
-
-		DatagramSocket clientSocket = new DatagramSocket();
-		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(),
-				msg.getBytes().length, address, port);
-		clientSocket.send(sendPacket);
-		clientSocket.close();
 	}
 
 	/**
@@ -139,21 +147,49 @@ public class MessageHandler {
 	 * messages and distributing the work to the sync modules
 	 */
 	public void startHandling() {
-		Log.d(TAG, "start handling");
-		srv = new HandlerServer();
-		srv.start(port);
 
+		if (srv == null) {
+			Log.d(TAG, "create new server and start handling");
+			srv = new HandlerServer();
+			srv.start(port);
+			if (MediaPresentationDescriptionParser.init)
+				CSync.getInstance().startSync();
+		}
 	}
 
-	/** stop the listener for requests */
-	public void stopHandling() {
-		Log.d(TAG, "stop handling");
-		getRcvLog().clear();
-		getSendLog().clear();
-		SessionInfo.getInstance().getLog().clear();
-		SessionInfo.getInstance().getPeers().clear();
+	/**
+	 * stop the listener for requests
+	 * 
+	 * @param clearSessionData
+	 */
+	public void stopHandling(boolean clearSessionData) {
+		if (clearSessionData) {
+			SessionInfo.getInstance().log("clear sessiong data...");
+
+			SessionInfo.getInstance().getLog().clear();
+			SessionInfo.getInstance().log("clear message log");
+			SessionInfo.getInstance().log("clear peers...");
+			SessionInfo.getInstance().getPeers().clear();
+
+			try {
+				getRcvLog().clear();
+				getSendLog().clear();
+			} catch (NullPointerException e) {
+				SessionInfo.getInstance().log(
+						"could not clear messag logs.. pf");
+			}
+		}
+
+		SessionInfo.getInstance().log("stopping fine sync");
 		FSync.getInstance().stopSync();
-		srv.interrupt();
+
+		if (srv != null) {
+			SessionInfo.getInstance()
+					.log("try to interrupt message handler...");
+			srv.interrupt();
+		}
+		SessionInfo.getInstance().log("setting message handler to null");
+		srv = null;
 	}
 
 }

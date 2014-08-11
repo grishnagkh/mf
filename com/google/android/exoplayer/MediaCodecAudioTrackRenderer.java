@@ -858,12 +858,10 @@ public class MediaCodecAudioTrackRenderer extends MediaCodecTrackRenderer {
 		public long getFramePosition() {
 			return audioTimestamp.framePosition;
 		}
-
 	}
 
 	@Override
 	public void setPlaybackRate(float f) {
-		// TODO: check whether use of sample rate is ok
 		audioTrack.setPlaybackRate((int) (f * sampleRate));
 	}
 
