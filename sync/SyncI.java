@@ -29,35 +29,17 @@ package mf.sync;
  */
 public interface SyncI {
 
-	/** coarse sync message positions */
-	public static final int CS_SENDER_IP_POS = 1;
-	public static final int CS_SENDER_PORT_POS = 2;
-	public static final int CS_PTS_POS = 3;
-	public static final int CS_NTS_POS = 4;
-	public static final int CS_PEER_ID_POS = 5;
-
-	/** fine sync message positions */
-	public static final int FS_R_AVG_POS = 1;
-	public static final int FS_R_NTP_POS = 2;
-	public static final int FS_PEER_ID_POS = 3;
-	public static final int FS_BLOOM_POS = 4;
-	public static final int FS_MAX_ID_POS = 5;
-	public static final int FS_SYNC_N_POS = 6;
-
 	/**
 	 * amount of time we wait in the coarse sync after sending a request to all
 	 * known peers
 	 */
-
 	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
 	public static final int PERIOD_FS_MS = 1000;
 
-	public static final String DELIM = "I";
-
 	/** bloom filter length [byte] */
 	public static final int BLOOM_FILTER_LEN_BYTE = 8;
-	/** number of used hash functions in the bloom filter **/
+	/** number of used hash functions in the bloom filter */
 	public static final int N_HASHES = 3;
 
 	/** constants for message types */

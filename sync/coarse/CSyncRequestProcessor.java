@@ -58,8 +58,8 @@ public class CSyncRequestProcessor implements Runnable {
 						.getInstance().getMySelf().getId());
 
 		// send response
-		msg.address = req.senderIp;
-		msg.port = req.senderPort;
+		msg.destAddress = req.senderIp;
+		msg.destPort = req.senderPort;
 		msg.senderIp = SessionInfo.getInstance().getMySelf().getAddress();
 		msg.senderPort = SessionInfo.getInstance().getMySelf().getPort();
 		msg.type = SyncI.TYPE_COARSE_RESP;

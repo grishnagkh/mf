@@ -175,11 +175,12 @@ public class HandlerServer extends Thread {
 
 			if (readObj instanceof FSyncMsg) {
 				FSyncMsg msg = (FSyncMsg) readObj;
-				rcvLog.append(msg.getMessageString("I", SyncI.TYPE_FINE));
+				rcvLog.append(msg.peerId + "I" + msg.avg + "I" + msg.nts + "I"
+						+ msg.bloom);
 				FSync.getInstance().processRequest(msg);
 			} else if (readObj instanceof CSyncMsg) {
 				CSyncMsg msg = (CSyncMsg) readObj;
-				rcvLog.append(msg.getSendMessage("I", msg.type));
+				rcvLog.append(msg.type + "I" + msg.peerId + "I" + msg.senderIp);
 				if (msg.type == SyncI.TYPE_COARSE_REQ) {
 					CSync.getInstance().processRequest(msg);
 				} else if (msg.type == SyncI.TYPE_COARSE_RESP) {
@@ -199,6 +200,10 @@ public class HandlerServer extends Thread {
 		SessionInfo.getInstance().log("handler server stopped");
 	}
 
+	/**
+	 * if we want to pause the message handler thread, we just ignore the
+	 * incoming messages, do not shut it down
+	 */
 	public void ignoreIncoming(boolean b) {
 		discardMessages = b;
 

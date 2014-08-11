@@ -53,6 +53,8 @@ import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
 
+//TODO: do all todos, fixmes and XXXes, refactor gui package, and fix the start and stop of sync  between sessions
+
 /**
  * An activity that plays media using {@link ExoPlayer}.
  */

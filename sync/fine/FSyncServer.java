@@ -53,6 +53,8 @@ public class FSyncServer extends Thread {
 		int ctr = 0;
 		if (DEBUG)
 			SessionInfo.getInstance().log("FSync thread started");
+		// TODO: when to stop the sync ? maybe when we have many devices it is
+		// everytime restarted?
 		while (!isInterrupted() && ctr++ < 3) {
 			parent.broadcastToPeers();
 			try {

@@ -94,7 +94,7 @@ public class FSync {
 	 */
 	public void startSync() {
 		SessionInfo.getInstance().log("start fine sync (with reset)");
-		
+
 		bloomList.clear();
 		initAvgTs();
 		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
@@ -108,6 +108,10 @@ public class FSync {
 
 	}
 
+	/**
+	 * start the fine synchronization without doing a reset, performed when new
+	 * peers come into play
+	 */
 	public void startWoReset() {
 		stopSync();
 		SessionInfo.getInstance().log("start fine sync (without reset)");
@@ -116,12 +120,18 @@ public class FSync {
 		workerThread.start();
 	}
 
+	/**
+	 * hard resync, does reset everything (new synchronization round)
+	 */
 	public void reSync() {
 		SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
 		startSync();
 	}
 
+	/**
+	 * stop the fine synchronization
+	 */
 	public void stopSync() {
 		if (serverRunning())
 			workerThread.interrupt();
@@ -191,8 +201,8 @@ public class FSync {
 		}
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			m.address = p.getAddress();
-			m.port = p.getPort();
+			m.destAddress = p.getAddress();
+			m.destPort = p.getPort();
 			MessageHandler.getInstance().sendMsg(m);
 		}
 	}

@@ -175,6 +175,11 @@ public class FSResponseHandler extends Thread {
 		}
 	}
 
+	/**
+	 * update the playback according to the information we got from fine
+	 * synchronization this approach uses faster/slower for a given time in
+	 * order to omit skips
+	 */
 	public void updatePlayback() {
 
 		float newPlaybackRate;
@@ -188,12 +193,23 @@ public class FSResponseHandler extends Thread {
 						+ parent.alignedAvgTs(t) + "@timestamp:" + t
 						+ "@async:" + asyncMillis + "@pbt:" + pbt);
 
+		/* the *3* come from the precalcutlation, see paper */
 		long timeMillis = 3 * Math.abs(asyncMillis);
 
-		if (asyncMillis > 0) {
-			newPlaybackRate = 1.33f;// (float) 4 / 3;
-		} else {
-			newPlaybackRate = 0.66f;// (float) 2 / 3;
+		if (asyncMillis > 0) { // we are behind, go faster
+			newPlaybackRate = 1.33f;// (float) 4 / 3; //precalculated, see paper
+			/*
+			 * if we go faster, we want to ensure that we have buffered some
+			 * data...
+			 */
+			Utils.ensureBuffered(4 * timeMillis);
+		} else { // we are on top, so do slower
+			newPlaybackRate = 0.66f;// (float) 2 / 3; //precalculated, see paper
+			/*
+			 * despite it is theoretically not necessary, ensure we have
+			 * buffered at least a bit
+			 */
+			Utils.ensureBuffered(timeMillis);
 		}
 
 		if (DEBUG)
@@ -202,29 +218,28 @@ public class FSResponseHandler extends Thread {
 							+ newPlaybackRate + "\ntime changed: " + timeMillis
 							+ "ms");
 
-		if (newPlaybackRate > 1) {
-			// if we go faster, we want to ensure that we have buffered a lot
-			Utils.ensureBuffered(4 * timeMillis);
-		} else {
-			// despite it is theoretically not necessary, ensure we have
-			// buffered at least a bit
-			Utils.ensureBuffered(timeMillis);
-		}
-		Utils.setPlaybackRate(newPlaybackRate);
+		Utils.setPlaybackRate(newPlaybackRate); // adjust playback rate
 
 		try {
-			Thread.sleep((long) (timeMillis));
+			Thread.sleep((long) (timeMillis)); // wait
 		} catch (InterruptedException e) {
 			Utils.setPlaybackRate(1);
 			SessionInfo.getInstance().log("got interrupted, skip to val");
+			/*
+			 * if we encounter some problems here, we use the old way skipping
+			 * ;)
+			 */
 			updatePlayback(true);
 		}
 
-		Utils.setPlaybackRate(1);
+		Utils.setPlaybackRate(1); // reset the playback rate to normal
 
 		if (DEBUG) {
-
 			try {
+				/*
+				 * just for debugging, so that we can actually see how well
+				 * we've done
+				 */
 				Thread.sleep(700);
 			} catch (Exception e) {
 			}
@@ -232,7 +247,6 @@ public class FSResponseHandler extends Thread {
 					.getPlaybackTime());
 			SessionInfo.getInstance().log(
 					"asynchronism after playback adjustment: " + asyncMillis);
-
 		}
 
 	}

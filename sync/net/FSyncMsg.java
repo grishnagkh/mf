@@ -21,10 +21,7 @@
 
 package mf.sync.net;
 
-import java.security.NoSuchAlgorithmException;
-
 import mf.bloomfilter.BloomFilter;
-import mf.sync.SyncI;
 
 public class FSyncMsg extends SyncMsg {
 
@@ -33,12 +30,6 @@ public class FSyncMsg extends SyncMsg {
 	public int seqN, maxId, myId;
 	public long avg, nts;
 	public BloomFilter bloom;
-
-	/**
-	 * Constructor
-	 */
-	private FSyncMsg() {
-	}
 
 	/**
 	 * Constructor
@@ -58,39 +49,5 @@ public class FSyncMsg extends SyncMsg {
 		this.seqN = seqN;
 		this.bloom = bloom;
 		this.myId = myId;
-	}
-
-	/** make message ready for transmission */
-	public String getMessageString(String delim, int type) {
-		String msg = type + delim + avg + delim + nts + delim + myId + delim
-				+ bloom.toString() + delim + maxId + delim + seqN;
-		return msg;
-	}
-
-	/**
-	 * transforms a string representation of a fsync message into a FSycMsg
-	 * object
-	 * 
-	 * @param str
-	 * @return
-	 */
-	public static FSyncMsg fromString(String str) {
-		FSyncMsg msg = new FSyncMsg();
-
-		String[] msgA = str.split(SyncI.DELIM);
-
-		try {
-			msg.bloom = BloomFilter.fromString(msgA[SyncI.FS_BLOOM_POS],
-					SyncI.N_HASHES);
-		} catch (NoSuchAlgorithmException e) {
-
-		}
-
-		msg.seqN = Integer.parseInt(msgA[SyncI.FS_SYNC_N_POS]);
-		msg.avg = Long.parseLong(msgA[SyncI.FS_R_AVG_POS]);
-		msg.nts = Long.parseLong(msgA[SyncI.FS_R_NTP_POS]);
-		msg.maxId = Integer.parseInt(msgA[SyncI.FS_MAX_ID_POS]);
-
-		return msg;
 	}
 }

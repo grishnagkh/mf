@@ -24,13 +24,28 @@ package mf.sync.net;
 import java.io.Serializable;
 import java.net.InetAddress;
 
+/**
+ * class holding commn information about sent messages
+ * 
+ * @author stefan
+ *
+ */
 public abstract class SyncMsg implements Serializable {
 
 	private static final long serialVersionUID = 7179713119327407162L;
-
+	/*
+	 * in order to avoid problems with the android udp stack, which received
+	 * messages multiple times, we have message ids and peer ids with all sync
+	 * messages. every peer stores the maximum message id per sending peer
+	 * received so far, in order to filter duplicate messages
+	 */
+	/** id of the sending peer */
 	public int peerId;
+	/** id of the message to be sent */
 	public int msgId;
-	public int port;
-	public InetAddress address;
+	/** destination port */
+	public int destPort;
+	/** destination address */
+	public InetAddress destAddress;
 
 }

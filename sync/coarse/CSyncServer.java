@@ -96,8 +96,8 @@ public class CSyncServer extends Thread {
 			msg.senderIp = myAdress;
 			msg.senderPort = myPort;
 			msg.myId = myId;
-			msg.address = p.getAddress();
-			msg.port = p.getPort();
+			msg.destAddress = p.getAddress();
+			msg.destPort = p.getPort();
 			msg.type = SyncI.TYPE_COARSE_REQ;
 
 			MessageHandler.getInstance().sendMsg(msg);

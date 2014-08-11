@@ -22,9 +22,6 @@
 package mf.sync.net;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import mf.sync.SyncI;
 
 public class CSyncMsg extends SyncMsg {
 	private static final long serialVersionUID = -3482596285327476854L;
@@ -56,37 +53,4 @@ public class CSyncMsg extends SyncMsg {
 		this.nts = nts;
 	}
 
-	/**
-	 * transforms a string representation of a csync message into a CSycMsg
-	 * object
-	 * 
-	 * @param str
-	 * @return
-	 * @throws UnknownHostException
-	 */
-	public static CSyncMsg fromString(String str) throws UnknownHostException {
-		CSyncMsg msg = new CSyncMsg();
-
-		String[] msgA = str.split(SyncI.DELIM);
-
-		msg.senderIp = InetAddress.getByName(msgA[SyncI.CS_SENDER_IP_POS]);
-		msg.senderPort = Integer.parseInt(msgA[SyncI.CS_SENDER_PORT_POS]);
-		msg.pts = Long.parseLong(msgA[SyncI.CS_PTS_POS]);
-		msg.nts = Long.parseLong(msgA[SyncI.CS_NTS_POS]);
-		msg.peerId = Integer.parseInt(msgA[SyncI.CS_PEER_ID_POS]);
-
-		return msg;
-	}
-
-	/**
-	 * get string representation for sending over udp
-	 * 
-	 * @param delim
-	 * @param type
-	 * @return as tring representation of the message
-	 */
-	public String getSendMessage(String delim, int type) {
-		return type + delim + senderIp.getHostAddress() + delim + senderPort
-				+ delim + pts + delim + nts + delim + myId;
-	}
 }

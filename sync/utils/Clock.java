@@ -52,7 +52,7 @@ public class Clock {
 			} catch (Exception e) {
 				/*
 				 * ntp servers not reachable... does not matter, take the old
-				 * timestamp or the system clock per defaults 
+				 * timestamp or the system clock per defaults
 				 */
 				if (DEBUG)
 					SessionInfo.getInstance().log(
@@ -66,10 +66,6 @@ public class Clock {
 	 * @return a (if possible) ntp-synced time stamp
 	 */
 	public static long getTime() {
-		/*
-		 * the ntp server produces different times, -> clocks are obviously not
-		 * synced, so manually try to sync them
-		 */
 		/* check whether a update should be done */
 		if (System.currentTimeMillis() - updateTime > CLOCK_SYNC_INTERVAL_MS) {
 			/* perform the update in a new thread */

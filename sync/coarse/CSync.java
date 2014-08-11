@@ -84,6 +84,9 @@ public class CSync {
 		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();
 	}
 
+	/**
+	 * stop a potentially running coarse sync
+	 */
 	public void stopSync() {
 		if (cSyncServer != null && cSyncServer.isAlive()) {
 			if (DEBUG)

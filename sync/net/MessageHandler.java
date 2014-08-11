@@ -97,9 +97,9 @@ public class MessageHandler {
 	 * 
 	 * @param msg
 	 *            The message string to send
-	 * @param address
+	 * @param destAddress
 	 *            receive Inetaddress
-	 * @param port
+	 * @param destPort
 	 *            receive prot
 	 */
 
@@ -118,7 +118,7 @@ public class MessageHandler {
 
 			byte[] sendBuf = byteStream.toByteArray();
 			DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length,
-					msg.address, msg.port);
+					msg.destAddress, msg.destPort);
 			DatagramSocket clientSocket = new DatagramSocket();
 			clientSocket.send(packet);
 			clientSocket.close();
@@ -130,8 +130,8 @@ public class MessageHandler {
 			sendLog.append(e.toString());
 			return;
 		}
-		sendLog.append(msg.peerId + "." + msg.msgId + " " + " " + msg.address
-				+ ":" + msg.port);
+		sendLog.append(msg.peerId + "." + msg.msgId + " " + " "
+				+ msg.destAddress + ":" + msg.destPort);
 
 	}
 
@@ -168,14 +168,16 @@ public class MessageHandler {
 		srv = null;
 	}
 
+	/** resume handling , e.g. used when the user hits the play button */
 	public void resumeHandling() {
-		if(srv != null){
+		if (srv != null) {
 			srv.ignoreIncoming(false);
 		}
 	}
 
+	/** pause handling , e.g. used when the user hits the pause button */
 	public void pauseHandling() {
-		if(srv != null){
+		if (srv != null) {
 			srv.ignoreIncoming(true);
 		}
 	}
