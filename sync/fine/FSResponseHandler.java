@@ -72,6 +72,8 @@ public class FSResponseHandler extends Thread {
 			SessionInfo.getInstance().setSeqN(msg.seqN);
 			FSync.getInstance().reSync(); // hard resync, reset
 		} else if (!FSync.getInstance().serverRunning()) {
+			// TODO: maybe a restart cooldown?!
+			// test whether fine sync terminates with >2 (active) peers
 			SessionInfo.getInstance().log("(re) start wo reset");
 			FSync.getInstance().startWoReset();
 		}
@@ -224,7 +226,8 @@ public class FSResponseHandler extends Thread {
 			Thread.sleep((timeMillis)); // wait
 		} catch (InterruptedException e) {
 			PlayerControl.setPlaybackRate(1);
-			SessionInfo.getInstance().log("got interrupted, skip to val");
+			if (DEBUG)
+				SessionInfo.getInstance().log("got interrupted, skip to val");
 			/*
 			 * if we encounter some problems here, we use the old way skipping
 			 * ;)

@@ -37,15 +37,18 @@ import android.util.SparseIntArray;
 
 /**
  * Class implementing the distribution behaviour for the MessageHandler
- * 
+ *
  * @author stefan petscahrnig
  *
  */
 
 public class HandlerServer extends Thread {
+	static void createLogger() {
+		rcvLog = new SyncLogger(5);
+	}
 	private static boolean discardMessages = false;
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	/** length of the receive buffer */
 	public static final int RCF_BUF_LEN = 4096; // let us have a 4k buffer..
 	/** handler thread object */
@@ -61,15 +64,15 @@ public class HandlerServer extends Thread {
 	 * message id per peer
 	 */
 	private SparseIntArray received;// Map<Integer, Integer> received;
+
 	/**
 	 * debug log for received messages
 	 */
 	static SyncLogger rcvLog;
 
-	static void createLogger() {
-		rcvLog = new SyncLogger(5);
-	}
+	ByteArrayInputStream byteStream;
 
+	ObjectInputStream is;
 	/**
 	 * Constructor
 	 */
@@ -79,8 +82,14 @@ public class HandlerServer extends Thread {
 			SessionInfo.getInstance().log("new handler server");
 	}
 
-	ByteArrayInputStream byteStream;
-	ObjectInputStream is;
+	/**
+	 * if we want to pause the message handler thread, we just ignore the
+	 * incoming messages, do not shut it down
+	 */
+	public void ignoreIncoming(boolean b) {
+		discardMessages = b;
+
+	}
 
 	@Override
 	public void interrupt() {
@@ -90,7 +99,7 @@ public class HandlerServer extends Thread {
 
 		received.clear();
 
-		if (serverSocket != null && is != null) {
+		if (serverSocket != null && is != null)
 			try {
 				is.close();
 				SessionInfo.getInstance().log(
@@ -99,24 +108,11 @@ public class HandlerServer extends Thread {
 					serverSocket.close();
 			} catch (IOException e) {
 			}
-		}
 
 		if (DEBUG)
 			SessionInfo.getInstance().log("message handler server interrupted");
 
 		super.interrupt();
-	}
-
-	/**
-	 * start listening to a specific port
-	 * 
-	 * @param port
-	 *            the port to listen to
-	 */
-	public void start(int port) {
-		t = new Thread(this);
-		this.port = port;
-		t.start();
 	}
 
 	/** worker method */
@@ -170,9 +166,8 @@ public class HandlerServer extends Thread {
 								"message id unseen, adding to seen list");
 					received.put(m.peerId, m.msgId);
 				}
-			} else {
+			} else
 				continue;
-			}
 
 			if (readObj instanceof FSyncMsg) {
 				FSyncMsg msg = (FSyncMsg) readObj;
@@ -182,32 +177,33 @@ public class HandlerServer extends Thread {
 			} else if (readObj instanceof CSyncMsg) {
 				CSyncMsg msg = (CSyncMsg) readObj;
 				rcvLog.append(msg.type + "I" + msg.peerId + "I" + msg.senderIp);
-				if (msg.type == SyncI.TYPE_COARSE_REQ) {
+				if (msg.type == SyncI.TYPE_COARSE_REQ)
 					CSync.getInstance().processRequest(msg);
-				} else if (msg.type == SyncI.TYPE_COARSE_RESP) {
+				else if (msg.type == SyncI.TYPE_COARSE_RESP)
 					CSync.getInstance().coarseResponse(msg);
-				} else {
+				else
 					// do nothing
 					SessionInfo.getInstance().log(
 							"got a csync message with wrong message type");
-				}
-			} else {
+			} else
 				// do nothing
 				SessionInfo
 						.getInstance()
 						.log("got a message which is neither a fsync msg nor a csync message");
-			}
 		}
 		SessionInfo.getInstance().log("handler server stopped");
 	}
 
 	/**
-	 * if we want to pause the message handler thread, we just ignore the
-	 * incoming messages, do not shut it down
+	 * start listening to a specific port
+	 *
+	 * @param port
+	 *            the port to listen to
 	 */
-	public void ignoreIncoming(boolean b) {
-		discardMessages = b;
-
+	public void start(int port) {
+		t = new Thread(this);
+		this.port = port;
+		t.start();
 	}
 
 }

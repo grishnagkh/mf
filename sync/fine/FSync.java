@@ -34,13 +34,23 @@ import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
 
 /**
- * 
+ *
  * Class handling the fine synchronization using mf algorithm
- * 
+ *
  * @author stefan petscharnig
  *
  */
 public class FSync {
+
+	/**
+	 * singleton method
+	 *
+	 * @return
+	 */
+	public static FSync getInstance() {
+		instance = instance == null ? new FSync() : instance;
+		return instance;
+	}
 
 	/** actual bloom filter */
 	private BloomFilter bloom;
@@ -58,6 +68,7 @@ public class FSync {
 	private static FSync instance;
 	/** periodical broadcast server */
 	private Thread workerThread;
+
 	/** monitor for the avg value */
 	private Object avgMonitor;
 
@@ -80,20 +91,116 @@ public class FSync {
 	}
 
 	/**
-	 * singleton method
-	 * 
+	 * align the average playback timestamp stored to a specific time stamp
+	 *
+	 * @param alignTo
+	 *            the time stamp to align to
+	 * @return the aligned time stamp
+	 */
+	long alignedAvgTs(long alignTo) {
+		return avgTs + alignTo - lastAvgUpdateTs;
+	}
+
+	/**
+	 * flood the information so far to the known peers
+	 *
+	 * @param nts
+	 */
+	void broadcastToPeers() {
+		/* broadcast to known peers */
+		long nts = Clock.getTime();
+		FSyncMsg m = new FSyncMsg(alignedAvgTs(nts), nts, myId, bloom, maxId,
+				SessionInfo.getInstance().getSeqN());
+
+		if (DEBUG) {
+			SessionInfo.getInstance().log("avg" + m.avg + "@" + m.nts);
+			SessionInfo.getInstance().log(
+					"pts" + PlayerControl.getPlaybackTime() + "@"
+							+ Clock.getTime());
+		}
+
+		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
+			m.destAddress = p.getAddress();
+			m.destPort = p.getPort();
+			MessageHandler.getInstance().sendMsg(m);
+		}
+	}
+
+	/**
+	 *
 	 * @return
 	 */
-	public static FSync getInstance() {
-		instance = instance == null ? new FSync() : instance;
-		return instance;
+	BloomFilter getBloom() {
+		return bloom;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	List<BloomFilter> getBloomList() {
+		return bloomList;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	int getMaxId() {
+		return maxId;
+	}
+
+	/**
+	 * initialize the avergae time stamp to the playback time
+	 *
+	 * @return
+	 */
+	long initAvgTs() {
+		avgTs = PlayerControl.getPlaybackTime();
+		lastAvgUpdateTs = Clock.getTime();
+
+		return avgTs;
+	}
+
+	/**
+	 * do process a fine sync request in a new thread
+	 */
+	public void processRequest(FSyncMsg fSyncMsg) {
+		new FSResponseHandler(fSyncMsg, this, maxId).start();
+	}
+
+	/**
+	 * hard resync, does reset everything (new synchronization round)
+	 */
+	public void reSync() {
+		if(DEBUG)
+		SessionInfo.getInstance().log("starting resynchronization");
+		stopSync();
+		startSync();
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public boolean serverRunning() {
+		return workerThread != null && workerThread.isAlive();
+	}
+
+	/**
+	 *
+	 * @param maxId
+	 */
+	void setMaxId(int maxId) {
+		this.maxId = maxId;
 	}
 
 	/**
 	 * start fine sync message sending in a new thread
 	 */
 	public void startSync() {
-		SessionInfo.getInstance().log("start fine sync (with reset)");
+		if (DEBUG)
+			SessionInfo.getInstance().log("start fine sync (with reset)");
 
 		bloomList.clear();
 		initAvgTs();
@@ -114,19 +221,11 @@ public class FSync {
 	 */
 	public void startWoReset() {
 		stopSync();
-		SessionInfo.getInstance().log("start fine sync (without reset)");
+		if (DEBUG)
+			SessionInfo.getInstance().log("start fine sync (without reset)");
 		initAvgTs();
 		workerThread = new FSyncServer(this);
 		workerThread.start();
-	}
-
-	/**
-	 * hard resync, does reset everything (new synchronization round)
-	 */
-	public void reSync() {
-		SessionInfo.getInstance().log("starting resynchronization");
-		stopSync();
-		startSync();
 	}
 
 	/**
@@ -138,114 +237,22 @@ public class FSync {
 	}
 
 	/**
-	 * do process a fine sync request in a new thread
-	 */
-	public void processRequest(FSyncMsg fSyncMsg) {
-		new FSResponseHandler(fSyncMsg, this, maxId).start();
-	}
-
-	/**
-	 * align the average playback timestamp stored to a specific time stamp
-	 * 
-	 * @param alignTo
-	 *            the time stamp to align to
-	 * @return the aligned time stamp
-	 */
-	long alignedAvgTs(long alignTo) {
-		return avgTs + alignTo - lastAvgUpdateTs;
-	}
-
-	/**
-	 * initialize the avergae time stamp to the playback time
-	 * 
-	 * @return
-	 */
-	long initAvgTs() {
-		avgTs = PlayerControl.getPlaybackTime();
-		lastAvgUpdateTs = Clock.getTime();
-
-		return avgTs;
-	}
-
-	/**
 	 * update the average timstamp and reset the last update time stampt
-	 * 
+	 *
 	 * @param newValue
 	 *            the value to be set
 	 */
 	void updateAvgTs(long newValue, long updateTime) {
-		SessionInfo.getInstance().log("waiting for avgMonitor");
+		if (DEBUG)
+			SessionInfo.getInstance().log("waiting for avgMonitor");
 		synchronized (avgMonitor) {
-			SessionInfo.getInstance().log("got avgMonitor");
+			if (DEBUG)
+				SessionInfo.getInstance().log("got avgMonitor");
 			avgTs = newValue;
 			lastAvgUpdateTs = updateTime;
 		}
-		SessionInfo.getInstance().log("release avgMonitor");
-	}
-
-	/**
-	 * flood the information so far to the known peers
-	 * 
-	 * @param nts
-	 */
-	void broadcastToPeers() {
-		/* broadcast to known peers */
-		long nts = Clock.getTime();
-		FSyncMsg m = new FSyncMsg(alignedAvgTs(nts), nts, myId, bloom, maxId,
-				SessionInfo.getInstance().getSeqN());
-
-		if (DEBUG) {
-			SessionInfo.getInstance().log("avg" + m.avg + "@" + m.nts);
-			SessionInfo.getInstance()
-					.log("pts" + PlayerControl.getPlaybackTime() + "@"
-							+ Clock.getTime());
-		}
-
-		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			m.destAddress = p.getAddress();
-			m.destPort = p.getPort();
-			MessageHandler.getInstance().sendMsg(m);
-		}
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	BloomFilter getBloom() {
-		return bloom;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	List<BloomFilter> getBloomList() {
-		return bloomList;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	int getMaxId() {
-		return maxId;
-	}
-
-	/**
-	 * 
-	 * @param maxId
-	 */
-	void setMaxId(int maxId) {
-		this.maxId = maxId;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean serverRunning() {
-		return workerThread != null && workerThread.isAlive();
+		if (DEBUG)
+			SessionInfo.getInstance().log("release avgMonitor");
 	}
 
 }
