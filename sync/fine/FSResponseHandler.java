@@ -76,8 +76,8 @@ public class FSResponseHandler extends Thread {
 			}
 			/* some calculations in advance */
 
-			int nPeersRcv = msg.bloom.nElements(msg.maxId);
-			int nPeersOwn = bloom.nElements(maxId);
+			int nPeersRcv = msg.bloom.getNPeers();
+			int nPeersOwn = bloom.getNPeers();
 
 			BloomFilter xor = msg.bloom.clone();
 			xor.xor(bloom);
@@ -113,7 +113,7 @@ public class FSResponseHandler extends Thread {
 							"new avg: " + parent.alignedAvgTs(actTs));
 				}
 				updatePlayback();
-				bloom.or(msg.bloom);
+				bloom.merge(msg.bloom);
 			}
 			if (!xorZero && !andZero && !contains) {
 				if (DEBUG) {
@@ -188,10 +188,11 @@ public class FSResponseHandler extends Thread {
 		long t = Clock.getTime();
 		long asyncMillis = parent.alignedAvgTs(t) - pbt;
 
-		SessionInfo.getInstance().log(
-				"update playback time: calculated average: "
-						+ parent.alignedAvgTs(t) + "@timestamp:" + t
-						+ "@async:" + asyncMillis + "@pbt:" + pbt);
+		if (DEBUG)
+			SessionInfo.getInstance().log(
+					"update playback time: calculated average: "
+							+ parent.alignedAvgTs(t) + "@timestamp:" + t
+							+ "@async:" + asyncMillis + "@pbt:" + pbt);
 
 		/* the *3* come from the precalcutlation, see paper */
 		long timeMillis = 3 * Math.abs(asyncMillis);

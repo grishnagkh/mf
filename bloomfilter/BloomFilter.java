@@ -34,6 +34,17 @@ public class BloomFilter implements Serializable {
 	private byte[] bloom;
 	/** number of hashes per element */
 	private int nHashes;
+	/** number of added peers */
+	private int nPeers;
+
+	public int getNPeers() {
+		return nPeers;
+	}
+
+	public void merge(BloomFilter bf) {
+		this.or(bf);
+		nPeers += bf.getNPeers();
+	}
 
 	/**
 	 * Constructor
@@ -54,6 +65,7 @@ public class BloomFilter implements Serializable {
 	public BloomFilter(int sizeBytes, int nHashes) {
 		bloom = new byte[sizeBytes];
 		this.nHashes = nHashes;
+		nPeers = 0;
 	}
 
 	/**
@@ -65,6 +77,7 @@ public class BloomFilter implements Serializable {
 		for (int pos : getIndices(getBytes(toAdd), nHashes)) {
 			bloom[pos / 8] |= (1 << (pos % 8));
 		}
+		nPeers++;
 	}
 
 	/**
@@ -147,72 +160,12 @@ public class BloomFilter implements Serializable {
 	}
 
 	/**
-	 * returns the estimated number of elements
-	 * 
-	 * @param max
-	 *            maximum for search from zero to max (included)
-	 * @return
-	 */
-	public int nElements(int max) {
-		/*
-		 * when the bloom is restored over the network, we have to estimate the
-		 * number of peers.
-		 */
-		int ctr = 0;
-		for (int i = 0; i <= max; i++) {
-			if (this.contains(i)) {
-				ctr++;
-			}
-		}
-		return ctr;
-	}
-
-	/**
-	 * 
-	 * Caution: number of hashes must equal the number of hashes from the bloom
-	 * filter in the string representation
-	 * 
-	 * @param str
-	 *            string representation of a bloom filter
-	 * @param nHashes
-	 *            number of hashes for the target bloom filter
-	 * @return a new bloom filter
-	 * @throws NoSuchAlgorithmException
-	 */
-	public static BloomFilter fromString(String str, int nHashes)
-			throws NoSuchAlgorithmException {
-
-		/*
-		 * converts toString representation into a bloomfilter with given number
-		 * of hashes per element
-		 */
-		// TODO: maybe the number of hashes should be available in the string
-		// representation
-		String[] blub = str.split(";");
-		BloomFilter bbf = new BloomFilter(blub.length, nHashes);
-
-		int ctr = 0;
-		for (String pos : blub) {
-			if (pos == "")
-				break;
-			bbf.bloom[ctr++] = Byte.parseByte(pos);
-		}
-		return bbf;
-	}
-
-	/**
 	 * Converts and int to a byte array
 	 * 
 	 * @param toConvert
 	 * @return byte[] representation of an integer
 	 */
 	private byte[] getBytes(int toConvert) {
-		// came across this in stackoverflow...
-		// // int -> byte[]
-		// for (int i = 0; i < 4; ++i) {
-		// int shift = i << 3; // i * 8
-		// data[3-i] = (byte)((number & (0xff << shift)) >>> shift);
-		// }
 
 		byte[] ret = new byte[Integer.SIZE / Byte.SIZE];
 		int ctr = -1;
@@ -239,8 +192,6 @@ public class BloomFilter implements Serializable {
 
 		byte salt = 0;
 		for (int j = 0; j < hashes; j++) {
-			// md.update(salt++);
-			// byte[] digest = md.digest(data);
 			byte[] digest = hash(data, salt);
 			int tmpHash = digest[0];
 			for (int i = 1; i < Integer.SIZE / Byte.SIZE && i < digest.length; i++) {
