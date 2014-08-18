@@ -37,18 +37,9 @@ public class BloomFilter implements Serializable {
 	/** number of added peers */
 	private int nPeers;
 
-	public int getNPeers() {
-		return nPeers;
-	}
-
-	public void merge(BloomFilter bf) {
-		this.or(bf);
-		nPeers += bf.getNPeers();
-	}
-
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @throws NoSuchAlgorithmException
 	 */
 	public BloomFilter() throws NoSuchAlgorithmException {
@@ -57,7 +48,7 @@ public class BloomFilter implements Serializable {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param sizeBytes
 	 * @param nHashes
 	 * @throws NoSuchAlgorithmException
@@ -70,80 +61,39 @@ public class BloomFilter implements Serializable {
 
 	/**
 	 * add an element to the bloom filter
-	 * 
+	 *
 	 * @param toAdd
 	 */
 	public void add(int toAdd) {
-		for (int pos : getIndices(getBytes(toAdd), nHashes)) {
+		for (int pos : getIndices(getBytes(toAdd), nHashes))
 			bloom[pos / 8] |= (1 << (pos % 8));
-		}
 		nPeers++;
-	}
-
-	/**
-	 * logical or of the bloom filter, results are save in the current bloom
-	 * filter
-	 * 
-	 * @param bbf
-	 *            the bloom filter to apply the operation with
-	 */
-	public void or(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++) {
-			bloom[i] |= bbf.bloom[i];
-		}
 	}
 
 	/**
 	 * logical and of the bloom filter, results are save in the current bloom
 	 * filter
-	 * 
+	 *
 	 * @param bbf
 	 *            the bloom filter to apply the operation with
 	 */
 	public void and(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++) {
+		for (int i = 0; i < bloom.length; i++)
 			bloom[i] &= bbf.bloom[i];
-		}
+	}
+
+	@Override
+	public BloomFilter clone() {
+		BloomFilter bbf = null;
+
+		bbf = new BloomFilter(bloom.length, nHashes);
+		bbf.or(this);
+
+		return bbf;
 	}
 
 	/**
-	 * logical xor of the bloom filter, results are save in the current bloom
-	 * filter
-	 * 
-	 * @param bbf
-	 *            the bloom filter to apply the operation with
-	 */
-	public void xor(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++) {
-			bloom[i] ^= bbf.bloom[i];
-		}
-	}
-
-	/**
-	 * tests whether the bloom filter is empty (not elements inserted)
-	 * 
-	 * @return true, if no peer was added, false otherwise
-	 */
-	public boolean empty() {
-		return isZero();
-	}
-
-	/**
-	 * tests whether at least one bit is set in the filter
-	 * 
-	 * @return boolean indicating whether bloom filter bits are all zero or not
-	 */
-	public boolean isZero() {
-		for (int i = 0; i < bloom.length; i++) {
-			if (bloom[i] != 0) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * 
+	 *
 	 * @param elem
 	 *            the element to search for
 	 * @return true if the element was inserted in the bloom filter
@@ -151,17 +101,35 @@ public class BloomFilter implements Serializable {
 	public boolean contains(int elem) {
 		for (int pos : getIndices(getBytes(elem), nHashes)) {
 			pos = Math.abs(pos % (bloom.length * 8));
-			if ((bloom[pos / Byte.SIZE] & (1 << (pos % Byte.SIZE))) == 0) {
+			if ((bloom[pos / Byte.SIZE] & (1 << (pos % Byte.SIZE))) == 0)
 				// bit is not set
 				return false;
-			}
 		}
 		return true;
 	}
 
 	/**
+	 * tests whether the bloom filter is empty (not elements inserted)
+	 *
+	 * @return true, if no peer was added, false otherwise
+	 */
+	public boolean empty() {
+		return isZero();
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (!(other instanceof BloomFilter))
+			return false;
+
+		BloomFilter tmp = clone();
+		tmp.xor((BloomFilter) other);
+		return tmp.isZero();
+	}
+
+	/**
 	 * Converts and int to a byte array
-	 * 
+	 *
 	 * @param toConvert
 	 * @return byte[] representation of an integer
 	 */
@@ -179,7 +147,7 @@ public class BloomFilter implements Serializable {
 	/**
 	 * Here, the actual hashing is done. The hash value is mapped to the size of
 	 * the filter
-	 * 
+	 *
 	 * @param data
 	 *            data to hash
 	 * @param hashes
@@ -208,6 +176,11 @@ public class BloomFilter implements Serializable {
 
 	}
 
+	/** @return the number of elements inserted so far */
+	public int getNElements() {
+		return nPeers;
+	}
+
 	private byte[] hash(byte[] data, byte salt) {
 		SHA1 sha1 = new SHA1();
 		sha1.update(salt);
@@ -217,33 +190,60 @@ public class BloomFilter implements Serializable {
 		return res;
 	}
 
-	@Override
-	public BloomFilter clone() {
-		BloomFilter bbf = null;
-
-		bbf = new BloomFilter(bloom.length, nHashes);
-		bbf.or(this);
-
-		return bbf;
+	/**
+	 * tests whether at least one bit is set in the filter
+	 *
+	 * @return boolean indicating whether bloom filter bits are all zero or not
+	 */
+	public boolean isZero() {
+		for (int i = 0; i < bloom.length; i++)
+			if (bloom[i] != 0)
+				return false;
+		return true;
 	}
 
-	@Override
-	public boolean equals(Object other) {
-		if (!(other instanceof BloomFilter))
-			return false;
+	/**
+	 * merge a give bloom filter into this bloom filter. Does assume that the
+	 * bloom filters do not overlap (for number of peers calculation
+	 *
+	 * @param bf
+	 *            the bloom filter which should be merged into this instance
+	 */
+	public void merge(BloomFilter bf) {
+		this.or(bf);
+		nPeers += bf.getNElements();
+	}
 
-		BloomFilter tmp = clone();
-		tmp.xor((BloomFilter) other);
-		return tmp.isZero();
+	/**
+	 * logical or of the bloom filter, results are save in the current bloom
+	 * filter
+	 *
+	 * @param bbf
+	 *            the bloom filter to apply the operation with
+	 */
+	public void or(BloomFilter bbf) {
+		for (int i = 0; i < bloom.length; i++)
+			bloom[i] |= bbf.bloom[i];
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < bloom.length; i++) {
+		for (int i = 0; i < bloom.length; i++)
 			sb.append(bloom[i] + ";");
-		}
 		return sb.toString();
+	}
+
+	/**
+	 * logical xor of the bloom filter, results are save in the current bloom
+	 * filter
+	 *
+	 * @param bbf
+	 *            the bloom filter to apply the operation with
+	 */
+	public void xor(BloomFilter bbf) {
+		for (int i = 0; i < bloom.length; i++)
+			bloom[i] ^= bbf.bloom[i];
 	}
 
 }

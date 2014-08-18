@@ -28,7 +28,7 @@ import mf.sync.utils.SessionInfo;
 
 /**
  * Handle fine sync responses
- * 
+ *
  * @author stefan petscharnig
  *
  */
@@ -49,7 +49,7 @@ public class FSResponseHandler extends Thread {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param fSyncMsg
 	 * @param parent
 	 * @param maxId
@@ -59,6 +59,22 @@ public class FSResponseHandler extends Thread {
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
 		this.parent = parent;
+	}
+
+	/**
+	 * check the sequence number, if the sequence number received is bigger than
+	 * the stored one, take the received sequence number and do a
+	 * resynchronization
+	 */
+	private void checkSeqN() {
+
+		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
+			SessionInfo.getInstance().setSeqN(msg.seqN);
+			FSync.getInstance().reSync(); // hard resync, reset
+		} else if (!FSync.getInstance().serverRunning()) {
+			SessionInfo.getInstance().log("(re) start wo reset");
+			FSync.getInstance().startWoReset();
+		}
 	}
 
 	@Override
@@ -76,8 +92,8 @@ public class FSResponseHandler extends Thread {
 			}
 			/* some calculations in advance */
 
-			int nPeersRcv = msg.bloom.getNPeers();
-			int nPeersOwn = bloom.getNPeers();
+			int nPeersRcv = msg.bloom.getNElements();
+			int nPeersOwn = bloom.getNElements();
 
 			BloomFilter xor = msg.bloom.clone();
 			xor.xor(bloom);
@@ -159,22 +175,6 @@ public class FSResponseHandler extends Thread {
 	}
 
 	/**
-	 * check the sequence number, if the sequence number received is bigger than
-	 * the stored one, take the received sequence number and do a
-	 * resynchronization
-	 */
-	private void checkSeqN() {
-
-		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
-			SessionInfo.getInstance().setSeqN(msg.seqN);
-			FSync.getInstance().reSync(); // hard resync, reset
-		} else if (!FSync.getInstance().serverRunning()) {
-			SessionInfo.getInstance().log("(re) start wo reset");
-			FSync.getInstance().startWoReset();
-		}
-	}
-
-	/**
 	 * update the playback according to the information we got from fine
 	 * synchronization this approach uses faster/slower for a given time in
 	 * order to omit skips
@@ -221,7 +221,7 @@ public class FSResponseHandler extends Thread {
 		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback rate
 
 		try {
-			Thread.sleep((long) (timeMillis)); // wait
+			Thread.sleep((timeMillis)); // wait
 		} catch (InterruptedException e) {
 			PlayerControl.setPlaybackRate(1);
 			SessionInfo.getInstance().log("got interrupted, skip to val");
@@ -271,7 +271,8 @@ public class FSResponseHandler extends Thread {
 
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting time @@@");
-		PlayerControl.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
+		PlayerControl
+				.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
 
 	}
 }

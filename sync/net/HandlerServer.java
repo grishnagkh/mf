@@ -147,8 +147,7 @@ public class HandlerServer extends Thread {
 			} catch (ClassNotFoundException e) {
 				continue;
 			} catch (Exception e) {
-				e.printStackTrace();
-				break;
+				continue;
 			}
 			if (discardMessages) {
 				if (DEBUG)
