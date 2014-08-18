@@ -28,14 +28,13 @@ import mf.com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
 import mf.com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializationException;
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
-import mf.com.google.android.exoplayer.util.PlayerControl;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
+import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
@@ -52,8 +51,6 @@ import android.view.View.OnTouchListener;
 import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
-
-//TODO: do all todos, fixmes and XXXes, refactor gui package, and fix the start and stop of sync  between sessions
 
 /**
  * An activity that plays media using {@link ExoPlayer}.
@@ -95,7 +92,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	private int contentType;
 	private String contentId;
 
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 
 	// Activity lifecycle
 
@@ -169,12 +166,12 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		long now = Clock.getTime();
 		String speed = "0";
 		try {
-			speed = "" + Utils.getSpeed();
+			speed = "" + PlayerControl.getSpeed();
 		} catch (Exception e) {
 		}
 
 		dText += "Ntp Time: " + new Date(now) + "(" + now + ") Playback time:"
-				+ (Utils.getPlaybackTime()) + " speed x" + speed + "\n"
+				+ (PlayerControl.getPlaybackTime()) + " speed x" + speed + "\n"
 				+ SessionInfo.getInstance().getLog().toString();
 		senStr += MessageHandler.getInstance().getSendLog().toString();
 		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
@@ -212,7 +209,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
 
-		Utils.initPlayer(player);
+		PlayerControl.initPlayer(player);
 		MessageHandler.getInstance().startHandling();
 	}
 

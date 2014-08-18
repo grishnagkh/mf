@@ -23,11 +23,11 @@ import android.widget.MediaController.MediaPlayerControl;
  * This class is provided for convenience, however it is expected that most applications will
  * implement their own player controls and therefore not require this class.
  */
-public class PlayerControl implements MediaPlayerControl {
+public class PlayerCtl implements MediaPlayerControl {
 
   private final ExoPlayer exoPlayer;
 
-  public PlayerControl(ExoPlayer exoPlayer) {
+  public PlayerCtl(ExoPlayer exoPlayer) {
     this.exoPlayer = exoPlayer;
   }
 

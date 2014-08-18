@@ -30,8 +30,8 @@ import mf.sync.net.FSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
+import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 
 /**
  * 
@@ -161,7 +161,7 @@ public class FSync {
 	 * @return
 	 */
 	long initAvgTs() {
-		avgTs = Utils.getPlaybackTime();
+		avgTs = PlayerControl.getPlaybackTime();
 		lastAvgUpdateTs = Clock.getTime();
 
 		return avgTs;
@@ -196,8 +196,9 @@ public class FSync {
 
 		if (DEBUG) {
 			SessionInfo.getInstance().log("avg" + m.avg + "@" + m.nts);
-			SessionInfo.getInstance().log(
-					"pts" + Utils.getPlaybackTime() + "@" + Clock.getTime());
+			SessionInfo.getInstance()
+					.log("pts" + PlayerControl.getPlaybackTime() + "@"
+							+ Clock.getTime());
 		}
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {

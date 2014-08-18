@@ -1,69 +1,20 @@
-/*
- * Utils.java
- *
- * Copyright (c) 2014, Stefan Petscharnig. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301 USA
- */
 package mf.sync.utils;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import mf.com.google.android.exoplayer.ExoPlayer;
-import android.content.Context;
-import android.net.wifi.WifiManager;
-import android.text.format.Formatter;
-import android.util.Log;
+import android.widget.MediaController.MediaPlayerControl;
 
-/**
- * 
- * Utility class
- * 
- * @author stefan petscahrnig
- *
- */
-public class Utils {
+public class PlayerControl implements MediaPlayerControl {
 
-	private static final int PLAYER_NOT_INITIALIZED = -2;
-
+	static final int PLAYER_NOT_INITIALIZED = -2;
 	/** player instance for playback control */
 	private static ExoPlayer player;
 
-	public static void setPlaybackRate(float f) {
-		player.setPlaybackRate(f);
+	public PlayerControl(ExoPlayer player) {
+		PlayerControl.player = player;
 	}
 
-	/**
-	 * @param c
-	 *            the application cotnext
-	 * @return the wifi address
-	 */
-	@SuppressWarnings("deprecation")
-	public static InetAddress getWifiAddress(Context c) {
-		if (c == null)
-			throw new RuntimeException("Context is null");
-		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
-		try {
-			return InetAddress.getByName(Formatter.formatIpAddress(wm
-					.getConnectionInfo().getIpAddress()));
-		} catch (UnknownHostException e) {
-			Log.e("sync utils", "cannot get wifi address, returning null...");
-		}
-		return null;
+	public static void setPlaybackRate(float f) {
+		player.setPlaybackRate(f);
 	}
 
 	/**
@@ -74,7 +25,7 @@ public class Utils {
 	 */
 	public static int getCurTrackDuration() {
 		if (player == null)
-			return PLAYER_NOT_INITIALIZED;
+			return PlayerControl.PLAYER_NOT_INITIALIZED;
 		return player.getDuration();
 	}
 
@@ -85,7 +36,7 @@ public class Utils {
 	 */
 	public static int getPlaybackTime() {
 		if (player == null)
-			return PLAYER_NOT_INITIALIZED;
+			return PlayerControl.PLAYER_NOT_INITIALIZED;
 		// return player.getCurrentPosition();
 		return (int) player.getPositionUs() / 1000;
 	}
@@ -173,5 +124,62 @@ public class Utils {
 			} catch (InterruptedException e) {
 			}
 		}
+	}
+
+	@Override
+	public boolean canPause() {
+		return true;
+	}
+
+	@Override
+	public boolean canSeekBackward() {
+		return true;
+	}
+
+	@Override
+	public boolean canSeekForward() {
+		return true;
+	}
+
+	// not supported
+	@Override
+	public int getAudioSessionId() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public int getBufferPercentage() {
+		return player.getBufferedPercentage();
+	}
+
+	@Override
+	public int getCurrentPosition() {
+		return player.getCurrentPosition();
+	}
+
+	@Override
+	public int getDuration() {
+		return player.getDuration();
+	}
+
+	@Override
+	public boolean isPlaying() {
+		return player.getPlayWhenReady();
+	}
+
+	@Override
+	public void start() {
+		player.setPlayWhenReady(true);
+	}
+
+	@Override
+	public void pause() {
+		player.setPlayWhenReady(false);
+	}
+
+	@Override
+	public void seekTo(int timeMillis) {
+		// MediaController arrow keys generate unbounded values.
+		player.seekTo(Math.min(Math.max(0, timeMillis), getDuration()));
 	}
 }

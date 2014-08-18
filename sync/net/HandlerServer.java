@@ -151,8 +151,10 @@ public class HandlerServer extends Thread {
 				break;
 			}
 			if (discardMessages) {
-				SessionInfo.getInstance().log(
-						"message was discarded, because we take a break ;) ");
+				if (DEBUG)
+					SessionInfo
+							.getInstance()
+							.log("message was discarded, because we take a break ;) ");
 				continue;
 			}
 			if (readObj instanceof SyncMsg) {

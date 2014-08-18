@@ -34,7 +34,6 @@ import mf.com.google.android.exoplayer.util.MimeTypes;
 import mf.player.gui.MainActivity;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmlpull.v1.XmlPullParser;
@@ -149,7 +148,7 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 
 		Peer mySelf = null;
 
-		InetAddress ownAddress = Utils.getWifiAddress(MainActivity.c);
+		InetAddress ownAddress = SessionInfo.getWifiAddress(MainActivity.c);
 
 		do {
 

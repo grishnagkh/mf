@@ -32,7 +32,7 @@ import mf.sync.utils.SessionInfo;
  *
  */
 public class FSyncServer extends Thread {
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	/** FSnyc instance for aligning timestamps */
 	private FSync parent;
 

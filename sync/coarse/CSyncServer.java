@@ -30,8 +30,8 @@ import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
+import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 
 /**
  * 
@@ -43,7 +43,7 @@ import mf.sync.utils.Utils;
  */
 public class CSyncServer extends Thread {
 	/** debug messages in the session log */
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	/** segment size, we jump aligned to the segment size */
 	private int SEGSIZE = 2000;
 	/** list of messages to process after waiting time span */
@@ -70,7 +70,7 @@ public class CSyncServer extends Thread {
 				SessionInfo
 						.getInstance()
 						.log("mySelf was null, so no session info was received, enter playback mode (synced with oneself ;) )");
-			Peer p = new Peer(1, Utils.getWifiAddress(MainActivity.c), 12346);
+			Peer p = new Peer(1, SessionInfo.getWifiAddress(MainActivity.c), 12346);
 			SessionInfo.getInstance().setMySelf(p);
 		}
 
@@ -150,12 +150,12 @@ public class CSyncServer extends Thread {
 
 		avgPTS = SEGSIZE + avgPTS - avgPTS % SEGSIZE;
 
-		Utils.setPlaybackTime((int) avgPTS);
+		PlayerControl.setPlaybackTime((int) avgPTS);
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		Utils.ensureTime(avgPTS, 2000);
-		Utils.ensureBuffered(2000);
+		PlayerControl.ensureTime(avgPTS, 2000);
+		PlayerControl.ensureBuffered(2000);
 		FSync.getInstance().startSync();
 	}
 }

@@ -20,11 +20,17 @@
  */
 package mf.sync.utils;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 import mf.sync.utils.log.SyncLogger;
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.support.v4.util.ArrayMap;
+import android.text.format.Formatter;
+import android.util.Log;
 
 public class SessionInfo {
 
@@ -62,6 +68,20 @@ public class SessionInfo {
 			instance = new SessionInfo();
 		}
 		return instance;
+	}
+
+	@SuppressWarnings("deprecation")
+	public static InetAddress getWifiAddress(Context c) {
+		if (c == null)
+			throw new RuntimeException("Context is null");
+		WifiManager wm = (WifiManager) c.getSystemService(Context.WIFI_SERVICE);
+		try {
+			return InetAddress.getByName(Formatter.formatIpAddress(wm
+					.getConnectionInfo().getIpAddress()));
+		} catch (UnknownHostException e) {
+			Log.e("sync utils", "cannot get wifi address, returning null...");
+		}
+		return null;
 	}
 
 	/**

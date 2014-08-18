@@ -26,7 +26,7 @@ import java.util.Map;
 
 import mf.player.gui.Samples.Sample;
 import mf.sync.net.MessageHandler;
-import mf.sync.utils.Utils;
+import mf.sync.utils.SessionInfo;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -83,9 +83,16 @@ public class MainActivity extends Activity {
 		String srv = e.getText().toString();
 		String sKey = e1.getText().toString();
 
-		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri
-				+ "&session_key=" + sKey + "&ip="
-				+ Utils.getWifiAddress(this).getHostAddress();
+		uri = srv
+				+ "?port="
+				+ MessageHandler.PORT
+				+ "&mediaSource="
+				+ uri
+				+ "&session_key="
+				+ sKey
+				+ "&ip="
+				+ SessionInfo.getWifiAddress(this)
+						.getHostAddress();
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))

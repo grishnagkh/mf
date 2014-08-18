@@ -27,8 +27,8 @@ import mf.sync.net.CSyncMsg;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
 import mf.sync.utils.Peer;
+import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 
 /**
  * class processing a coarse sync request
@@ -54,7 +54,7 @@ public class CSyncRequestProcessor implements Runnable {
 
 		CSyncMsg msg = new CSyncMsg(SessionInfo.getInstance().getMySelf()
 				.getAddress(), SessionInfo.getInstance().getMySelf().getPort(),
-				Utils.getPlaybackTime(), Clock.getTime(), SessionInfo
+				PlayerControl.getPlaybackTime(), Clock.getTime(), SessionInfo
 						.getInstance().getMySelf().getId());
 
 		// send response

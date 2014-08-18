@@ -23,8 +23,8 @@ package mf.sync.fine;
 import mf.bloomfilter.BloomFilter;
 import mf.sync.net.FSyncMsg;
 import mf.sync.utils.Clock;
+import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.Utils;
 
 /**
  * Handle fine sync responses
@@ -148,7 +148,6 @@ public class FSResponseHandler extends Thread {
 						bloom = msg.bloom;
 						bloom.add(myId);
 					}
-
 					updatePlayback();
 				}
 			}
@@ -184,7 +183,7 @@ public class FSResponseHandler extends Thread {
 
 		float newPlaybackRate;
 
-		long pbt = Utils.getPlaybackTime();
+		long pbt = PlayerControl.getPlaybackTime();
 		long t = Clock.getTime();
 		long asyncMillis = parent.alignedAvgTs(t) - pbt;
 
@@ -203,14 +202,14 @@ public class FSResponseHandler extends Thread {
 			 * if we go faster, we want to ensure that we have buffered some
 			 * data...
 			 */
-			Utils.ensureBuffered(4 * timeMillis);
+			PlayerControl.ensureBuffered(4 * timeMillis);
 		} else { // we are on top, so do slower
 			newPlaybackRate = 0.66f;// (float) 2 / 3; //precalculated, see paper
 			/*
 			 * despite it is theoretically not necessary, ensure we have
 			 * buffered at least a bit
 			 */
-			Utils.ensureBuffered(timeMillis);
+			PlayerControl.ensureBuffered(timeMillis);
 		}
 
 		if (DEBUG)
@@ -219,12 +218,12 @@ public class FSResponseHandler extends Thread {
 							+ newPlaybackRate + "\ntime changed: " + timeMillis
 							+ "ms");
 
-		Utils.setPlaybackRate(newPlaybackRate); // adjust playback rate
+		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback rate
 
 		try {
 			Thread.sleep((long) (timeMillis)); // wait
 		} catch (InterruptedException e) {
-			Utils.setPlaybackRate(1);
+			PlayerControl.setPlaybackRate(1);
 			SessionInfo.getInstance().log("got interrupted, skip to val");
 			/*
 			 * if we encounter some problems here, we use the old way skipping
@@ -233,7 +232,7 @@ public class FSResponseHandler extends Thread {
 			updatePlayback(true);
 		}
 
-		Utils.setPlaybackRate(1); // reset the playback rate to normal
+		PlayerControl.setPlaybackRate(1); // reset the playback rate to normal
 
 		if (DEBUG) {
 			try {
@@ -244,12 +243,11 @@ public class FSResponseHandler extends Thread {
 				Thread.sleep(700);
 			} catch (Exception e) {
 			}
-			asyncMillis = (parent.alignedAvgTs(Clock.getTime()) - Utils
+			asyncMillis = (parent.alignedAvgTs(Clock.getTime()) - PlayerControl
 					.getPlaybackTime());
 			SessionInfo.getInstance().log(
 					"asynchronism after playback adjustment: " + asyncMillis);
 		}
-
 	}
 
 	/**
@@ -262,18 +260,18 @@ public class FSResponseHandler extends Thread {
 	public void updatePlayback(boolean noSkipIfNear) {
 		if (noSkipIfNear
 				&& Math.abs((int) parent.alignedAvgTs(Clock.getTime())
-						- Utils.getPlaybackTime()) < 80) {
+						- PlayerControl.getPlaybackTime()) < 80) {
 			// dont do something, we are close enough^^
 			if (DEBUG)
 				SessionInfo.getInstance().log("we are close enough @@");
 			return;
 		}
 
-		Utils.ensureBuffered(4000);
+		PlayerControl.ensureBuffered(4000);
 
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting time @@@");
-		Utils.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
+		PlayerControl.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
 
 	}
 }
