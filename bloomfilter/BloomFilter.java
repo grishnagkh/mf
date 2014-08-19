@@ -138,7 +138,7 @@ public class BloomFilter implements Serializable {
 		byte[] ret = new byte[Integer.SIZE / Byte.SIZE];
 		int ctr = -1;
 		while (++ctr < ret.length) {
-			ret[ctr] = (byte) (toConvert % (1 << Byte.SIZE));
+			ret[ctr] = (byte) (toConvert & 0xFF);
 			toConvert = toConvert >> Byte.SIZE;
 		}
 		return ret;
@@ -160,16 +160,17 @@ public class BloomFilter implements Serializable {
 
 		byte salt = 0;
 		for (int j = 0; j < hashes; j++) {
-			byte[] digest = hash(data, salt);
-			int tmpHash = digest[0];
-			for (int i = 1; i < Integer.SIZE / Byte.SIZE && i < digest.length; i++) {
+			byte[] digest = hash(data, salt++);
+			int tmpHash = 0;
+			for (int i = 0; i < Integer.SIZE / Byte.SIZE && i < digest.length; i++) {
 				tmpHash <<= Byte.SIZE;
 				tmpHash |= digest[i];
 			}
 			/* clear first bit */
 			tmpHash &= 0x7FFFFFFF;
+
 			/* align to size of bloom filter */
-			tmpHash %= bloom.length * Byte.SIZE;
+			tmpHash = tmpHash % (bloom.length * Byte.SIZE);
 			result[j] = tmpHash;
 		}
 		return result;
