@@ -47,6 +47,9 @@ public class FSResponseHandler extends Thread {
 	/** bloom filter containing most information available */
 	private BloomFilter bloom;
 
+	/** count steps without update */
+	static int noUpdateCtr = 0;
+
 	/**
 	 * Constructor
 	 *
@@ -71,11 +74,10 @@ public class FSResponseHandler extends Thread {
 		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
 			SessionInfo.getInstance().setSeqN(msg.seqN);
 			FSync.getInstance().reSync(); // hard resync, reset
-		} else if (!FSync.getInstance().serverRunning()) {
-			// TODO: maybe a restart cooldown?!
-			// test whether fine sync terminates with >2 (active) peers
-			SessionInfo.getInstance().log("(re) start wo reset");
-			FSync.getInstance().startWoReset();
+		} else {
+			// SessionInfo.getInstance().log("(re) start wo reset");
+			// FSync.getInstance().restartWoReset();
+			// not here
 		}
 	}
 
@@ -109,6 +111,15 @@ public class FSResponseHandler extends Thread {
 			boolean xorZero = xor.isZero();
 			boolean andZero = and.isZero();
 
+			if (!contains) {
+				/* we have not seen the bloom filter */
+				SessionInfo.getInstance().log(
+						"seen a bf we have not see before, restart fine sync");
+				FSync.getInstance().restartWoReset();
+			}
+
+			boolean bfUpdated = false;
+
 			if (!xorZero && andZero) {
 				if (DEBUG) {
 					SessionInfo.getInstance().log("npeersown: " + nPeersOwn);
@@ -132,6 +143,7 @@ public class FSResponseHandler extends Thread {
 				}
 				updatePlayback();
 				bloom.merge(msg.bloom);
+				bfUpdated = true;
 			}
 			if (!xorZero && !andZero && !contains) {
 				if (DEBUG) {
@@ -150,6 +162,7 @@ public class FSResponseHandler extends Thread {
 									"corrected received avg: " + d);
 						}
 						bloom = msg.bloom;
+						bfUpdated = true;
 					} else {
 						avgTs = parent.alignedAvgTs(actTs);
 						wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
@@ -165,10 +178,19 @@ public class FSResponseHandler extends Thread {
 						}
 						bloom = msg.bloom;
 						bloom.add(myId);
+						bfUpdated = true;
 					}
 					updatePlayback();
 				}
 			}
+			if (!bfUpdated)
+				noUpdateCtr++;
+			else
+				noUpdateCtr = 0;
+
+			if (noUpdateCtr > 50)
+				FSync.getInstance().stopSync();
+
 			/* add the received bloom filter to the ones already seen */
 			parent.getBloomList().add(msg.bloom);
 			/* update maxId */
@@ -182,7 +204,6 @@ public class FSResponseHandler extends Thread {
 	 * order to omit skips
 	 */
 	public void updatePlayback() {
-
 		float newPlaybackRate;
 
 		long pbt = PlayerControl.getPlaybackTime();
@@ -195,8 +216,11 @@ public class FSResponseHandler extends Thread {
 							+ parent.alignedAvgTs(t) + "@timestamp:" + t
 							+ "@async:" + asyncMillis + "@pbt:" + pbt);
 
-		/* the *3* come from the precalcutlation, see paper */
+		/* the *3* come from the pre-calculation see paper */
 		long timeMillis = 3 * Math.abs(asyncMillis);
+
+		if (DEBUG)
+			SessionInfo.getInstance().log("ensure buffered start");
 
 		if (asyncMillis > 0) { // we are behind, go faster
 			newPlaybackRate = 1.33f;// (float) 4 / 3; //precalculated, see paper
@@ -204,7 +228,7 @@ public class FSResponseHandler extends Thread {
 			 * if we go faster, we want to ensure that we have buffered some
 			 * data...
 			 */
-			PlayerControl.ensureBuffered(4 * timeMillis);
+			PlayerControl.ensureBuffered(3 * timeMillis);
 		} else { // we are on top, so do slower
 			newPlaybackRate = 0.66f;// (float) 2 / 3; //precalculated, see paper
 			/*
@@ -215,42 +239,26 @@ public class FSResponseHandler extends Thread {
 		}
 
 		if (DEBUG)
+			SessionInfo.getInstance().log("ensure buffered end");
+
+		if (DEBUG)
 			SessionInfo.getInstance().log(
-					"asynchronism: " + asyncMillis + "ms\nnew playback rate: "
-							+ newPlaybackRate + "\ntime changed: " + timeMillis
+					"asynchronism: " + asyncMillis + "ms\tnew playback rate: "
+							+ newPlaybackRate + "\ttime changed: " + timeMillis
 							+ "ms");
 
 		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback rate
 
 		try {
-			Thread.sleep((timeMillis)); // wait
+			Thread.sleep(timeMillis); // wait
 		} catch (InterruptedException e) {
 			PlayerControl.setPlaybackRate(1);
 			if (DEBUG)
-				SessionInfo.getInstance().log("got interrupted, skip to val");
-			/*
-			 * if we encounter some problems here, we use the old way skipping
-			 * ;)
-			 */
-			updatePlayback(true);
+				SessionInfo.getInstance().log(
+						"got interrupted, synchronization failed");
 		}
 
 		PlayerControl.setPlaybackRate(1); // reset the playback rate to normal
-
-		if (DEBUG) {
-			try {
-				/*
-				 * just for debugging, so that we can actually see how well
-				 * we've done
-				 */
-				Thread.sleep(700);
-			} catch (Exception e) {
-			}
-			asyncMillis = (parent.alignedAvgTs(Clock.getTime()) - PlayerControl
-					.getPlaybackTime());
-			SessionInfo.getInstance().log(
-					"asynchronism after playback adjustment: " + asyncMillis);
-		}
 	}
 
 	/**

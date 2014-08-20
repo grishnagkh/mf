@@ -25,9 +25,9 @@ import mf.sync.SyncI;
 import mf.sync.utils.SessionInfo;
 
 /**
- * 
+ *
  * Server periodically broadcasting fine sync messages
- * 
+ *
  * @author stefan petscharnig
  *
  */
@@ -38,33 +38,11 @@ public class FSyncServer extends Thread {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param parent
 	 */
 	public FSyncServer(FSync parent) {
 		this.parent = parent;
-	}
-
-	/**
-	 * atm we only send 3 message rounds, should work for a network with
-	 * diameter 3
-	 */
-	public void run() {
-		int ctr = 0;
-		if (DEBUG)
-			SessionInfo.getInstance().log("FSync thread started");
-		// TODO: when to stop the sync ? maybe when we have many devices it is
-		// everytime restarted?
-		while (!isInterrupted() && ctr++ < 3) {
-			parent.broadcastToPeers();
-			try {
-				Thread.sleep(SyncI.PERIOD_FS_MS);
-			} catch (InterruptedException iex) {
-				break;
-			}
-		}
-		if (DEBUG)
-			SessionInfo.getInstance().log("FSync thread died");
 	}
 
 	@Override
@@ -74,4 +52,23 @@ public class FSyncServer extends Thread {
 		super.interrupt();
 	}
 
+	/**
+	 * atm we only send 3 message rounds, should work for a network with
+	 * diameter 3 (assuming link speed equal on all links)
+	 */
+	@Override
+	public void run() {
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync thread started");
+		while (!isInterrupted()) {
+			try {
+				Thread.sleep(SyncI.PERIOD_FS_MS);
+			} catch (InterruptedException iex) {
+				break;
+			}
+			parent.broadcastToPeers();
+		}
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync thread died");
+	}
 }

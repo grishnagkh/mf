@@ -31,28 +31,16 @@ import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
 
 /**
- * 
+ *
  * a message handler which forwards the received udp packages to the
  * synchronization modules
- * 
+ *
  * @author stefan petscharnig
  *
  */
 
 public class MessageHandler {
 	/** Tag for android Log */
-
-	/** default port where we listen for synchronization messages */
-	public static final int PORT = 12346;
-
-	SyncLogger sendLog;
-
-	/** actual port to listen */
-	private int port;
-	/** singleton instance */
-	private static MessageHandler instance;
-
-	private HandlerServer srv;
 
 	/** singleton method using default port */
 	public static MessageHandler getInstance() {
@@ -64,6 +52,24 @@ public class MessageHandler {
 		if (instance == null)
 			instance = new MessageHandler(port);
 		return instance;
+	}
+
+	/** default port where we listen for synchronization messages */
+	public static final int PORT = 12346;
+	SyncLogger sendLog;
+
+	/** actual port to listen */
+	private int port;
+
+	/** singleton instance */
+	private static MessageHandler instance;
+
+	private HandlerServer srv;
+
+	static int cnt;
+
+	static {
+		cnt = 0;
 	}
 
 	/** singleton constructor using default port */
@@ -78,23 +84,29 @@ public class MessageHandler {
 		HandlerServer.createLogger();
 	}
 
-	public SyncLogger getSendLog() {
-		return sendLog;
-	}
-
 	public SyncLogger getRcvLog() {
 		return HandlerServer.rcvLog;
 	}
 
-	static int cnt;
+	public SyncLogger getSendLog() {
+		return sendLog;
+	}
 
-	static {
-		cnt = 0;
+	/** pause handling , e.g. used when the user hits the pause button */
+	public void pauseHandling() {
+		if (srv != null)
+			srv.ignoreIncoming(true);
+	}
+
+	/** resume handling , e.g. used when the user hits the play button */
+	public void resumeHandling() {
+		if (srv != null)
+			srv.ignoreIncoming(false);
 	}
 
 	/**
 	 * Method for sending messages via UDP
-	 * 
+	 *
 	 * @param msg
 	 *            The message string to send
 	 * @param destAddress
@@ -149,13 +161,16 @@ public class MessageHandler {
 
 	/**
 	 * stop the listener for requests
-	 * 
+	 *
 	 * @param clearSessionData
 	 */
 	public void stopHandling(boolean clearSessionData) {
 		if (clearSessionData) {
 			SessionInfo.getInstance().log("clear sessiong data...");
 			SessionInfo.getInstance().log("clear peers...");
+			SessionInfo.getInstance().getLog().clear();
+			MessageHandler.getInstance().getRcvLog().clear();
+			MessageHandler.getInstance().getSendLog().clear();
 			SessionInfo.getInstance().getPeers().clear();
 		}
 
@@ -166,20 +181,6 @@ public class MessageHandler {
 		}
 		SessionInfo.getInstance().log("setting message handler to null");
 		srv = null;
-	}
-
-	/** resume handling , e.g. used when the user hits the play button */
-	public void resumeHandling() {
-		if (srv != null) {
-			srv.ignoreIncoming(false);
-		}
-	}
-
-	/** pause handling , e.g. used when the user hits the pause button */
-	public void pauseHandling() {
-		if (srv != null) {
-			srv.ignoreIncoming(true);
-		}
 	}
 
 }

@@ -78,7 +78,6 @@ public class FSync {
 	 * Constructor
 	 */
 	private FSync() {
-
 		avgMonitor = new Object();
 		bloomList = new ArrayList<BloomFilter>();
 		myId = SessionInfo.getInstance().getMySelf().getId();
@@ -126,6 +125,11 @@ public class FSync {
 		}
 	}
 
+	// test
+	public void destroy() {
+		instance = null;
+	}
+
 	/**
 	 *
 	 * @return
@@ -170,11 +174,25 @@ public class FSync {
 	}
 
 	/**
+	 * start the fine synchronization without doing a reset, performed when new
+	 * peers come into play
+	 */
+	public void restartWoReset() {
+		stopSync();
+		if (DEBUG)
+			SessionInfo.getInstance().log("start fine sync (without reset)");
+
+		initAvgTs();
+		workerThread = new FSyncServer(this);
+		workerThread.start();
+	}
+
+	/**
 	 * hard resync, does reset everything (new synchronization round)
 	 */
 	public void reSync() {
-		if(DEBUG)
-		SessionInfo.getInstance().log("starting resynchronization");
+		if (DEBUG)
+			SessionInfo.getInstance().log("starting resynchronization");
 		stopSync();
 		startSync();
 	}
@@ -213,19 +231,6 @@ public class FSync {
 		workerThread = new FSyncServer(this);
 		workerThread.start();
 
-	}
-
-	/**
-	 * start the fine synchronization without doing a reset, performed when new
-	 * peers come into play
-	 */
-	public void startWoReset() {
-		stopSync();
-		if (DEBUG)
-			SessionInfo.getInstance().log("start fine sync (without reset)");
-		initAvgTs();
-		workerThread = new FSyncServer(this);
-		workerThread.start();
 	}
 
 	/**

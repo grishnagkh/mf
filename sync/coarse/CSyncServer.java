@@ -34,31 +34,30 @@ import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
 
 /**
- * 
+ *
  * class handling the initial step of the coarse sync (1) send a request to all
  * known peers (2) wait some time (3) parse and process responses
- * 
+ *
  * @author stefan petscharnig
  *
  */
 public class CSyncServer extends Thread {
 	/** debug messages in the session log */
-	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 	/** segment size, we jump aligned to the segment size */
-	private int SEGSIZE = 2000;
+	private final int SEGSIZE = 4000;
 	/** list of messages to process after waiting time span */
 	private List<CSyncMsg> msgQueue;
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param messageQueue
 	 *            list of received messages while waiting
 	 */
 	public CSyncServer(List<CSyncMsg> messageQueue) {
-		if (DEBUG) {
+		if (DEBUG)
 			SessionInfo.getInstance().log("new csync server");
-		}
 		msgQueue = messageQueue;
 	}
 
@@ -70,7 +69,8 @@ public class CSyncServer extends Thread {
 				SessionInfo
 						.getInstance()
 						.log("mySelf was null, so no session info was received, enter playback mode (synced with oneself ;) )");
-			Peer p = new Peer(1, SessionInfo.getWifiAddress(MainActivity.c), 12346);
+			Peer p = new Peer(1, SessionInfo.getWifiAddress(MainActivity.c),
+					12346);
 			SessionInfo.getInstance().setMySelf(p);
 		}
 
@@ -154,8 +154,9 @@ public class CSyncServer extends Thread {
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
-		PlayerControl.ensureTime(avgPTS, 2000);
-		PlayerControl.ensureBuffered(2000);
+		PlayerControl.ensureTime(avgPTS, SEGSIZE);
+		PlayerControl.ensureBuffered(SEGSIZE);
 		FSync.getInstance().startSync();
+
 	}
 }

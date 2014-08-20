@@ -28,28 +28,11 @@ import mf.sync.net.CSyncMsg;
 import mf.sync.utils.SessionInfo;
 
 /**
- * 
+ *
  * @author stefan petscharnig
  */
 
 public class CSync {
-	/** debug messages in the session log */
-	public static final boolean DEBUG = false;
-	/** server instance */
-	private CSyncServer cSyncServer;
-	/** request queue filled by message handler while we are waiting */
-	private List<CSyncMsg> msgQueue;
-	/** singleton instance */
-	private static CSync instance;
-
-	/** Singleton constructor */
-	private CSync() {
-		if (DEBUG) {
-			SessionInfo.getInstance().log("new csync, init message queue");
-		}
-		msgQueue = new ArrayList<CSyncMsg>();
-	}
-
 	/** Singleton method */
 	public static CSync getInstance() {
 		if (instance == null)
@@ -57,11 +40,45 @@ public class CSync {
 		return instance;
 	}
 
+	/** debug messages in the session log */
+	public static final boolean DEBUG = true;
+	/** server instance */
+	private CSyncServer cSyncServer;
+	/** request queue filled by message handler while we are waiting */
+	private List<CSyncMsg> msgQueue;
+
+	/** singleton instance */
+	private static CSync instance;
+
+	/** Singleton constructor */
+	private CSync() {
+		if (DEBUG)
+			SessionInfo.getInstance().log("new csync, init message queue");
+		msgQueue = new ArrayList<CSyncMsg>();
+	}
+
 	/** method for filling the queue response */
 	public void coarseResponse(CSyncMsg msg) {
 		if (DEBUG)
 			SessionInfo.getInstance().log("process coarse response");
 		msgQueue.add(msg);
+	}
+
+	// test
+	public void destroy() {
+		instance = null;
+		cSyncServer = null;
+	}
+
+	/**
+	 * process a sync request message
+	 *
+	 * @throws UnknownHostException
+	 */
+	public void processRequest(CSyncMsg cSyncMsg) {
+		if (DEBUG)
+			SessionInfo.getInstance().log("process coarse request");
+		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();
 	}
 
 	/** start the sync server */
@@ -74,17 +91,6 @@ public class CSync {
 	}
 
 	/**
-	 * process a sync request message
-	 * 
-	 * @throws UnknownHostException
-	 */
-	public void processRequest(CSyncMsg cSyncMsg) {
-		if (DEBUG)
-			SessionInfo.getInstance().log("process coarse request");
-		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();
-	}
-
-	/**
 	 * stop a potentially running coarse sync
 	 */
 	public void stopSync() {
@@ -94,5 +100,4 @@ public class CSync {
 			cSyncServer.interrupt();
 		}
 	}
-
 }

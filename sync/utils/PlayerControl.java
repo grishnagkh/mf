@@ -5,62 +5,32 @@ import android.widget.MediaController.MediaPlayerControl;
 
 public class PlayerControl implements MediaPlayerControl {
 
-	static final int PLAYER_NOT_INITIALIZED = -2;
-	/** player instance for playback control */
-	private static ExoPlayer player;
-
-	public PlayerControl(ExoPlayer player) {
-		PlayerControl.player = player;
-	}
-
-	public static void setPlaybackRate(float f) {
-		player.setPlaybackRate(f);
-	}
-
 	/**
-	 * 
-	 * @return the duration of the current track in milliseconds,
-	 *         {@link ExoPlayer#UNKNOWN_TIME} if the duration is not known or
-	 * @link{Utils#PLAYER_NOT_INITIALIZED if the player is not initialized
-	 */
-	public static int getCurTrackDuration() {
-		if (player == null)
-			return PlayerControl.PLAYER_NOT_INITIALIZED;
-		return player.getDuration();
-	}
-
-	/**
-	 * 
-	 * @return the actual playback position in milliseconds or
-	 *         PLAYER_NOT_INITIALIZED if the player is not initialized
-	 */
-	public static int getPlaybackTime() {
-		if (player == null)
-			return PlayerControl.PLAYER_NOT_INITIALIZED;
-		// return player.getCurrentPosition();
-		return (int) player.getPositionUs() / 1000;
-	}
-
-	/**
-	 * Seeks to a position specified in milliseconds.
+	 * ensure we have enough data in buffer
 	 *
-	 * @param positionMs
-	 *            The seek position.
+	 * @param time
 	 */
-	public static void setPlaybackTime(int positionMs) {
-		if (player == null)
-			return;
-		player.seekTo(positionMs);
+
+	public static void ensureBuffered(long time) {
+		// simply busy wait until we have buffered more
+		while (getBufferPos() - getPlaybackTime() < time)
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
 	}
 
 	/**
-	 * initializes the player
-	 * 
-	 * @param newPlayer
+	 * ensure, playback is after target+padding
+	 *
+	 * @param l
 	 */
-
-	public static void initPlayer(ExoPlayer newPlayer) {
-		player = newPlayer;
+	public static void ensureTime(long target, long padding) {
+		while (getPlaybackTime() < target + padding)
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
 	}
 
 	/**
@@ -76,8 +46,46 @@ public class PlayerControl implements MediaPlayerControl {
 	}
 
 	/**
+	 *
+	 * @return the duration of the current track in milliseconds,
+	 *         {@link ExoPlayer#UNKNOWN_TIME} if the duration is not known or
+	 * @link{Utils#PLAYER_NOT_INITIALIZED if the player is not initialized
+	 */
+	public static int getCurTrackDuration() {
+		if (player == null)
+			return PlayerControl.PLAYER_NOT_INITIALIZED;
+		return player.getDuration();
+	}
+
+	/**
+	 *
+	 * @return the actual playback position in milliseconds or
+	 *         PLAYER_NOT_INITIALIZED if the player is not initialized
+	 */
+	public static int getPlaybackTime() {
+		if (player == null)
+			return PlayerControl.PLAYER_NOT_INITIALIZED;
+		// return player.getCurrentPosition();
+		return (int) player.getPositionUs() / 1000;
+	}
+
+	public static float getSpeed() {
+		return player.getPlaybackRate();
+	}
+
+	/**
+	 * initializes the player
+	 *
+	 * @param newPlayer
+	 */
+
+	public static void initPlayer(ExoPlayer newPlayer) {
+		player = newPlayer;
+	}
+
+	/**
 	 * pauses the player for a specific time
-	 * 
+	 *
 	 * @param duration
 	 *            how long to pause
 	 */
@@ -92,38 +100,29 @@ public class PlayerControl implements MediaPlayerControl {
 
 	}
 
-	public static float getSpeed() {
-		return player.getPlaybackRate();
+	public static void setPlaybackRate(float f) {
+		player.setPlaybackRate(f);
 	}
 
 	/**
-	 * ensure we have enough data in buffer
-	 * 
-	 * @param time
+	 * Seeks to a position specified in milliseconds.
+	 *
+	 * @param positionMs
+	 *            The seek position.
 	 */
-
-	public static void ensureBuffered(long time) {
-		// simply busy wait until we have buffered more
-		while (getBufferPos() - getPlaybackTime() < time) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-			}
-		}
+	public static void setPlaybackTime(int positionMs) {
+		if (player == null)
+			return;
+		player.seekTo(positionMs);
 	}
 
-	/**
-	 * ensure, playback is after l+2000
-	 * 
-	 * @param l
-	 */
-	public static void ensureTime(long target, long padding) {
-		while (getPlaybackTime() < target + padding) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-			}
-		}
+	static final int PLAYER_NOT_INITIALIZED = -2;
+
+	/** player instance for playback control */
+	private static ExoPlayer player;
+
+	public PlayerControl(ExoPlayer player) {
+		PlayerControl.player = player;
 	}
 
 	@Override
@@ -168,11 +167,6 @@ public class PlayerControl implements MediaPlayerControl {
 	}
 
 	@Override
-	public void start() {
-		player.setPlayWhenReady(true);
-	}
-
-	@Override
 	public void pause() {
 		player.setPlayWhenReady(false);
 	}
@@ -181,5 +175,10 @@ public class PlayerControl implements MediaPlayerControl {
 	public void seekTo(int timeMillis) {
 		// MediaController arrow keys generate unbounded values.
 		player.seekTo(Math.min(Math.max(0, timeMillis), getDuration()));
+	}
+
+	@Override
+	public void start() {
+		player.setPlayWhenReady(true);
 	}
 }
