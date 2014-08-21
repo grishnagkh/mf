@@ -16,11 +16,7 @@
 
 package mf.player.gui;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
@@ -32,7 +28,6 @@ import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
-import mf.sync.utils.Peer;
 import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
 import android.annotation.SuppressLint;
@@ -246,8 +241,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		callback = null;
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
-
-		MessageHandler.getInstance().stopHandling(true);
+		SessionInfo.getInstance().clearSessionData();
+		MessageHandler.getInstance().pauseHandling();
 	}
 
 	// ExoPlayer.Listener implementation
@@ -269,9 +264,9 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 			MessageHandler.getInstance().resumeHandling();
 			CSync.getInstance().startSync();
 		} else {
+			MessageHandler.getInstance().pauseHandling();
 			CSync.getInstance().stopSync(); // if we do a coarse sync, stop it
 			FSync.getInstance().stopSync(); // if we do a fine sync, stop it
-			MessageHandler.getInstance().pauseHandling();
 		}
 	}
 
@@ -310,7 +305,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		builder.buildRenderers(callback);
 
 		PlayerControl.initPlayer(player);
-		MessageHandler.getInstance().startHandling();
+		MessageHandler.getInstance().resumeHandling();
 	}
 
 	@Override
@@ -349,39 +344,45 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	}
 
 	public void updateDebugViews() {
-		TextView dRcv = (TextView) findViewById(R.id.debug_view_rcv);
-		TextView dSen = (TextView) findViewById(R.id.debug_view_send);
-		TextView dPee = (TextView) findViewById(R.id.debug_view_peers);
+		// TextView dRcv = (TextView) findViewById(R.id.debug_view_rcv);
+		// TextView dSen = (TextView) findViewById(R.id.debug_view_send);
+		// TextView dPee = (TextView) findViewById(R.id.debug_view_peers);
 		TextView dBox = (TextView) findViewById(R.id.debug_box);
 
-		String rcvStr = "message received\n", senStr = "messages sent\n", peeStr = "known peers\n", dText = "DEBUG\n";
+		// String rcvStr = "message received\n";
+		// String senStr = "messages sent\n";
+		// String peeStr = "known peers\n";
+		String dText = "DEBUG\n";
 
 		long now = Clock.getTime();
 		String speed = "0";
+
 		try {
 			speed = "" + PlayerControl.getSpeed();
 		} catch (Exception e) {
+			// if the sample rate is not initialized, then, we get an arithmetic
+			// exception by dividing by zero
 		}
 
 		dText += "Ntp Time: " + new Date(now) + "(" + now + ") Playback time:"
 				+ (PlayerControl.getPlaybackTime()) + " speed x" + speed + "\n"
 				+ SessionInfo.getInstance().getLog().toString();
-		senStr += MessageHandler.getInstance().getSendLog().toString();
-		rcvStr += MessageHandler.getInstance().getRcvLog().toString();
+		// senStr += MessageHandler.getInstance().getSendLog().toString();
+		// rcvStr += MessageHandler.getInstance().getRcvLog().toString();
 
-		Map<Integer, Peer> map = SessionInfo.getInstance().getPeers();
-
-		if (map != null) {
-			Collection<Peer> l2 = map.values();
-			List<Peer> l1 = new ArrayList<Peer>();
-			for (Peer p : l2)
-				l1.add(p);
-			for (int i = l1.size(); i > 0; i--)
-				peeStr += l1.get(i - 1).toString() + "\n";
-		}
-		dRcv.setText(rcvStr);
-		dSen.setText(senStr);
-		dPee.setText(peeStr);
+		// Map<Integer, Peer> map = SessionInfo.getInstance().getPeers();
+		//
+		// if (map != null) {
+		// Collection<Peer> l2 = map.values();
+		// List<Peer> l1 = new ArrayList<Peer>();
+		// for (Peer p : l2)
+		// l1.add(p);
+		// for (int i = l1.size(); i > 0; i--)
+		// peeStr += l1.get(i - 1).toString() + "\n";
+		// }
+		// dRcv.setText(rcvStr);
+		// dSen.setText(senStr);
+		// dPee.setText(peeStr);
 		dBox.setText(dText);
 	}
 

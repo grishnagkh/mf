@@ -36,9 +36,9 @@ import mf.sync.utils.log.SyncLogger;
 import android.util.SparseIntArray;
 
 /**
- * Class implementing the distribution behaviour for the MessageHandler
+ * Class implementing the distribution behavior for the MessageHandler
  *
- * @author stefan petscahrnig
+ * @author stefan petscharnig
  *
  */
 
@@ -46,7 +46,7 @@ public class HandlerServer extends Thread {
 	static void createLogger() {
 		rcvLog = new SyncLogger(5);
 	}
-	private static boolean discardMessages = false;
+	private static boolean discardMessages = true;
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
 	private static final boolean DEBUG = true;
 	/** length of the receive buffer */
@@ -63,7 +63,7 @@ public class HandlerServer extends Thread {
 	 * data structure for storing received messages, we store the highest
 	 * message id per peer
 	 */
-	private SparseIntArray received;// Map<Integer, Integer> received;
+	private SparseIntArray received;
 
 	/**
 	 * debug log for received messages
@@ -88,7 +88,6 @@ public class HandlerServer extends Thread {
 	 */
 	public void ignoreIncoming(boolean b) {
 		discardMessages = b;
-
 	}
 
 	@Override

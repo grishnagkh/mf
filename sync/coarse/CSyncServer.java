@@ -42,10 +42,16 @@ import mf.sync.utils.SessionInfo;
  *
  */
 public class CSyncServer extends Thread {
+
 	/** debug messages in the session log */
 	public static final boolean DEBUG = true;
+
+	/** debugging flag whether the fsync should be enabled or not */
+	public static final boolean FSYNC_ENABLED = true;
+
 	/** segment size, we jump aligned to the segment size */
 	private final int SEGSIZE = 4000;
+
 	/** list of messages to process after waiting time span */
 	private List<CSyncMsg> msgQueue;
 
@@ -154,9 +160,14 @@ public class CSyncServer extends Thread {
 		if (DEBUG)
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
+		/**
+		 * we ensure that the playback resumed a little and the buffer is filled
+		 */
 		PlayerControl.ensureTime(avgPTS, SEGSIZE);
-		PlayerControl.ensureBuffered(SEGSIZE);
-		FSync.getInstance().startSync();
+		PlayerControl.ensureBuffered(SEGSIZE / 2);
+
+		if (FSYNC_ENABLED)
+			FSync.getInstance().startSync();
 
 	}
 }

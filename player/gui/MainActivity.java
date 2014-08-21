@@ -46,29 +46,33 @@ public class MainActivity extends Activity {
 	public final static String TAG = "MainActivity";
 	public static Context c = null;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		c = this;
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		initChoosableVideos();
-
-	}
-
 	private void initChoosableVideos() {
 
 		List<Sample> list = new ArrayList<Sample>();
 
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		e.setText(SERVER_ADDRESS);
-		for (Sample s : Samples.DASH) {
+		for (Sample s : Samples.DASH)
 			list.add(s);
-		}
 
 		ArrayAdapter<Sample> adap = new ArrayAdapter<Sample>(this,
 				android.R.layout.simple_spinner_item, list);
 		Spinner fileSpinner = (Spinner) findViewById(R.id.fileChooser_main);
 		fileSpinner.setAdapter(adap);
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		c = this;
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		initChoosableVideos();
+		MessageHandler.getInstance().startHandling();
+	}
+
+	@Override
+	protected void onDestroy() {
+		MessageHandler.getInstance().stopHandling(true);
 	}
 
 	public void onOpenButtonClick(View openButton) {
@@ -83,16 +87,9 @@ public class MainActivity extends Activity {
 		String srv = e.getText().toString();
 		String sKey = e1.getText().toString();
 
-		uri = srv
-				+ "?port="
-				+ MessageHandler.PORT
-				+ "&mediaSource="
-				+ uri
-				+ "&session_key="
-				+ sKey
-				+ "&ip="
-				+ SessionInfo.getWifiAddress(this)
-						.getHostAddress();
+		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri
+				+ "&session_key=" + sKey + "&ip="
+				+ SessionInfo.getWifiAddress(this).getHostAddress();
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))

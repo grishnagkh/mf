@@ -23,7 +23,6 @@ package mf.sync.fine;
 import mf.bloomfilter.BloomFilter;
 import mf.sync.net.FSyncMsg;
 import mf.sync.utils.Clock;
-import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
 
 /**
@@ -33,6 +32,8 @@ import mf.sync.utils.SessionInfo;
  *
  */
 public class FSResponseHandler extends Thread {
+
+	private static PAThread updateThread;
 
 	/** debug messages to the session log? */
 	public static final boolean DEBUG = true;
@@ -62,6 +63,7 @@ public class FSResponseHandler extends Thread {
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
 		this.parent = parent;
+		updateThread = new PAThread(parent);
 	}
 
 	/**
@@ -181,6 +183,7 @@ public class FSResponseHandler extends Thread {
 						bfUpdated = true;
 					}
 					updatePlayback();
+
 				}
 			}
 			if (!bfUpdated)
@@ -198,92 +201,12 @@ public class FSResponseHandler extends Thread {
 		}
 	}
 
-	/**
-	 * update the playback according to the information we got from fine
-	 * synchronization this approach uses faster/slower for a given time in
-	 * order to omit skips
-	 */
 	public void updatePlayback() {
-		float newPlaybackRate;
-
-		long pbt = PlayerControl.getPlaybackTime();
-		long t = Clock.getTime();
-		long asyncMillis = parent.alignedAvgTs(t) - pbt;
-
-		if (DEBUG)
-			SessionInfo.getInstance().log(
-					"update playback time: calculated average: "
-							+ parent.alignedAvgTs(t) + "@timestamp:" + t
-							+ "@async:" + asyncMillis + "@pbt:" + pbt);
-
-		/* the *3* come from the pre-calculation see paper */
-		long timeMillis = 3 * Math.abs(asyncMillis);
-
-		if (DEBUG)
-			SessionInfo.getInstance().log("ensure buffered start");
-
-		if (asyncMillis > 0) { // we are behind, go faster
-			newPlaybackRate = 1.33f;// (float) 4 / 3; //precalculated, see paper
-			/*
-			 * if we go faster, we want to ensure that we have buffered some
-			 * data...
-			 */
-			PlayerControl.ensureBuffered(3 * timeMillis);
-		} else { // we are on top, so do slower
-			newPlaybackRate = 0.66f;// (float) 2 / 3; //precalculated, see paper
-			/*
-			 * despite it is theoretically not necessary, ensure we have
-			 * buffered at least a bit
-			 */
-			PlayerControl.ensureBuffered(timeMillis);
+		if (!updateThread.updatePlayback()) {
+			updateThread.interrupt();
+			updateThread = new PAThread(parent);
+			updateThread.updatePlayback();
 		}
-
-		if (DEBUG)
-			SessionInfo.getInstance().log("ensure buffered end");
-
-		if (DEBUG)
-			SessionInfo.getInstance().log(
-					"asynchronism: " + asyncMillis + "ms\tnew playback rate: "
-							+ newPlaybackRate + "\ttime changed: " + timeMillis
-							+ "ms");
-
-		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback rate
-
-		try {
-			Thread.sleep(timeMillis); // wait
-		} catch (InterruptedException e) {
-			PlayerControl.setPlaybackRate(1);
-			if (DEBUG)
-				SessionInfo.getInstance().log(
-						"got interrupted, synchronization failed");
-		}
-
-		PlayerControl.setPlaybackRate(1); // reset the playback rate to normal
 	}
 
-	/**
-	 * method for updating the playback, when we are in a sufficient range to
-	 * the timestamp to update for (e.g. 2,3 frames) an update would bring us
-	 * out of sync. Moreover we assume that we skip a range of 2000ms at a
-	 * maximum and wait, until our buffer has so much in advance
-	 */
-	@Deprecated
-	public void updatePlayback(boolean noSkipIfNear) {
-		if (noSkipIfNear
-				&& Math.abs((int) parent.alignedAvgTs(Clock.getTime())
-						- PlayerControl.getPlaybackTime()) < 80) {
-			// dont do something, we are close enough^^
-			if (DEBUG)
-				SessionInfo.getInstance().log("we are close enough @@");
-			return;
-		}
-
-		PlayerControl.ensureBuffered(4000);
-
-		if (DEBUG)
-			SessionInfo.getInstance().log("setting time @@@");
-		PlayerControl
-				.setPlaybackTime((int) parent.alignedAvgTs(Clock.getTime()));
-
-	}
 }

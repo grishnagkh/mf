@@ -34,39 +34,12 @@ import android.util.Log;
 
 public class SessionInfo {
 
-	/** singleton instance */
-	private static SessionInfo instance;
-
-	/** used to store data about self */
-	private Peer mySelf;
-
-	/** Map of known peers */
-	private Map<Integer, Peer> peers;
-	/** id of the session, not used atm */
-	private String sessionId;
-	/** sequence number for resynchronizations (fine) */
-	private int seqN;
-	/** time stamp until which the session is valid, not used atm */
-	private long validThru;
-	/** logger for debugging */
-	private SyncLogger log;
-
-	/**
-	 * constructor
-	 */
-	private SessionInfo() {
-		peers = new ArrayMap<Integer, Peer>();
-		log = new SyncLogger(20);
-		seqN = 0;
-	}
-
 	/**
 	 * singleton method
 	 */
 	public static SessionInfo getInstance() {
-		if (instance == null) {
+		if (instance == null)
 			instance = new SessionInfo();
-		}
 		return instance;
 	}
 
@@ -84,8 +57,54 @@ public class SessionInfo {
 		return null;
 	}
 
+	/** singleton instance */
+	private static SessionInfo instance;
+	/** used to store data about self */
+	private Peer mySelf;
+	/** Map of known peers */
+	private Map<Integer, Peer> peers;
+	/** id of the session, not used atm */
+	private String sessionId;
+	/** sequence number for resynchronizations (fine) */
+	private int seqN;
+
+	/** time stamp until which the session is valid, not used atm */
+	private long validThru;
+
+	/** logger for debugging */
+	private SyncLogger log;
+
 	/**
-	 * 
+	 * constructor
+	 */
+	private SessionInfo() {
+		peers = new ArrayMap<Integer, Peer>();
+		log = new SyncLogger(20);
+		seqN = 0;
+	}
+
+	public void clearSessionData() {
+		instance = null;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public SyncLogger getLog() {
+		return log;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public Peer getMySelf() {
+		return mySelf;
+	}
+
+	/**
+	 *
 	 * @return
 	 */
 	@SuppressLint("UseSparseArrays")
@@ -94,79 +113,7 @@ public class SessionInfo {
 	}
 
 	/**
-	 * 
-	 * @param peers
-	 */
-	public void setPeers(Map<Integer, Peer> peers) {
-		this.peers = peers;
-	}
-
-	/**
-	 * 
-	 * @param mySelf
-	 */
-	public void setMySelf(Peer mySelf) {
-		this.mySelf = mySelf;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public Peer getMySelf() {
-		return mySelf;
-	}
-
-	/**
-	 * 
-	 * @param sessionId
-	 */
-	public void setSessionId(String sessionId) {
-		this.sessionId = sessionId;
-	}
-
-	/**
-	 * 
-	 * @param validThru
-	 */
-	public void setValidThru(String validThru) {
-		this.validThru = Long.parseLong(validThru);
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public String getSessionId() {
-		return sessionId;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public long getValidThru() {
-		return validThru;
-	}
-
-	/**
-	 * 
-	 * @param s
-	 */
-	public void log(String s) {
-		log.append(s);
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public SyncLogger getLog() {
-		return log;
-	}
-
-	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public int getSeqN() {
@@ -174,11 +121,67 @@ public class SessionInfo {
 	}
 
 	/**
-	 * 
+	 *
+	 * @return
+	 */
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public long getValidThru() {
+		return validThru;
+	}
+
+	/**
+	 *
+	 * @param s
+	 */
+	public void log(String s) {
+		log.append(s);
+	}
+
+	/**
+	 *
+	 * @param mySelf
+	 */
+	public void setMySelf(Peer mySelf) {
+		this.mySelf = mySelf;
+	}
+
+	/**
+	 *
+	 * @param peers
+	 */
+	public void setPeers(Map<Integer, Peer> peers) {
+		this.peers = peers;
+	}
+
+	/**
+	 *
 	 * @param sn
 	 */
 	public void setSeqN(int sn) {
 		seqN = sn;
+	}
+
+	/**
+	 *
+	 * @param sessionId
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+
+	/**
+	 *
+	 * @param validThru
+	 */
+	public void setValidThru(String validThru) {
+		this.validThru = Long.parseLong(validThru);
 	}
 
 }

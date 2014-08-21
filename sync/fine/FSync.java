@@ -42,6 +42,12 @@ import mf.sync.utils.SessionInfo;
  */
 public class FSync {
 
+	/*
+	 * TODO: rewrite sstart and stop o f the threads, set playback time in the
+	 * player control (in a new thread) damit des nit warten muss falls neue
+	 * infos da sind... macht den synchronized block zeitlich kürzer...
+	 */
+
 	/**
 	 * singleton method
 	 *
