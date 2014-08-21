@@ -15,6 +15,7 @@ public class PAThread extends Thread {
 
 	@Override
 	public void interrupt() {
+		 // just to be sure
 		PlayerControl.setPlaybackRate(1);
 		super.interrupt();
 	}
@@ -101,13 +102,12 @@ public class PAThread extends Thread {
 		try {
 			Thread.sleep(timeMillis); // wait
 		} catch (InterruptedException e) {
-			PlayerControl.setPlaybackRate(1);
 			if (DEBUG)
 				SessionInfo.getInstance().log(
 						"got interrupted, synchronization failed");
+		} finally {
+			// reset the playback rate
+			PlayerControl.setPlaybackRate(1);
 		}
-
-		PlayerControl.setPlaybackRate(1); // reset the playback rate to
-											// normal
 	}
 }

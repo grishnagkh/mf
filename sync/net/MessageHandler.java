@@ -27,6 +27,8 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+import mf.sync.coarse.CSync;
+import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
 import mf.sync.utils.log.SyncLogger;
 
@@ -72,6 +74,8 @@ public class MessageHandler {
 		cnt = 0;
 	}
 
+	boolean pause = false;
+
 	/** singleton constructor using default port */
 	private MessageHandler() {
 		this(PORT);
@@ -96,12 +100,24 @@ public class MessageHandler {
 	public void pauseHandling() {
 		if (srv != null)
 			srv.ignoreIncoming(true);
+		pause = true;
+		CSync.getInstance().stopSync();
+		FSync.getInstance().stopSync();
 	}
 
 	/** resume handling , e.g. used when the user hits the play button */
 	public void resumeHandling() {
+
 		if (srv != null)
 			srv.ignoreIncoming(false);
+		pause = false;
+		CSync.getInstance().stopSync();
+		try {
+			FSync.getInstance().stopSync();
+		} catch (Exception e) {
+			// if the object does not exist we get a null pointe exception in
+			// the constructor or so... just ignore it
+		}
 	}
 
 	/**
@@ -116,7 +132,8 @@ public class MessageHandler {
 	 */
 
 	public synchronized void sendMsg(SyncMsg msg) {
-
+		if (pause)
+			return;
 		try {
 			msg.msgId = cnt++;
 			msg.peerId = SessionInfo.getInstance().getMySelf().getId();

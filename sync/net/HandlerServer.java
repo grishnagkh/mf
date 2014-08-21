@@ -46,9 +46,12 @@ public class HandlerServer extends Thread {
 	static void createLogger() {
 		rcvLog = new SyncLogger(5);
 	}
-	private static boolean discardMessages = true;
+
 	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
+
+	private static boolean discardMessages = true;
+
 	/** length of the receive buffer */
 	public static final int RCF_BUF_LEN = 4096; // let us have a 4k buffer..
 	/** handler thread object */
@@ -73,6 +76,7 @@ public class HandlerServer extends Thread {
 	ByteArrayInputStream byteStream;
 
 	ObjectInputStream is;
+
 	/**
 	 * Constructor
 	 */
@@ -169,6 +173,12 @@ public class HandlerServer extends Thread {
 				continue;
 
 			if (readObj instanceof FSyncMsg) {
+				if (!CSync.getInstance().hasFinished()) {
+					SessionInfo
+							.getInstance()
+							.log("csync has not finished yet, discard this message...");
+					continue;
+				}
 				FSyncMsg msg = (FSyncMsg) readObj;
 				rcvLog.append(msg.peerId + "I" + msg.avg + "I" + msg.nts + "I"
 						+ msg.bloom);

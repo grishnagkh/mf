@@ -12,6 +12,8 @@ public class PlayerControl implements MediaPlayerControl {
 	 */
 
 	public static void ensureBuffered(long time) {
+		//to avoid so much buffer that the app will not buffer
+		time = time < 2000 ? time : 2000;
 		// simply busy wait until we have buffered more
 		while (getBufferPos() - getPlaybackTime() < time)
 			try {

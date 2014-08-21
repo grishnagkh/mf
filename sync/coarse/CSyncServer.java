@@ -130,6 +130,7 @@ public class CSyncServer extends Thread {
 			 * i think this is not necessary anymore... remember that nobody
 			 * seems to be here?
 			 */
+			CSync.getInstance().finished = true;
 			return;
 		}
 
@@ -161,10 +162,11 @@ public class CSyncServer extends Thread {
 			SessionInfo.getInstance().log("setting playback time to " + avgPTS);
 
 		/**
-		 * we ensure that the playback resumed a little and the buffer is filled
+		 * we ensure that the playback resumed a little
 		 */
-		PlayerControl.ensureTime(avgPTS, SEGSIZE);
-		PlayerControl.ensureBuffered(SEGSIZE / 2);
+		PlayerControl.ensureTime(avgPTS, SEGSIZE / 2);
+
+		CSync.getInstance().finished = true;
 
 		if (FSYNC_ENABLED)
 			FSync.getInstance().startSync();

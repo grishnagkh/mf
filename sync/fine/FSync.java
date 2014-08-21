@@ -112,6 +112,16 @@ public class FSync {
 	 * @param nts
 	 */
 	void broadcastToPeers() {
+		try {
+			if (PlayerControl.getSpeed() != 1)
+				// do not broadcast you timestamp, when your playback time
+				// advances
+				// differently
+				// (playback speed != 1)
+				return;
+		} catch (Exception e) {
+			return;
+		}
 		/* broadcast to known peers */
 		long nts = Clock.getTime();
 		FSyncMsg m = new FSyncMsg(alignedAvgTs(nts), nts, myId, bloom, maxId,

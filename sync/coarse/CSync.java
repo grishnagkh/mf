@@ -50,6 +50,8 @@ public class CSync {
 	/** singleton instance */
 	private static CSync instance;
 
+	protected boolean finished = false;
+
 	/** Singleton constructor */
 	private CSync() {
 		if (DEBUG)
@@ -70,6 +72,10 @@ public class CSync {
 		cSyncServer = null;
 	}
 
+	public boolean hasFinished() {
+		return finished;
+	}
+
 	/**
 	 * process a sync request message
 	 *
@@ -83,6 +89,7 @@ public class CSync {
 
 	/** start the sync server */
 	public void startSync() {
+		finished = false;
 		if (DEBUG)
 			SessionInfo.getInstance().log("start sync");
 		stopSync();
@@ -94,6 +101,7 @@ public class CSync {
 	 * stop a potentially running coarse sync
 	 */
 	public void stopSync() {
+		finished = true;
 		if (cSyncServer != null && cSyncServer.isAlive()) {
 			if (DEBUG)
 				SessionInfo.getInstance().log("stopping already running csync");
