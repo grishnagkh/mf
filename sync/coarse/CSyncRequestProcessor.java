@@ -32,7 +32,7 @@ import mf.sync.utils.SessionInfo;
 
 /**
  * class processing a coarse sync request
- * 
+ *
  * @author stefan petscharnig
  */
 public class CSyncRequestProcessor implements Runnable {
@@ -41,7 +41,7 @@ public class CSyncRequestProcessor implements Runnable {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param cSyncMsg
 	 * @throws UnknownHostException
 	 */

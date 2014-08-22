@@ -21,9 +21,6 @@
 
 package mf.sync.fine;
 
-import mf.sync.SyncI;
-import mf.sync.utils.SessionInfo;
-
 /**
  *
  * Server periodically broadcasting fine sync messages
@@ -31,6 +28,7 @@ import mf.sync.utils.SessionInfo;
  * @author stefan petscharnig
  *
  */
+@Deprecated
 public class FSyncServer extends Thread {
 	private static final boolean DEBUG = false;
 	/** FSnyc instance for aligning timestamps */
@@ -42,13 +40,13 @@ public class FSyncServer extends Thread {
 	 * @param parent
 	 */
 	public FSyncServer(FSync parent) {
-		this.parent = parent;
+		// this.parent = parent;
 	}
 
 	@Override
 	public void interrupt() {
-		if (DEBUG)
-			SessionInfo.getInstance().log("FSync interrupted");
+		// if (DEBUG)
+		// SessionInfo.getInstance().log("FSync interrupted");
 		super.interrupt();
 	}
 
@@ -58,17 +56,17 @@ public class FSyncServer extends Thread {
 	 */
 	@Override
 	public void run() {
-		if (DEBUG)
-			SessionInfo.getInstance().log("FSync thread started");
-		while (!isInterrupted()) {
-			try {
-				Thread.sleep(SyncI.PERIOD_FS_MS);
-			} catch (InterruptedException iex) {
-				break;
-			}
-			parent.broadcastToPeers();
-		}
-		if (DEBUG)
-			SessionInfo.getInstance().log("FSync thread died");
+		// if (DEBUG)
+		// SessionInfo.getInstance().log("FSync thread started");
+		// while (!isInterrupted()) {
+		// try {
+		// Thread.sleep(SyncI.PERIOD_FS_MS);
+		// } catch (InterruptedException iex) {
+		// break;
+		// }
+		// parent.broadcastToPeers();
+		// }
+		// if (DEBUG)
+		// SessionInfo.getInstance().log("FSync thread died");
 	}
 }

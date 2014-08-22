@@ -33,7 +33,7 @@ import mf.sync.utils.SessionInfo;
  */
 public class FSResponseHandler extends Thread {
 
-	private static PAThread updateThread;
+	// private static PAThread updateThread;
 
 	/** debug messages to the session log? */
 	public static final boolean DEBUG = true;
@@ -63,32 +63,33 @@ public class FSResponseHandler extends Thread {
 		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
 		this.parent = parent;
-		updateThread = new PAThread(parent);
+		// updateThread = new PAThread(parent);
 	}
 
-	/**
-	 * check the sequence number, if the sequence number received is bigger than
-	 * the stored one, take the received sequence number and do a
-	 * resynchronization
-	 */
-	private void checkSeqN() {
-
-		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
-			SessionInfo.getInstance().setSeqN(msg.seqN);
-			FSync.getInstance().reSync(); // hard resync, reset
-		} else {
-			// SessionInfo.getInstance().log("(re) start wo reset");
-			// FSync.getInstance().restartWoReset();
-			// not here
-		}
-	}
+	// /**
+	// * check the sequence number, if the sequence number received is bigger
+	// than
+	// * the stored one, take the received sequence number and do a
+	// * resynchronization
+	// */
+	// private void checkSeqN() {
+	//
+	// if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
+	// SessionInfo.getInstance().setSeqN(msg.seqN);
+	// FSync.getInstance().reSync(); // hard resync, reset
+	// } else {
+	// // SessionInfo.getInstance().log("(re) start wo reset");
+	// // FSync.getInstance().restartWoReset();
+	// // not here
+	// }
+	// }
 
 	@Override
 	public void run() {
 
 		synchronized (FSync.getInstance()) {
 			/* check sequence number */
-			checkSeqN();
+			// checkSeqN();
 
 			bloom = parent.getBloom();
 			if (bloom == null) {
@@ -117,10 +118,10 @@ public class FSResponseHandler extends Thread {
 				/* we have not seen the bloom filter */
 				SessionInfo.getInstance().log(
 						"seen a bf we have not see before, restart fine sync");
-				FSync.getInstance().restartWoReset();
+				if (!FSync.getInstance().restart())
+					FSync.getInstance().start();
 			}
-
-			boolean bfUpdated = false;
+//			boolean bfUpdated = false;
 
 			if (!xorZero && andZero) {
 				if (DEBUG) {
@@ -143,9 +144,9 @@ public class FSResponseHandler extends Thread {
 					SessionInfo.getInstance().log(
 							"new avg: " + parent.alignedAvgTs(actTs));
 				}
-				updatePlayback();
+				// updatePlayback(); //TODO
 				bloom.merge(msg.bloom);
-				bfUpdated = true;
+//				bfUpdated = true;
 			}
 			if (!xorZero && !andZero && !contains) {
 				if (DEBUG) {
@@ -164,7 +165,7 @@ public class FSResponseHandler extends Thread {
 									"corrected received avg: " + d);
 						}
 						bloom = msg.bloom;
-						bfUpdated = true;
+//						bfUpdated = true;
 					} else {
 						avgTs = parent.alignedAvgTs(actTs);
 						wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
@@ -180,19 +181,21 @@ public class FSResponseHandler extends Thread {
 						}
 						bloom = msg.bloom;
 						bloom.add(myId);
-						bfUpdated = true;
+//						bfUpdated = true;
 					}
-					updatePlayback();
+					// updatePlayback();//TODO
 
 				}
 			}
-			if (!bfUpdated)
-				noUpdateCtr++;
-			else
-				noUpdateCtr = 0;
 
-			if (noUpdateCtr > 50)
-				FSync.getInstance().stopSync();
+			// if (!bfUpdated)
+			// noUpdateCtr++;
+			// else
+			// noUpdateCtr = 0;
+			//
+			// if (noUpdateCtr > 50) // TODO do a time limit too, there the pts
+			// // will be adjusted
+			// FSync.getInstance().interrupt();
 
 			/* add the received bloom filter to the ones already seen */
 			parent.getBloomList().add(msg.bloom);
@@ -201,12 +204,12 @@ public class FSResponseHandler extends Thread {
 		}
 	}
 
-	public void updatePlayback() {
-		if (!updateThread.updatePlayback()) {
-			updateThread.interrupt();
-			updateThread = new PAThread(parent);
-			updateThread.updatePlayback();
-		}
-	}
+	// public void updatePlayback() {
+	// if (!updateThread.updatePlayback()) {
+	// updateThread.interrupt();
+	// updateThread = new PAThread(parent);
+	// updateThread.updatePlayback();
+	// }
+	// }
 
 }

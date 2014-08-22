@@ -73,6 +73,10 @@ public class SessionInfo {
 
 	/** logger for debugging */
 	private SyncLogger log;
+	private SyncLogger sLog;
+	private SyncLogger rLog;
+
+	private boolean cSynced = false;
 
 	/**
 	 * constructor
@@ -80,6 +84,8 @@ public class SessionInfo {
 	private SessionInfo() {
 		peers = new ArrayMap<Integer, Peer>();
 		log = new SyncLogger(20);
+		rLog = new SyncLogger(5);
+		sLog = new SyncLogger(5);
 		seqN = 0;
 	}
 
@@ -112,6 +118,14 @@ public class SessionInfo {
 		return peers;
 	}
 
+	public SyncLogger getRcvLog() {
+		return rLog;
+	}
+
+	public SyncLogger getSendLog() {
+		return sLog;
+	}
+
 	/**
 	 *
 	 * @return
@@ -136,12 +150,20 @@ public class SessionInfo {
 		return validThru;
 	}
 
+	public boolean isCSynced() {
+		return cSynced;
+	}
+
 	/**
 	 *
 	 * @param s
 	 */
 	public void log(String s) {
 		log.append(s);
+	}
+
+	public void setCSynced() {
+		cSynced = true;
 	}
 
 	/**

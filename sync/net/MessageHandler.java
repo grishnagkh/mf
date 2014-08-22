@@ -20,17 +20,22 @@
  */
 package mf.sync.net;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 
+import mf.sync.SyncI;
 import mf.sync.coarse.CSync;
 import mf.sync.fine.FSync;
 import mf.sync.utils.SessionInfo;
-import mf.sync.utils.log.SyncLogger;
+import android.util.SparseIntArray;
 
 /**
  *
@@ -41,8 +46,7 @@ import mf.sync.utils.log.SyncLogger;
  *
  */
 
-public class MessageHandler {
-	/** Tag for android Log */
+public class MessageHandler extends Thread {
 
 	/** singleton method using default port */
 	public static MessageHandler getInstance() {
@@ -58,66 +62,195 @@ public class MessageHandler {
 
 	/** default port where we listen for synchronization messages */
 	public static final int PORT = 12346;
-	SyncLogger sendLog;
+	public static final boolean DEBUG = true;
+	private static final boolean DEBUG_SEND_LOG = true;
+	private static final boolean DEBUG_DUPLICATE_MESSAGES = false;
+	/** length of the receive buffer */
+	public static final int RCF_BUF_LEN = 4096; // let us have a 4k buffer..
+	private static final boolean FILTER_DUPLICATES = true;
+
+	/** UDP socket for receiving messages */
+	private DatagramSocket serverSocket;
+	/** receive Buffer */
+	private byte[] rcvBuf = new byte[RCF_BUF_LEN];
+	/**
+	 * data structure for storing received messages, we store the highest
+	 * message id per peer
+	 */
+	private SparseIntArray received;
+
+	private ByteArrayInputStream byteStream;
+	private ObjectInputStream is;
 
 	/** actual port to listen */
 	private int port;
-
 	/** singleton instance */
 	private static MessageHandler instance;
-
-	private HandlerServer srv;
-
 	static int cnt;
 
 	static {
 		cnt = 0;
 	}
 
-	boolean pause = false;
+	private DatagramPacket rcv;
 
 	/** singleton constructor using default port */
 	private MessageHandler() {
 		this(PORT);
 	}
 
+	// private boolean discardMessages = true;
+	// public void ignoreIncoming(boolean ignore){
+	// discardMessages = true;
+	// }
+
 	/** singleton constructor using custom port */
 	private MessageHandler(int port) {
 		this.port = port;
-		sendLog = new SyncLogger(5);
-		HandlerServer.createLogger();
+
 	}
 
-	public SyncLogger getRcvLog() {
-		return HandlerServer.rcvLog;
+	// boolean pause = false;
+
+	@Override
+	public void interrupt() {
+
+		if (DEBUG)
+			SessionInfo.getInstance().log(
+					"Interrupting message handler server...");
+
+		received.clear();
+
+		if (serverSocket != null && is != null)
+			try {
+				is.close();
+				SessionInfo.getInstance().log(
+						"server socket closed? " + serverSocket.isClosed());
+				if (!serverSocket.isClosed())
+					serverSocket.close();
+			} catch (IOException e) {
+			}
+
+		if (DEBUG)
+			SessionInfo.getInstance().log("message handler server interrupted");
+
+		instance = null;
+
+		super.interrupt();
 	}
 
-	public SyncLogger getSendLog() {
-		return sendLog;
-	}
-
-	/** pause handling , e.g. used when the user hits the pause button */
+	// /** pause handling , e.g. used when the user hits the pause button */
 	public void pauseHandling() {
-		if (srv != null)
-			srv.ignoreIncoming(true);
-		pause = true;
-		CSync.getInstance().stopSync();
-		FSync.getInstance().stopSync();
+		if (DEBUG)
+			SessionInfo.getInstance().log("pause handling...");
+		// TODO: implement or discard
+		// if (srv != null)
+		// srv.ignoreIncoming(true);
+		// pause = true;
+		// CSync.getInstance().stopSync();
+		// FSync.getInstance().stopSync();
 	}
 
 	/** resume handling , e.g. used when the user hits the play button */
 	public void resumeHandling() {
+		if (DEBUG)
+			SessionInfo.getInstance().log("resume handling...");
+		// TODO: implement or discard
+		// if (srv != null)
+		// srv.ignoreIncoming(false);
+		// pause = false;
+		// CSync.getInstance().stopSync();
+		// try {
+		// FSync.getInstance().stopSync();
+		// } catch (Exception e) {
+		// // if the object does not exist we get a null pointe exception in
+		// // the constructor or so... just ignore it
+		// }
+	}
 
-		if (srv != null)
-			srv.ignoreIncoming(false);
-		pause = false;
-		CSync.getInstance().stopSync();
-		try {
-			FSync.getInstance().stopSync();
-		} catch (Exception e) {
-			// if the object does not exist we get a null pointe exception in
-			// the constructor or so... just ignore it
+	@Override
+	public void run() {
+
+		while (!isInterrupted()) {
+			Object readObj = null;
+
+			try {
+				rcv.setLength(RCF_BUF_LEN);
+				serverSocket.receive(rcv);
+
+				byteStream = new ByteArrayInputStream(rcvBuf);
+				is = new ObjectInputStream(new BufferedInputStream(byteStream));
+				readObj = is.readObject();
+
+			} catch (IOException e) {
+				continue;
+			} catch (ClassNotFoundException e) {
+				continue;
+			} catch (Exception e) {
+				continue;
+			}
+			// if (discardMessages) {
+			// if (DEBUG)
+			// SessionInfo
+			// .getInstance()
+			// .log("message was discarded, because we take a break ;) ");
+			// continue;
+			// }
+			if (readObj instanceof SyncMsg && FILTER_DUPLICATES) {
+				SyncMsg m = (SyncMsg) readObj;
+				if (received.get(m.peerId) > m.msgId) {
+					if (DEBUG_DUPLICATE_MESSAGES)
+						SessionInfo.getInstance().log(
+								"duplicate message, dropping...");
+					continue; // we already have received this message
+
+				} else {
+					if (DEBUG_DUPLICATE_MESSAGES)
+						SessionInfo.getInstance().log(
+								"message id unseen, adding to seen list");
+					received.put(m.peerId, m.msgId);
+				}
+			}
+
+			if (readObj instanceof FSyncMsg) {
+				if (!SessionInfo.getInstance().isCSynced()) {
+					SessionInfo
+							.getInstance()
+							.log("csync has not finished yet, discard this message...");
+					continue;
+				}
+				FSyncMsg msg = (FSyncMsg) readObj;
+				SessionInfo
+						.getInstance()
+						.getRcvLog()
+						.append(msg.peerId + "I" + msg.avg + "I" + msg.nts
+								+ "I" + msg.bloom);
+				FSync.getInstance().processRequest(msg);
+			} else if (readObj instanceof CSyncMsg) {
+				CSyncMsg msg = (CSyncMsg) readObj;
+				SessionInfo
+						.getInstance()
+						.getRcvLog()
+						.append(msg.type + "I" + msg.peerId + "I"
+								+ msg.senderIp);
+				if (msg.type == SyncI.TYPE_COARSE_REQ
+						&& SessionInfo.getInstance().isCSynced())
+					CSync.getInstance().processRequest(msg);
+				else if (msg.type == SyncI.TYPE_COARSE_RESP)
+					CSync.getInstance().coarseResponse(msg);
+				else
+					// do nothing
+					SessionInfo.getInstance().log(
+							"got a csync message with wrong message type");
+			} else
+				// do nothing
+				SessionInfo
+						.getInstance()
+						.log("got a message which is neither a fsync msg nor a csync message");
 		}
+		// SessionInfo.getInstance().log("handler server stopped");
+
+		// this.interrupt();
 	}
 
 	/**
@@ -132,8 +265,9 @@ public class MessageHandler {
 	 */
 
 	public synchronized void sendMsg(SyncMsg msg) {
-		if (pause)
-			return;
+
+		// if (pause)
+		// return;
 		try {
 			msg.msgId = cnt++;
 			msg.peerId = SessionInfo.getInstance().getMySelf().getId();
@@ -153,15 +287,29 @@ public class MessageHandler {
 			clientSocket.close();
 			os.close();
 		} catch (IOException e) {
-
-			sendLog.append("error");
-
-			sendLog.append(e.toString());
+			SessionInfo.getInstance().getSendLog().append("error");
 			return;
 		}
-		sendLog.append(msg.peerId + "." + msg.msgId + " " + " "
-				+ msg.destAddress + ":" + msg.destPort);
+		if (DEBUG_SEND_LOG)
+			SessionInfo
+					.getInstance()
+					.getSendLog()
+					.append(msg.peerId + "." + msg.msgId + " " + " "
+							+ msg.destAddress + ":" + msg.destPort);
 
+	}
+
+	@Override
+	public void start() {
+		received = new SparseIntArray();
+		try {
+			serverSocket = new DatagramSocket(port);
+			serverSocket.setSoTimeout(0);
+		} catch (SocketException e1) {
+		}
+		rcv = new DatagramPacket(rcvBuf, RCF_BUF_LEN);
+
+		super.start();
 	}
 
 	/**
@@ -169,10 +317,25 @@ public class MessageHandler {
 	 * messages and distributing the work to the sync modules
 	 */
 
-	public void startHandling() {
-		if (srv == null) {
-			srv = new HandlerServer();
-			srv.start(port);
+	public void startHandling(boolean active) {
+		// if (srv == null) {
+		// srv = new HandlerServer();
+		// srv.start(port);
+		// }
+
+		if (active) {
+			if (DEBUG)
+				SessionInfo.getInstance().log(
+						"start message handler in active mode");
+
+			this.start();
+		} else {
+			if (DEBUG)
+				SessionInfo
+						.getInstance()
+						.log("start message handler in inactive mode not implemented yet...");
+			// inactive start not yet implemented
+			;
 		}
 	}
 
@@ -182,22 +345,19 @@ public class MessageHandler {
 	 * @param clearSessionData
 	 */
 	public void stopHandling(boolean clearSessionData) {
-		if (clearSessionData) {
-			SessionInfo.getInstance().log("clear sessiong data...");
-			SessionInfo.getInstance().log("clear peers...");
-			SessionInfo.getInstance().getLog().clear();
-			MessageHandler.getInstance().getRcvLog().clear();
-			MessageHandler.getInstance().getSendLog().clear();
-			SessionInfo.getInstance().getPeers().clear();
-		}
+		this.interrupt();
+		CSync.getInstance().interrupt();
 
-		if (srv != null) {
-			SessionInfo.getInstance()
-					.log("try to interrupt message handler...");
-			srv.interrupt();
-		}
-		SessionInfo.getInstance().log("setting message handler to null");
-		srv = null;
+		FSync.getInstance().interrupt();
+		FSync.getInstance().reset();
+
+		if (clearSessionData)
+			SessionInfo.getInstance().clearSessionData();
+
+		if (DEBUG)
+			SessionInfo.getInstance().log(
+					"session data cleared: " + clearSessionData);
+
 	}
 
 }

@@ -21,9 +21,9 @@
 package mf.sync;
 
 /**
- * 
+ *
  * Interface containing synchronization constants and methods
- * 
+ *
  * @author stefan petscharnig
  *
  */
@@ -35,7 +35,7 @@ public interface SyncI {
 	 */
 	public static final int WAIT_TIME_CS_MS = 1500;
 	/** fine sync period length */
-	public static final int PERIOD_FS_MS = 1000;
+	public static final int PERIOD_FS_MS = 250;
 
 	/** bloom filter length [byte] */
 	public static final int BLOOM_FILTER_LEN_BYTE = 8;

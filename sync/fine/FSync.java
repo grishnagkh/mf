@@ -40,13 +40,7 @@ import mf.sync.utils.SessionInfo;
  * @author stefan petscharnig
  *
  */
-public class FSync {
-
-	/*
-	 * TODO: rewrite sstart and stop o f the threads, set playback time in the
-	 * player control (in a new thread) damit des nit warten muss falls neue
-	 * infos da sind... macht den synchronized block zeitlich kürzer...
-	 */
+public class FSync extends Thread {
 
 	/**
 	 * singleton method
@@ -59,11 +53,25 @@ public class FSync {
 	}
 
 	/** actual bloom filter */
-	private BloomFilter bloom;
+	private static BloomFilter bloom;
+
 	/** a list of seen bloom filters */
-	private List<BloomFilter> bloomList;
+	private static List<BloomFilter> bloomList;
+
+	static {
+		bloomList = new ArrayList<BloomFilter>();
+		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+	}
+
+	/*
+	 * TODO: rewrite sstart and stop o f the threads, set playback time in the
+	 * player control (in a new thread) damit des nit warten muss falls neue
+	 * infos da sind... macht den synchronized block zeitlich kürzer...
+	 */
+
 	/** time when the last avgTs update */
 	long lastAvgUpdateTs;
+
 	/** average time stamp at time oldTs */
 	long avgTs;
 	/** maximum peer id seen so far */
@@ -72,27 +80,31 @@ public class FSync {
 	private int myId;
 	/** singleton instance */
 	private static FSync instance;
-	/** periodical broadcast server */
-	private Thread workerThread;
-
+	// /** periodical broadcast server */
+	// private Thread workerThread;
 	/** monitor for the avg value */
 	private Object avgMonitor;
-
-	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 
 	/**
 	 * Constructor
 	 */
 	private FSync() {
-		avgMonitor = new Object();
-		bloomList = new ArrayList<BloomFilter>();
-		myId = SessionInfo.getInstance().getMySelf().getId();
-		maxId = myId;
-		avgMonitor = this;
-		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-		bloom.add(SessionInfo.getInstance().getMySelf().getId());
-		bloomList.add(bloom);
-		initAvgTs();
+		try {
+			avgMonitor = new Object();
+
+			myId = SessionInfo.getInstance().getMySelf().getId();
+
+			maxId = myId;
+			avgMonitor = this;
+			bloom.add(SessionInfo.getInstance().getMySelf().getId());
+			bloomList.add(bloom);
+			initAvgTs();
+		} catch (Exception e) {
+			// i think this is the case, when sessioninfo was cleared and fsync
+			// interrupted in this order
+			instance = null;
+		}
 	}
 
 	/**
@@ -142,10 +154,10 @@ public class FSync {
 	}
 
 	// test
-	public void destroy() {
-		instance = null;
-	}
-
+	// public void destroy() {
+	// instance = null;
+	// }
+	//
 	/**
 	 *
 	 * @return
@@ -182,6 +194,12 @@ public class FSync {
 		return avgTs;
 	}
 
+	@Override
+	public void interrupt() {
+		instance = null;
+		super.interrupt();
+	}
+
 	/**
 	 * do process a fine sync request in a new thread
 	 */
@@ -189,36 +207,92 @@ public class FSync {
 		new FSResponseHandler(fSyncMsg, this, maxId).start();
 	}
 
-	/**
-	 * start the fine synchronization without doing a reset, performed when new
-	 * peers come into play
-	 */
-	public void restartWoReset() {
-		stopSync();
+	public void reset() {
+		bloom = new BloomFilter();
+		bloomList = new ArrayList<BloomFilter>();
+	}
+
+	public boolean restart() {
+		// everything except for the bloom filters and bloom filter lists will
+		// be cleared
 		if (DEBUG)
 			SessionInfo.getInstance().log("start fine sync (without reset)");
 
 		initAvgTs();
-		workerThread = new FSyncServer(this);
-		workerThread.start();
+
+		try {
+			start();
+		} catch (Exception e) {
+			interrupt();
+			return false;
+		}
+		return true;
 	}
 
-	/**
-	 * hard resync, does reset everything (new synchronization round)
-	 */
-	public void reSync() {
+	// /**
+	// * start the fine synchronization without doing a reset, performed when
+	// new
+	// * peers come into play
+	// */
+	// public void restartWoReset() {
+	// stopSync();
+	// if (DEBUG)
+	// SessionInfo.getInstance().log("start fine sync (without reset)");
+	//
+	// initAvgTs();
+	// workerThread = new FSyncServer(this);
+	// workerThread.start();
+	// }
+	//
+	// /**
+	// * hard resync, does reset everything (new synchronization round)
+	// */
+	// public void reSync() {
+	// if (DEBUG)
+	// SessionInfo.getInstance().log("starting resynchronization");
+	// stopSync();
+	// startSync();
+	// }
+	//
+	// /**
+	// *
+	// * @return
+	// */
+	// public boolean serverRunning() {
+	// return workerThread != null && workerThread.isAlive();
+	// }
+
+	@Override
+	public void run() {
 		if (DEBUG)
-			SessionInfo.getInstance().log("starting resynchronization");
-		stopSync();
-		startSync();
-	}
+			SessionInfo.getInstance().log("FSync thread started");
+		while (!isInterrupted()) {
+			try {
+				Thread.sleep(SyncI.PERIOD_FS_MS);
+			} catch (InterruptedException iex) {
+				break;
+			}
+			broadcastToPeers();
+			if (Clock.getTime() - lastAvgUpdateTs > (SessionInfo.getInstance()
+					.getPeers().size() + 3)
+					* SyncI.PERIOD_FS_MS) {
 
-	/**
-	 *
-	 * @return
-	 */
-	public boolean serverRunning() {
-		return workerThread != null && workerThread.isAlive();
+				long pbt = PlayerControl.getPlaybackTime();
+				long t = Clock.getTime();
+				long asyncMillis = alignedAvgTs(t) - pbt;
+				if (DEBUG)
+					SessionInfo.getInstance().log(
+							"updating playback time: calculated average: "
+									+ alignedAvgTs(t) + "@timestamp:" + t
+									+ "@async:" + asyncMillis + "@pbt:" + pbt);
+
+				updatePlayback(asyncMillis);
+				instance = null;
+				break;
+			}
+		}
+		if (DEBUG)
+			SessionInfo.getInstance().log("FSync thread died");
 	}
 
 	/**
@@ -229,32 +303,9 @@ public class FSync {
 		this.maxId = maxId;
 	}
 
-	/**
-	 * start fine sync message sending in a new thread
-	 */
-	public void startSync() {
-		if (DEBUG)
-			SessionInfo.getInstance().log("start fine sync (with reset)");
-
-		bloomList.clear();
-		initAvgTs();
-		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-
-		bloom.add(SessionInfo.getInstance().getMySelf().getId());
-		bloomList.add(bloom);
-
-		maxId = myId;
-		workerThread = new FSyncServer(this);
-		workerThread.start();
-
-	}
-
-	/**
-	 * stop the fine synchronization
-	 */
-	public void stopSync() {
-		if (serverRunning())
-			workerThread.interrupt();
+	@Override
+	public void start() {
+		super.start();
 	}
 
 	/**
@@ -275,5 +326,83 @@ public class FSync {
 		if (DEBUG)
 			SessionInfo.getInstance().log("release avgMonitor");
 	}
+
+	public void updatePlayback(long asyncMillis) {
+		float newPlaybackRate;
+
+		/* the *3* come from the pre-calculation see paper */
+		long timeMillis = 3 * Math.abs(asyncMillis);
+
+		if (DEBUG)
+			SessionInfo.getInstance().log("ensure buffered start");
+
+		if (asyncMillis > 0) { // we are behind, go faster
+			newPlaybackRate = 1.33f;// (float) 4 / 3; //precalculated, see
+			// paper
+			/*
+			 * if we go faster, we want to ensure that we have buffered some
+			 * data...
+			 */
+			PlayerControl.ensureBuffered(3 * timeMillis);
+		} else { // we are on top, so do slower
+			newPlaybackRate = 0.66f;// (float) 2 / 3; //precalculated, see
+			// paper
+			/*
+			 * despite it is theoretically not necessary, ensure we have
+			 * buffered at least a bit
+			 */
+			PlayerControl.ensureBuffered(timeMillis);
+		}
+
+		if (DEBUG)
+			SessionInfo.getInstance().log("ensure buffered end");
+
+		if (DEBUG)
+			SessionInfo.getInstance().log(
+					"asynchronism: " + asyncMillis + "ms\tnew playback rate: "
+							+ newPlaybackRate + "\ttime changed: " + timeMillis
+							+ "ms");
+
+		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback
+		// rate
+
+		try {
+			Thread.sleep(timeMillis); // wait
+		} catch (InterruptedException e) {
+			if (DEBUG)
+				SessionInfo.getInstance().log(
+						"got interrupted, synchronization failed");
+		} finally {
+			// reset the playback rate
+			PlayerControl.setPlaybackRate(1);
+		}
+	}
+	// /**
+	// * start fine sync message sending in a new thread
+	// */
+	// public void startSync() {
+	// if (DEBUG)
+	// SessionInfo.getInstance().log("start fine sync (with reset)");
+	//
+	// bloomList.clear();
+	// initAvgTs();
+	// bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+	//
+	// bloom.add(SessionInfo.getInstance().getMySelf().getId());
+	// bloomList.add(bloom);
+	//
+	// maxId = myId;
+	// workerThread = new FSyncServer(this);
+	// workerThread.start();
+	//
+	// }
+	//
+	// /**
+	// * stop the fine synchronization
+	// */
+	// public void stopSync() {
+	// if (serverRunning())
+	// workerThread.interrupt();
+	// }
 
 }

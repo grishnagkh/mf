@@ -67,12 +67,12 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		initChoosableVideos();
-		MessageHandler.getInstance().startHandling();
 	}
 
 	@Override
 	protected void onDestroy() {
-		MessageHandler.getInstance().stopHandling(true);
+		SessionInfo.getInstance().log("destoy main activity");
+		super.onDestroy();
 	}
 
 	public void onOpenButtonClick(View openButton) {

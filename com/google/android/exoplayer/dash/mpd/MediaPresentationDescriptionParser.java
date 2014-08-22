@@ -32,6 +32,7 @@ import mf.com.google.android.exoplayer.dash.mpd.SegmentBase.SingleSegmentBase;
 import mf.com.google.android.exoplayer.util.Assertions;
 import mf.com.google.android.exoplayer.util.MimeTypes;
 import mf.player.gui.MainActivity;
+import mf.sync.net.MessageHandler;
 import mf.sync.utils.Peer;
 import mf.sync.utils.SessionInfo;
 
@@ -584,6 +585,9 @@ public class MediaPresentationDescriptionParser extends DefaultHandler {
 		 */
 
 		SessionInfo.getInstance().setMySelf(mySelf);
+
+		MessageHandler.getInstance().startHandling(true); // use default port
+															// for now
 
 	}/* erweiterter google code.. yey ende! */
 

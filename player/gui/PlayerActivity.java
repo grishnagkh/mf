@@ -16,7 +16,11 @@
 
 package mf.player.gui;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import mf.com.google.android.exoplayer.ExoPlaybackException;
 import mf.com.google.android.exoplayer.ExoPlayer;
@@ -25,9 +29,9 @@ import mf.com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializa
 import mf.com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
 import mf.com.google.android.exoplayer.VideoSurfaceView;
 import mf.sync.coarse.CSync;
-import mf.sync.fine.FSync;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.Clock;
+import mf.sync.utils.Peer;
 import mf.sync.utils.PlayerControl;
 import mf.sync.utils.SessionInfo;
 import android.annotation.SuppressLint;
@@ -71,7 +75,6 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		public void onRenderersError(Exception e) {
 			PlayerActivity.this.onRenderersError(this, e);
 		}
-
 	}
 
 	public static final int RENDERER_COUNT = 2;
@@ -104,6 +107,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	public static final boolean DEBUG = true;
 
+	public static final boolean DBOX_ONLY = false;
+
 	public Handler getMainHandler() {
 		return mainHandler;
 	}
@@ -123,6 +128,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		}
 	}
 
+	// Public methods
+
 	private void maybeStartPlayback() {
 		Surface surface = surfaceView.getHolder().getSurface();
 		if (videoRenderer == null || surface == null || !surface.isValid())
@@ -137,7 +144,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	}
 
-	// Public methods
+	// Internal methods
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -196,8 +203,6 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	}
 
-	// Internal methods
-
 	@Override
 	public void onCryptoError(CryptoException e) {
 		// This is for informational purposes only. Do nothing.
@@ -223,11 +228,13 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 		Toast.makeText(
 				this,
-				"could not paly the selected video, check your internet connection and try again",
+				"could not play the selected video, check your internet connection and try again",
 				Toast.LENGTH_LONG).show();
 
 		finish();
 	}
+
+	// ExoPlayer.Listener implementation
 
 	@Override
 	public void onPause() {
@@ -241,11 +248,9 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		callback = null;
 		videoRenderer = null;
 		shutterView.setVisibility(View.VISIBLE);
-		SessionInfo.getInstance().clearSessionData();
-		MessageHandler.getInstance().pauseHandling();
-	}
 
-	// ExoPlayer.Listener implementation
+		MessageHandler.getInstance().stopHandling(true);
+	}
 
 	@Override
 	public void onPlayerError(ExoPlaybackException e) {
@@ -257,20 +262,24 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Do nothing.
 	}
 
+	// MediaCodecVideoTrackRenderer.Listener
+
 	@Override
 	public void onPlayWhenReadyCommitted() {
 		// Do nothing.
+
 		if (player.getPlayWhenReady()) {
-			MessageHandler.getInstance().resumeHandling();
-			CSync.getInstance().startSync();
+			// MessageHandler.getInstance().resumeHandling();
+			if (CSync.getInstance().getState() != Thread.State.NEW)
+				CSync.getInstance().interrupt();
+			CSync.getInstance().start();
 		} else {
-			MessageHandler.getInstance().pauseHandling();
-			CSync.getInstance().stopSync(); // if we do a coarse sync, stop it
-			FSync.getInstance().stopSync(); // if we do a fine sync, stop it
+			// MessageHandler.getInstance().pauseHandling();
+			// CSync.getInstance().stopSync(); // if we do a coarse sync, stop
+			// it
+			// FSync.getInstance().stopSync(); // if we do a fine sync, stop it
 		}
 	}
-
-	// MediaCodecVideoTrackRenderer.Listener
 
 	private void onRenderers(RendererBuilderCallback callback,
 			MediaCodecVideoTrackRenderer videoRenderer,
@@ -304,8 +313,11 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		callback = new RendererBuilderCallback();
 		builder.buildRenderers(callback);
 
+		// here the mpd *should* be parsed,
+		// at least, the parsing should have been initiated
+
 		PlayerControl.initPlayer(player);
-		MessageHandler.getInstance().resumeHandling();
+
 	}
 
 	@Override
@@ -314,13 +326,13 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 				/ height);
 	}
 
+	// SurfaceHolder.Callback implementation
+
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width,
 			int height) {
 		// Do nothing.
 	}
-
-	// SurfaceHolder.Callback implementation
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
@@ -344,14 +356,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	}
 
 	public void updateDebugViews() {
-		// TextView dRcv = (TextView) findViewById(R.id.debug_view_rcv);
-		// TextView dSen = (TextView) findViewById(R.id.debug_view_send);
-		// TextView dPee = (TextView) findViewById(R.id.debug_view_peers);
-		TextView dBox = (TextView) findViewById(R.id.debug_box);
 
-		// String rcvStr = "message received\n";
-		// String senStr = "messages sent\n";
-		// String peeStr = "known peers\n";
+		TextView dBox = (TextView) findViewById(R.id.debug_box);
 		String dText = "DEBUG\n";
 
 		long now = Clock.getTime();
@@ -360,30 +366,42 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		try {
 			speed = "" + PlayerControl.getSpeed();
 		} catch (Exception e) {
-			// if the sample rate is not initialized, then, we get an arithmetic
+			// if the sample rate is not initialized, then, we get an
+			// arithmetic
 			// exception by dividing by zero
 		}
 
 		dText += "Ntp Time: " + new Date(now) + "(" + now + ") Playback time:"
-				+ (PlayerControl.getPlaybackTime()) + " speed x" + speed + "\n"
-				+ SessionInfo.getInstance().getLog().toString();
-		// senStr += MessageHandler.getInstance().getSendLog().toString();
-		// rcvStr += MessageHandler.getInstance().getRcvLog().toString();
-
-		// Map<Integer, Peer> map = SessionInfo.getInstance().getPeers();
-		//
-		// if (map != null) {
-		// Collection<Peer> l2 = map.values();
-		// List<Peer> l1 = new ArrayList<Peer>();
-		// for (Peer p : l2)
-		// l1.add(p);
-		// for (int i = l1.size(); i > 0; i--)
-		// peeStr += l1.get(i - 1).toString() + "\n";
-		// }
-		// dRcv.setText(rcvStr);
-		// dSen.setText(senStr);
-		// dPee.setText(peeStr);
+				+ (PlayerControl.getPlaybackTime()) + " speed x" + speed
+				+ " Csync complete: " + SessionInfo.getInstance().isCSynced()
+				+ "\n" + SessionInfo.getInstance().getLog().toString();
 		dBox.setText(dText);
-	}
+		if (!DBOX_ONLY) {
+			TextView dRcv = (TextView) findViewById(R.id.debug_view_rcv);
+			TextView dSen = (TextView) findViewById(R.id.debug_view_send);
+			TextView dPee = (TextView) findViewById(R.id.debug_view_peers);
 
+			String rcvStr = "message received\n";
+			String senStr = "messages sent\n";
+			String peeStr = "known peers\n";
+
+			senStr += SessionInfo.getInstance().getSendLog().toString();
+			rcvStr += SessionInfo.getInstance().getRcvLog().toString();
+
+			Map<Integer, Peer> map = SessionInfo.getInstance().getPeers();
+
+			if (map != null) {
+				Collection<Peer> l2 = map.values();
+				List<Peer> l1 = new ArrayList<Peer>();
+				for (Peer p : l2)
+					l1.add(p);
+				for (int i = l1.size(); i > 0; i--)
+					peeStr += l1.get(i - 1).toString() + "\n";
+			}
+			dRcv.setText(rcvStr);
+			dSen.setText(senStr);
+			dPee.setText(peeStr);
+		}
+
+	}
 }

@@ -42,7 +42,7 @@ public class BloomFilter implements Serializable {
 	 *
 	 * @throws NoSuchAlgorithmException
 	 */
-	public BloomFilter() throws NoSuchAlgorithmException {
+	public BloomFilter() {
 		this(1024, 2);
 	}
 
