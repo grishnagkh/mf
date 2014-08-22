@@ -64,7 +64,7 @@ public class CSync extends Thread {
 		msgQueue = new ArrayList<CSyncMsg>();
 	}
 
-	// /** method for filling the queue response */
+	/** method for filling the queue response */
 	public void coarseResponse(CSyncMsg msg) {
 		if (DEBUG)
 			SessionInfo.getInstance().log("process coarse response");
@@ -77,12 +77,6 @@ public class CSync extends Thread {
 		/* delete this instance, and, as necessary, create a new one */
 		instance = null;
 	}
-
-	// // test
-	// public void destroy() {
-	// instance = null;
-	// cSyncServer = null;
-	// }
 
 	/**
 	 * process a sync request message
@@ -180,10 +174,9 @@ public class CSync extends Thread {
 
 		PlayerControl.setPlaybackTime((int) avgPTS);
 
-		//
-		// /**
-		// * we ensure that the playback resumed a little
-		// */
+		/**
+		 * we ensure that the playback resumed a little
+		 */
 		PlayerControl.ensureTime(avgPTS, SEGSIZE / 2);
 
 		if (FSYNC_ENABLED) {
@@ -208,22 +201,5 @@ public class CSync extends Thread {
 			SessionInfo.getInstance().log("start coarse sync");
 
 		super.start();
-		// finished = false;
-
-		// stopSync();
-		// cSyncServer = new CSyncServer(msgQueue);
-		// cSyncServer.start();
 	}
-
-	// /**
-	// * stop a potentially running coarse sync
-	// */
-	// public void stopSync() {
-	// finished = true;
-	// if (cSyncServer != null && cSyncServer.isAlive()) {
-	// if (DEBUG)
-	// SessionInfo.getInstance().log("stopping already running csync");
-	// cSyncServer.interrupt();
-	// }
-	// }
 }

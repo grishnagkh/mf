@@ -269,15 +269,10 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Do nothing.
 
 		if (player.getPlayWhenReady()) {
-			// MessageHandler.getInstance().resumeHandling();
 			if (CSync.getInstance().getState() != Thread.State.NEW)
 				CSync.getInstance().interrupt();
 			CSync.getInstance().start();
 		} else {
-			// MessageHandler.getInstance().pauseHandling();
-			// CSync.getInstance().stopSync(); // if we do a coarse sync, stop
-			// it
-			// FSync.getInstance().stopSync(); // if we do a fine sync, stop it
 		}
 	}
 

@@ -63,12 +63,6 @@ public class FSync extends Thread {
 		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
 	}
 
-	/*
-	 * TODO: rewrite sstart and stop o f the threads, set playback time in the
-	 * player control (in a new thread) damit des nit warten muss falls neue
-	 * infos da sind... macht den synchronized block zeitlich kürzer...
-	 */
-
 	/** time when the last avgTs update */
 	long lastAvgUpdateTs;
 
@@ -80,8 +74,6 @@ public class FSync extends Thread {
 	private int myId;
 	/** singleton instance */
 	private static FSync instance;
-	// /** periodical broadcast server */
-	// private Thread workerThread;
 	/** monitor for the avg value */
 	private Object avgMonitor;
 	public static final boolean DEBUG = true;
@@ -153,11 +145,6 @@ public class FSync extends Thread {
 		}
 	}
 
-	// test
-	// public void destroy() {
-	// instance = null;
-	// }
-	//
 	/**
 	 *
 	 * @return
@@ -228,39 +215,6 @@ public class FSync extends Thread {
 		}
 		return true;
 	}
-
-	// /**
-	// * start the fine synchronization without doing a reset, performed when
-	// new
-	// * peers come into play
-	// */
-	// public void restartWoReset() {
-	// stopSync();
-	// if (DEBUG)
-	// SessionInfo.getInstance().log("start fine sync (without reset)");
-	//
-	// initAvgTs();
-	// workerThread = new FSyncServer(this);
-	// workerThread.start();
-	// }
-	//
-	// /**
-	// * hard resync, does reset everything (new synchronization round)
-	// */
-	// public void reSync() {
-	// if (DEBUG)
-	// SessionInfo.getInstance().log("starting resynchronization");
-	// stopSync();
-	// startSync();
-	// }
-	//
-	// /**
-	// *
-	// * @return
-	// */
-	// public boolean serverRunning() {
-	// return workerThread != null && workerThread.isAlive();
-	// }
 
 	@Override
 	public void run() {
@@ -377,32 +331,4 @@ public class FSync extends Thread {
 			PlayerControl.setPlaybackRate(1);
 		}
 	}
-	// /**
-	// * start fine sync message sending in a new thread
-	// */
-	// public void startSync() {
-	// if (DEBUG)
-	// SessionInfo.getInstance().log("start fine sync (with reset)");
-	//
-	// bloomList.clear();
-	// initAvgTs();
-	// bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-	//
-	// bloom.add(SessionInfo.getInstance().getMySelf().getId());
-	// bloomList.add(bloom);
-	//
-	// maxId = myId;
-	// workerThread = new FSyncServer(this);
-	// workerThread.start();
-	//
-	// }
-	//
-	// /**
-	// * stop the fine synchronization
-	// */
-	// public void stopSync() {
-	// if (serverRunning())
-	// workerThread.interrupt();
-	// }
-
 }

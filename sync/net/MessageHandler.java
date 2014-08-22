@@ -99,18 +99,11 @@ public class MessageHandler extends Thread {
 		this(PORT);
 	}
 
-	// private boolean discardMessages = true;
-	// public void ignoreIncoming(boolean ignore){
-	// discardMessages = true;
-	// }
-
 	/** singleton constructor using custom port */
 	private MessageHandler(int port) {
 		this.port = port;
 
 	}
-
-	// boolean pause = false;
 
 	@Override
 	public void interrupt() {
@@ -139,35 +132,6 @@ public class MessageHandler extends Thread {
 		super.interrupt();
 	}
 
-	// /** pause handling , e.g. used when the user hits the pause button */
-	public void pauseHandling() {
-		if (DEBUG)
-			SessionInfo.getInstance().log("pause handling...");
-		// TODO: implement or discard
-		// if (srv != null)
-		// srv.ignoreIncoming(true);
-		// pause = true;
-		// CSync.getInstance().stopSync();
-		// FSync.getInstance().stopSync();
-	}
-
-	/** resume handling , e.g. used when the user hits the play button */
-	public void resumeHandling() {
-		if (DEBUG)
-			SessionInfo.getInstance().log("resume handling...");
-		// TODO: implement or discard
-		// if (srv != null)
-		// srv.ignoreIncoming(false);
-		// pause = false;
-		// CSync.getInstance().stopSync();
-		// try {
-		// FSync.getInstance().stopSync();
-		// } catch (Exception e) {
-		// // if the object does not exist we get a null pointe exception in
-		// // the constructor or so... just ignore it
-		// }
-	}
-
 	@Override
 	public void run() {
 
@@ -189,13 +153,6 @@ public class MessageHandler extends Thread {
 			} catch (Exception e) {
 				continue;
 			}
-			// if (discardMessages) {
-			// if (DEBUG)
-			// SessionInfo
-			// .getInstance()
-			// .log("message was discarded, because we take a break ;) ");
-			// continue;
-			// }
 			if (readObj instanceof SyncMsg && FILTER_DUPLICATES) {
 				SyncMsg m = (SyncMsg) readObj;
 				if (received.get(m.peerId) > m.msgId) {
@@ -248,9 +205,6 @@ public class MessageHandler extends Thread {
 						.getInstance()
 						.log("got a message which is neither a fsync msg nor a csync message");
 		}
-		// SessionInfo.getInstance().log("handler server stopped");
-
-		// this.interrupt();
 	}
 
 	/**
@@ -266,8 +220,6 @@ public class MessageHandler extends Thread {
 
 	public synchronized void sendMsg(SyncMsg msg) {
 
-		// if (pause)
-		// return;
 		try {
 			msg.msgId = cnt++;
 			msg.peerId = SessionInfo.getInstance().getMySelf().getId();
@@ -318,10 +270,6 @@ public class MessageHandler extends Thread {
 	 */
 
 	public void startHandling(boolean active) {
-		// if (srv == null) {
-		// srv = new HandlerServer();
-		// srv.start(port);
-		// }
 
 		if (active) {
 			if (DEBUG)

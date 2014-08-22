@@ -32,11 +32,9 @@ import mf.sync.utils.SessionInfo;
  *
  */
 public class FSResponseHandler extends Thread {
-
-	// private static PAThread updateThread;
-
 	/** debug messages to the session log? */
 	public static final boolean DEBUG = true;
+	private static final boolean CHECK_SEQ_N = false;
 	/** the message to process */
 	private FSyncMsg msg;
 	/** instance of FSync for avgts */
@@ -66,30 +64,26 @@ public class FSResponseHandler extends Thread {
 		// updateThread = new PAThread(parent);
 	}
 
-	// /**
-	// * check the sequence number, if the sequence number received is bigger
-	// than
-	// * the stored one, take the received sequence number and do a
-	// * resynchronization
-	// */
-	// private void checkSeqN() {
-	//
-	// if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
-	// SessionInfo.getInstance().setSeqN(msg.seqN);
-	// FSync.getInstance().reSync(); // hard resync, reset
-	// } else {
-	// // SessionInfo.getInstance().log("(re) start wo reset");
-	// // FSync.getInstance().restartWoReset();
-	// // not here
-	// }
-	// }
+	/**
+	 * check the sequence number, if the sequence number received is bigger than
+	 * the stored one, take the received sequence number and do a
+	 * resynchronization
+	 */
+	private void checkSeqN() {
+		if (msg.seqN > SessionInfo.getInstance().getSeqN())
+			SessionInfo.getInstance().setSeqN(msg.seqN);
+		// TODO: resync hard
+		else {
+		}
+	}
 
 	@Override
 	public void run() {
 
 		synchronized (FSync.getInstance()) {
 			/* check sequence number */
-			// checkSeqN();
+			if (CHECK_SEQ_N)
+				checkSeqN();
 
 			bloom = parent.getBloom();
 			if (bloom == null) {
@@ -121,7 +115,6 @@ public class FSResponseHandler extends Thread {
 				if (!FSync.getInstance().restart())
 					FSync.getInstance().start();
 			}
-//			boolean bfUpdated = false;
 
 			if (!xorZero && andZero) {
 				if (DEBUG) {
@@ -144,9 +137,7 @@ public class FSResponseHandler extends Thread {
 					SessionInfo.getInstance().log(
 							"new avg: " + parent.alignedAvgTs(actTs));
 				}
-				// updatePlayback(); //TODO
 				bloom.merge(msg.bloom);
-//				bfUpdated = true;
 			}
 			if (!xorZero && !andZero && !contains) {
 				if (DEBUG) {
@@ -165,7 +156,6 @@ public class FSResponseHandler extends Thread {
 									"corrected received avg: " + d);
 						}
 						bloom = msg.bloom;
-//						bfUpdated = true;
 					} else {
 						avgTs = parent.alignedAvgTs(actTs);
 						wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
@@ -181,21 +171,9 @@ public class FSResponseHandler extends Thread {
 						}
 						bloom = msg.bloom;
 						bloom.add(myId);
-//						bfUpdated = true;
 					}
-					// updatePlayback();//TODO
-
 				}
 			}
-
-			// if (!bfUpdated)
-			// noUpdateCtr++;
-			// else
-			// noUpdateCtr = 0;
-			//
-			// if (noUpdateCtr > 50) // TODO do a time limit too, there the pts
-			// // will be adjusted
-			// FSync.getInstance().interrupt();
 
 			/* add the received bloom filter to the ones already seen */
 			parent.getBloomList().add(msg.bloom);
@@ -203,13 +181,4 @@ public class FSResponseHandler extends Thread {
 			parent.setMaxId(maxId < msg.maxId ? msg.maxId : maxId);
 		}
 	}
-
-	// public void updatePlayback() {
-	// if (!updateThread.updatePlayback()) {
-	// updateThread.interrupt();
-	// updateThread = new PAThread(parent);
-	// updateThread.updatePlayback();
-	// }
-	// }
-
 }

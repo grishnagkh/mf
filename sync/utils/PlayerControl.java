@@ -69,7 +69,6 @@ public class PlayerControl implements MediaPlayerControl {
 	public static int getPlaybackTime() {
 		if (player == null)
 			return PlayerControl.PLAYER_NOT_INITIALIZED;
-		// return player.getCurrentPosition();
 		return (int) player.getPositionUs() / 1000;
 	}
 
