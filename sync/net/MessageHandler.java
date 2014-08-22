@@ -111,8 +111,8 @@ public class MessageHandler extends Thread {
 		if (DEBUG)
 			SessionInfo.getInstance().log(
 					"Interrupting message handler server...");
-
-		received.clear();
+		if (received != null)
+			received.clear();
 
 		if (serverSocket != null && is != null)
 			try {
@@ -190,15 +190,15 @@ public class MessageHandler extends Thread {
 						.getRcvLog()
 						.append(msg.type + "I" + msg.peerId + "I"
 								+ msg.senderIp);
-				if (msg.type == SyncI.TYPE_COARSE_REQ
-						&& SessionInfo.getInstance().isCSynced())
+				if (msg.type == SyncI.TYPE_COARSE_REQ)
 					CSync.getInstance().processRequest(msg);
 				else if (msg.type == SyncI.TYPE_COARSE_RESP)
 					CSync.getInstance().coarseResponse(msg);
 				else
 					// do nothing
 					SessionInfo.getInstance().log(
-							"got a csync message with wrong message type");
+							"got a csync message with wrong message type: "
+									+ msg.type);
 			} else
 				// do nothing
 				SessionInfo
@@ -297,7 +297,7 @@ public class MessageHandler extends Thread {
 		CSync.getInstance().interrupt();
 
 		FSync.getInstance().interrupt();
-		FSync.getInstance().reset();
+		SessionInfo.getInstance().resetFSyncData();
 
 		if (clearSessionData)
 			SessionInfo.getInstance().clearSessionData();

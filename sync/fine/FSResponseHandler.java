@@ -41,8 +41,7 @@ public class FSResponseHandler extends Thread {
 	private FSync parent;
 	/** maximum id seen so far */
 	private int maxId;
-	/** own id */
-	private int myId;
+
 	/** bloom filter containing most information available */
 	private BloomFilter bloom;
 
@@ -58,10 +57,8 @@ public class FSResponseHandler extends Thread {
 	 */
 	public FSResponseHandler(FSyncMsg fSyncMsg, FSync parent, int maxId) {
 		this.msg = fSyncMsg;
-		myId = SessionInfo.getInstance().getMySelf().getId();
 		this.maxId = maxId;
 		this.parent = parent;
-		// updateThread = new PAThread(parent);
 	}
 
 	/**
@@ -70,115 +67,81 @@ public class FSResponseHandler extends Thread {
 	 * resynchronization
 	 */
 	private void checkSeqN() {
-		if (msg.seqN > SessionInfo.getInstance().getSeqN())
+		if (msg.seqN > SessionInfo.getInstance().getSeqN()) {
 			SessionInfo.getInstance().setSeqN(msg.seqN);
-		// TODO: resync hard
-		else {
+			// TODO: implement resync hard
+		} else {
 		}
 	}
 
 	@Override
 	public void run() {
-
-		synchronized (FSync.getInstance()) {
-			/* check sequence number */
-			if (CHECK_SEQ_N)
+		synchronized (SessionInfo.getInstance()) {
+			// test
+			if (CHECK_SEQ_N) {
 				checkSeqN();
-
-			bloom = parent.getBloom();
-			if (bloom == null) {
-				SessionInfo.getInstance().log(
-						"bloom is null.. what the heck?!?");
-				return;
 			}
-			/* some calculations in advance */
 
-			int nPeersRcv = msg.bloom.getNElements();
-			int nPeersOwn = bloom.getNElements();
+			if (!SessionInfo.getInstance().getBloomList().contains(msg.bloom)) {
+				/* we have not seen the bloom filter */
+				if (!FSync.getInstance().restart()) {
+					FSync.getInstance().start();
+				}
+			}
+
+			bloom = SessionInfo.getInstance().getBloom();
+
+			// update(pi, ntpi), update(pj, ntpj)
+			long now = Clock.getTime();
+			long avgTs = SessionInfo.getInstance().alignedAvgTs(now);
+			long msgAvgTs = msg.avg + now - msg.nts;
+
+			SessionInfo.getInstance().log(
+					"avg:" + avgTs + "@msgAvg:" + msgAvgTs + "@" + now);
 
 			BloomFilter xor = msg.bloom.clone();
 			xor.xor(bloom);
-			BloomFilter and = msg.bloom.clone();
-			and.and(bloom);
-
-			boolean intersectContains;
-			boolean contains = parent.getBloomList().contains(msg.bloom);
-			long actTs, avgTs, wSum;
-
-			boolean xorZero = xor.isZero();
-			boolean andZero = and.isZero();
-
-			if (!contains) {
-				/* we have not seen the bloom filter */
-				SessionInfo.getInstance().log(
-						"seen a bf we have not see before, restart fine sync");
-				if (!FSync.getInstance().restart())
-					FSync.getInstance().start();
-			}
-
-			if (!xorZero && andZero) {
-				if (DEBUG) {
-					SessionInfo.getInstance().log("npeersown: " + nPeersOwn);
-					SessionInfo.getInstance().log("npeersrcv: " + nPeersRcv);
-				}
-
-				actTs = Clock.getTime();
-				avgTs = parent.alignedAvgTs(actTs);
-
-				wSum = (avgTs * nPeersOwn) + (msg.avg + (actTs - msg.nts))
-						* nPeersRcv;
-
-				parent.updateAvgTs(wSum / (nPeersRcv + nPeersOwn), actTs);
-				if (DEBUG) {
-					SessionInfo.getInstance().log("my avg: " + avgTs);
-					long d = (msg.avg + (actTs - msg.nts));
-					SessionInfo.getInstance().log(
-							"corrected received avg: " + d);
-					SessionInfo.getInstance().log(
-							"new avg: " + parent.alignedAvgTs(actTs));
-				}
-				bloom.merge(msg.bloom);
-			}
-			if (!xorZero && !andZero && !contains) {
-				if (DEBUG) {
-					SessionInfo.getInstance().log("npeersown: " + nPeersOwn);
-					SessionInfo.getInstance().log("npeersrcv: " + nPeersRcv);
-				}
-				if (nPeersRcv >= nPeersOwn) {
-					intersectContains = and.contains(myId);
-					actTs = Clock.getTime();
-
-					if (intersectContains) {
-						parent.updateAvgTs(msg.avg + (actTs - msg.nts), actTs);
-						if (DEBUG) {
-							long d = (msg.avg + (actTs - msg.nts));
-							SessionInfo.getInstance().log(
-									"corrected received avg: " + d);
+			if (xor.isZero()) {
+				// same bloom filters, ignore
+			} else {
+				BloomFilter and = msg.bloom.clone();
+				and.and(bloom);
+				if (and.isZero()) {
+					bloom.merge(msg.bloom);
+					SessionInfo
+							.getInstance()
+							.updateAvgTs(
+									(bloom.getNElements() * avgTs + msg.bloom
+											.getNElements() * msgAvgTs)
+											/ (bloom.getNElements() + msg.bloom
+													.getNElements()),
+									now);
+				} else if (!SessionInfo.getInstance().getBloomList()
+						.contains(msg.bloom)) {
+					if (msg.bloom.getNElements() >= bloom.getNElements()) {
+						if (msg.bloom.contains(SessionInfo.getInstance()
+								.getMySelf().getId())) {
+							SessionInfo.getInstance()
+									.updateAvgTs(msgAvgTs, now);
+							bloom = msg.bloom;
+						} else {
+							SessionInfo
+									.getInstance()
+									.updateAvgTs(
+											(avgTs + (msg.bloom.getNElements() * msgAvgTs))
+													/ (1 + msg.bloom
+															.getNElements()),
+											now);
+							bloom = msg.bloom;
+							bloom.add(SessionInfo.getInstance().getMySelf()
+									.getId());
 						}
-						bloom = msg.bloom;
-					} else {
-						avgTs = parent.alignedAvgTs(actTs);
-						wSum = (nPeersRcv * (msg.avg + (actTs - msg.nts)))
-								+ avgTs;
-						parent.updateAvgTs(wSum / (nPeersRcv + 1), actTs);
-						if (DEBUG) {
-							SessionInfo.getInstance().log("my avg: " + avgTs);
-							long d = (msg.avg + (actTs - msg.nts));
-							SessionInfo.getInstance().log(
-									"corrected received avg: " + d);
-							SessionInfo.getInstance().log(
-									"new avg: " + parent.alignedAvgTs(actTs));
-						}
-						bloom = msg.bloom;
-						bloom.add(myId);
 					}
 				}
 			}
-
-			/* add the received bloom filter to the ones already seen */
-			parent.getBloomList().add(msg.bloom);
-			/* update maxId */
+			SessionInfo.getInstance().getBloomList().add(msg.bloom);
 			parent.setMaxId(maxId < msg.maxId ? msg.maxId : maxId);
+
 		}
 	}
 }

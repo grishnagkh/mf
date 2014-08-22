@@ -15,11 +15,12 @@ public class PlayerControl implements MediaPlayerControl {
 		// to avoid so much buffer that the app will not buffer
 		time = time < 2000 ? time : 2000;
 		// simply busy wait until we have buffered more
-		while (getBufferPos() - getPlaybackTime() < time)
+		while (getBufferPos() - getPlaybackTime() < time) {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 			}
+		}
 	}
 
 	/**
@@ -28,11 +29,12 @@ public class PlayerControl implements MediaPlayerControl {
 	 * @param l
 	 */
 	public static void ensureTime(long target, long padding) {
-		while (getPlaybackTime() < target + padding)
+		while (getPlaybackTime() < target + padding) {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 			}
+		}
 		SessionInfo.getInstance().log(
 				"we definetly are after playback time " + (target + padding));
 	}
@@ -115,7 +117,9 @@ public class PlayerControl implements MediaPlayerControl {
 	 */
 	public static void setPlaybackTime(int positionMs) {
 
-		SessionInfo.getInstance().log("setting playback time to " + positionMs);
+		SessionInfo.getInstance().log(
+				"setting playback time to " + positionMs + "@"
+						+ Clock.getTime());
 		if (player == null)
 			return;
 		player.seekTo(positionMs);

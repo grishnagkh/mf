@@ -22,8 +22,12 @@ package mf.sync.utils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import mf.bloomfilter.BloomFilter;
+import mf.sync.SyncI;
 import mf.sync.utils.log.SyncLogger;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -38,8 +42,9 @@ public class SessionInfo {
 	 * singleton method
 	 */
 	public static SessionInfo getInstance() {
-		if (instance == null)
+		if (instance == null) {
 			instance = new SessionInfo();
+		}
 		return instance;
 	}
 
@@ -78,6 +83,16 @@ public class SessionInfo {
 
 	private boolean cSynced = false;
 
+	private BloomFilter bloom;
+
+	private List<BloomFilter> bloomList;
+
+	/** time when the last avgTs update */
+	long lastAvgUpdateTs;
+
+	/** average time stamp at time oldTs */
+	long avgTs;
+
 	/**
 	 * constructor
 	 */
@@ -87,10 +102,34 @@ public class SessionInfo {
 		rLog = new SyncLogger(5);
 		sLog = new SyncLogger(5);
 		seqN = 0;
+		bloomList = new ArrayList<BloomFilter>();
+	}
+
+	/**
+	 * align the average playback timestamp stored to a specific time stamp
+	 *
+	 * @param alignTo
+	 *            the time stamp to align to
+	 * @return the aligned time stamp
+	 */
+	public long alignedAvgTs(long alignTo) {
+		return avgTs + alignTo - lastAvgUpdateTs;
 	}
 
 	public void clearSessionData() {
 		instance = null;
+	}
+
+	public BloomFilter getBloom() {
+		return bloom;
+	}
+
+	public List<BloomFilter> getBloomList() {
+		return bloomList;
+	}
+
+	public long getLastAvgUpdateTs() {
+		return lastAvgUpdateTs;
 	}
 
 	/**
@@ -162,8 +201,17 @@ public class SessionInfo {
 		log.append(s);
 	}
 
+	public void resetFSyncData() {
+		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+		bloom.add(mySelf.getId());
+		bloomList.clear();
+		bloomList.add(bloom);
+	}
+
 	public void setCSynced() {
 		cSynced = true;
+		SessionInfo.getInstance().updateAvgTs(PlayerControl.getPlaybackTime(),
+				Clock.getTime());
 	}
 
 	/**
@@ -172,6 +220,8 @@ public class SessionInfo {
 	 */
 	public void setMySelf(Peer mySelf) {
 		this.mySelf = mySelf;
+		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
+		bloom.add(mySelf.getId());
 	}
 
 	/**
@@ -204,6 +254,17 @@ public class SessionInfo {
 	 */
 	public void setValidThru(String validThru) {
 		this.validThru = Long.parseLong(validThru);
+	}
+
+	/**
+	 * update the average timstamp and reset the last update time stampt
+	 *
+	 * @param newValue
+	 *            the value to be set
+	 */
+	public synchronized void updateAvgTs(long newValue, long updateTime) {
+		avgTs = newValue;
+		lastAvgUpdateTs = updateTime;
 	}
 
 }

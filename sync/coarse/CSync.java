@@ -43,8 +43,9 @@ public class CSync extends Thread {
 
 	/** Singleton method */
 	public static CSync getInstance() {
-		if (instance == null)
+		if (instance == null) {
 			instance = new CSync();
+		}
 		return instance;
 	}
 
@@ -66,8 +67,9 @@ public class CSync extends Thread {
 
 	/** method for filling the queue response */
 	public void coarseResponse(CSyncMsg msg) {
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("process coarse response");
+		}
 		msgQueue.add(msg);
 	}
 
@@ -85,16 +87,18 @@ public class CSync extends Thread {
 	 */
 
 	public void processRequest(CSyncMsg cSyncMsg) {
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("process coarse request");
+		}
 		new Thread(new CSyncRequestProcessor(cSyncMsg)).start();
 	}
 
 	@Override
 	public void run() {
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("coarse sync started");
+		}
 
 		InetAddress myAdress = SessionInfo.getInstance().getMySelf()
 				.getAddress();
@@ -109,12 +113,14 @@ public class CSync extends Thread {
 		msg.senderIp = myAdress;
 		msg.senderPort = myPort;
 		msg.myId = myId;
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("built csync message");
+		}
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
-			if (DEBUG)
+			if (DEBUG) {
 				SessionInfo.getInstance().log("Processing peer: " + p);
+			}
 			msg.destAddress = p.getAddress();
 			msg.destPort = p.getPort();
 
@@ -135,10 +141,11 @@ public class CSync extends Thread {
 		/* 3 */
 
 		if (msgQueue.size() == 0) {
-			if (DEBUG)
+			if (DEBUG) {
 				SessionInfo
 						.getInstance()
 						.log("no messages in response queue, no one seems to be here yet");
+			}
 
 			/*
 			 * i think this is not necessary anymore... remember that nobody
@@ -155,15 +162,17 @@ public class CSync extends Thread {
 			avgPTS += resp.pts + (Clock.getTime() - resp.nts);
 			ctr++;
 		}
-		if (ctr != 0)
+		if (ctr != 0) {
 			avgPTS /= ctr;
+		}
 
 		// empty request queue
 		msgQueue.clear();
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log(
 					"calculated average from c synchronization: " + avgPTS);
+		}
 
 		/*
 		 * scale time to the 2s segments, just to make some sense for fine
@@ -180,13 +189,15 @@ public class CSync extends Thread {
 		PlayerControl.ensureTime(avgPTS, SEGSIZE / 2);
 
 		if (FSYNC_ENABLED) {
-			if (FSync.getInstance().getState() != Thread.State.NEW)
+			if (FSync.getInstance().getState() != Thread.State.NEW) {
 				FSync.getInstance().interrupt();
+			}
 			FSync.getInstance().start();
 		}
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("coarse sync finished");
+		}
 		/*
 		 * to delete this thread, when we want to be started again
 		 */
@@ -197,8 +208,9 @@ public class CSync extends Thread {
 	/** start the coarse sync *server* */
 	@Override
 	public void start() {
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("start coarse sync");
+		}
 
 		super.start();
 	}

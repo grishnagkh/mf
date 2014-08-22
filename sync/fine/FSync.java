@@ -21,10 +21,6 @@
 
 package mf.sync.fine;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import mf.bloomfilter.BloomFilter;
 import mf.sync.SyncI;
 import mf.sync.net.FSyncMsg;
 import mf.sync.net.MessageHandler;
@@ -52,46 +48,26 @@ public class FSync extends Thread {
 		return instance;
 	}
 
-	/** actual bloom filter */
-	private static BloomFilter bloom;
-
-	/** a list of seen bloom filters */
-	private static List<BloomFilter> bloomList;
-
-	static {
-		bloomList = new ArrayList<BloomFilter>();
-		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-	}
-
-	/** time when the last avgTs update */
-	long lastAvgUpdateTs;
-
-	/** average time stamp at time oldTs */
-	long avgTs;
 	/** maximum peer id seen so far */
 	private int maxId;
 	/** own peer id */
 	private int myId;
 	/** singleton instance */
 	private static FSync instance;
-	/** monitor for the avg value */
-	private Object avgMonitor;
+
 	public static final boolean DEBUG = true;
+
+	private final boolean SKIP_TO_AVERAGE = false;
 
 	/**
 	 * Constructor
 	 */
 	private FSync() {
 		try {
-			avgMonitor = new Object();
 
 			myId = SessionInfo.getInstance().getMySelf().getId();
-
 			maxId = myId;
-			avgMonitor = this;
-			bloom.add(SessionInfo.getInstance().getMySelf().getId());
-			bloomList.add(bloom);
-			initAvgTs();
+
 		} catch (Exception e) {
 			// i think this is the case, when sessioninfo was cleared and fsync
 			// interrupted in this order
@@ -100,43 +76,17 @@ public class FSync extends Thread {
 	}
 
 	/**
-	 * align the average playback timestamp stored to a specific time stamp
-	 *
-	 * @param alignTo
-	 *            the time stamp to align to
-	 * @return the aligned time stamp
-	 */
-	long alignedAvgTs(long alignTo) {
-		return avgTs + alignTo - lastAvgUpdateTs;
-	}
-
-	/**
 	 * flood the information so far to the known peers
 	 *
 	 * @param nts
 	 */
 	void broadcastToPeers() {
-		try {
-			if (PlayerControl.getSpeed() != 1)
-				// do not broadcast you timestamp, when your playback time
-				// advances
-				// differently
-				// (playback speed != 1)
-				return;
-		} catch (Exception e) {
-			return;
-		}
+
 		/* broadcast to known peers */
 		long nts = Clock.getTime();
-		FSyncMsg m = new FSyncMsg(alignedAvgTs(nts), nts, myId, bloom, maxId,
+		FSyncMsg m = new FSyncMsg(SessionInfo.getInstance().alignedAvgTs(nts),
+				nts, myId, SessionInfo.getInstance().getBloom(), maxId,
 				SessionInfo.getInstance().getSeqN());
-
-		if (DEBUG) {
-			SessionInfo.getInstance().log("avg" + m.avg + "@" + m.nts);
-			SessionInfo.getInstance().log(
-					"pts" + PlayerControl.getPlaybackTime() + "@"
-							+ Clock.getTime());
-		}
 
 		for (Peer p : SessionInfo.getInstance().getPeers().values()) {
 			m.destAddress = p.getAddress();
@@ -149,37 +99,11 @@ public class FSync extends Thread {
 	 *
 	 * @return
 	 */
-	BloomFilter getBloom() {
-		return bloom;
-	}
-
-	/**
-	 *
-	 * @return
-	 */
-	List<BloomFilter> getBloomList() {
-		return bloomList;
-	}
-
-	/**
-	 *
-	 * @return
-	 */
 	int getMaxId() {
 		return maxId;
 	}
 
-	/**
-	 * initialize the avergae time stamp to the playback time
-	 *
-	 * @return
-	 */
-	long initAvgTs() {
-		avgTs = PlayerControl.getPlaybackTime();
-		lastAvgUpdateTs = Clock.getTime();
 
-		return avgTs;
-	}
 
 	@Override
 	public void interrupt() {
@@ -194,18 +118,13 @@ public class FSync extends Thread {
 		new FSResponseHandler(fSyncMsg, this, maxId).start();
 	}
 
-	public void reset() {
-		bloom = new BloomFilter();
-		bloomList = new ArrayList<BloomFilter>();
-	}
-
 	public boolean restart() {
 		// everything except for the bloom filters and bloom filter lists will
 		// be cleared
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("start fine sync (without reset)");
+		}
 
-		initAvgTs();
 
 		try {
 			start();
@@ -218,8 +137,9 @@ public class FSync extends Thread {
 
 	@Override
 	public void run() {
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("FSync thread started");
+		}
 		while (!isInterrupted()) {
 			try {
 				Thread.sleep(SyncI.PERIOD_FS_MS);
@@ -227,26 +147,32 @@ public class FSync extends Thread {
 				break;
 			}
 			broadcastToPeers();
-			if (Clock.getTime() - lastAvgUpdateTs > (SessionInfo.getInstance()
-					.getPeers().size() + 3)
+			if (Clock.getTime()
+					- SessionInfo.getInstance().getLastAvgUpdateTs() > (SessionInfo
+					.getInstance().getPeers().size() + 2)
 					* SyncI.PERIOD_FS_MS) {
 
 				long pbt = PlayerControl.getPlaybackTime();
-				long t = Clock.getTime();
-				long asyncMillis = alignedAvgTs(t) - pbt;
-				if (DEBUG)
+				long now = Clock.getTime();
+				long asyncMillis = SessionInfo.getInstance().alignedAvgTs(now)
+						- pbt;
+				if (DEBUG) {
 					SessionInfo.getInstance().log(
 							"updating playback time: calculated average: "
-									+ alignedAvgTs(t) + "@timestamp:" + t
+									+ SessionInfo.getInstance().alignedAvgTs(
+											now) + "@timestamp:" + now
 									+ "@async:" + asyncMillis + "@pbt:" + pbt);
-
+				}
+				// wait a sec
+				PlayerControl.ensureTime(PlayerControl.getPlaybackTime(), 1000);
 				updatePlayback(asyncMillis);
 				instance = null;
 				break;
 			}
 		}
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("FSync thread died");
+		}
 	}
 
 	/**
@@ -262,33 +188,21 @@ public class FSync extends Thread {
 		super.start();
 	}
 
-	/**
-	 * update the average timstamp and reset the last update time stampt
-	 *
-	 * @param newValue
-	 *            the value to be set
-	 */
-	void updateAvgTs(long newValue, long updateTime) {
-		if (DEBUG)
-			SessionInfo.getInstance().log("waiting for avgMonitor");
-		synchronized (avgMonitor) {
-			if (DEBUG)
-				SessionInfo.getInstance().log("got avgMonitor");
-			avgTs = newValue;
-			lastAvgUpdateTs = updateTime;
-		}
-		if (DEBUG)
-			SessionInfo.getInstance().log("release avgMonitor");
-	}
-
 	public void updatePlayback(long asyncMillis) {
-		float newPlaybackRate;
+		if (SKIP_TO_AVERAGE) {
+			PlayerControl.setPlaybackTime((int) SessionInfo.getInstance()
+					.alignedAvgTs(Clock.getTime()));
+			return;
+		}
 
 		/* the *3* come from the pre-calculation see paper */
 		long timeMillis = 3 * Math.abs(asyncMillis);
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("ensure buffered start");
+		}
+
+		float newPlaybackRate;
 
 		if (asyncMillis > 0) { // we are behind, go faster
 			newPlaybackRate = 1.33f;// (float) 4 / 3; //precalculated, see
@@ -308,14 +222,16 @@ public class FSync extends Thread {
 			PlayerControl.ensureBuffered(timeMillis);
 		}
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log("ensure buffered end");
+		}
 
-		if (DEBUG)
+		if (DEBUG) {
 			SessionInfo.getInstance().log(
 					"asynchronism: " + asyncMillis + "ms\tnew playback rate: "
 							+ newPlaybackRate + "\ttime changed: " + timeMillis
 							+ "ms");
+		}
 
 		PlayerControl.setPlaybackRate(newPlaybackRate); // adjust playback
 		// rate
@@ -323,9 +239,10 @@ public class FSync extends Thread {
 		try {
 			Thread.sleep(timeMillis); // wait
 		} catch (InterruptedException e) {
-			if (DEBUG)
+			if (DEBUG) {
 				SessionInfo.getInstance().log(
 						"got interrupted, synchronization failed");
+			}
 		} finally {
 			// reset the playback rate
 			PlayerControl.setPlaybackRate(1);
