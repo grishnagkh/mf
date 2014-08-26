@@ -103,8 +103,6 @@ public class FSync extends Thread {
 		return maxId;
 	}
 
-
-
 	@Override
 	public void interrupt() {
 		instance = null;
@@ -124,7 +122,6 @@ public class FSync extends Thread {
 		if (DEBUG) {
 			SessionInfo.getInstance().log("start fine sync (without reset)");
 		}
-
 
 		try {
 			start();
@@ -152,20 +149,7 @@ public class FSync extends Thread {
 					.getInstance().getPeers().size() + 2)
 					* SyncI.PERIOD_FS_MS) {
 
-				long pbt = PlayerControl.getPlaybackTime();
-				long now = Clock.getTime();
-				long asyncMillis = SessionInfo.getInstance().alignedAvgTs(now)
-						- pbt;
-				if (DEBUG) {
-					SessionInfo.getInstance().log(
-							"updating playback time: calculated average: "
-									+ SessionInfo.getInstance().alignedAvgTs(
-											now) + "@timestamp:" + now
-									+ "@async:" + asyncMillis + "@pbt:" + pbt);
-				}
-				// wait a sec
-				PlayerControl.ensureTime(PlayerControl.getPlaybackTime(), 1000);
-				updatePlayback(asyncMillis);
+				updatePlayback();
 				instance = null;
 				break;
 			}
@@ -186,6 +170,22 @@ public class FSync extends Thread {
 	@Override
 	public void start() {
 		super.start();
+	}
+
+	public void updatePlayback() {
+		long pbt = PlayerControl.getPlaybackTime();
+		long now = Clock.getTime();
+		long asyncMillis = SessionInfo.getInstance().alignedAvgTs(now) - pbt;
+		if (DEBUG) {
+			SessionInfo.getInstance().log(
+					"updating playback time: calculated average: "
+							+ SessionInfo.getInstance().alignedAvgTs(now)
+							+ "@timestamp:" + now + "@async:" + asyncMillis
+							+ "@pbt:" + pbt);
+		}
+		// wait a sec
+		PlayerControl.ensureTime(PlayerControl.getPlaybackTime(), 1000);
+		updatePlayback(asyncMillis);
 	}
 
 	public void updatePlayback(long asyncMillis) {

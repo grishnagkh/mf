@@ -15,6 +15,12 @@
  */
 package mf.com.google.android.exoplayer;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import mf.com.google.android.exoplayer.ExoPlayer.ExoPlayerComponent;
+import mf.com.google.android.exoplayer.util.Assertions;
+import mf.com.google.android.exoplayer.util.TraceUtil;
 import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -24,13 +30,6 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Pair;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import mf.com.google.android.exoplayer.ExoPlayer.ExoPlayerComponent;
-import mf.com.google.android.exoplayer.util.Assertions;
-import mf.com.google.android.exoplayer.util.TraceUtil;
 
 /**
  * Implements the internal behavior of {@link ExoPlayerImpl}.
@@ -116,53 +115,6 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		handler = new Handler(internalPlayerThread.getLooper(), this);
 	}
 
-	public Looper getPlaybackLooper() {
-		return internalPlayerThread.getLooper();
-	}
-
-	public int getCurrentPosition() {
-		return (int) (positionUs / 1000);
-	}
-
-	public int getBufferedPosition() {
-		return bufferedPositionUs == TrackRenderer.UNKNOWN_TIME ? ExoPlayer.UNKNOWN_TIME
-				: (int) (bufferedPositionUs / 1000);
-	}
-
-	public int getDuration() {
-		return durationUs == TrackRenderer.UNKNOWN_TIME ? ExoPlayer.UNKNOWN_TIME
-				: (int) (durationUs / 1000);
-	}
-
-	public void prepare(TrackRenderer... renderers) {
-		handler.obtainMessage(MSG_PREPARE, renderers).sendToTarget();
-	}
-
-	public void setPlayWhenReady(boolean playWhenReady) {
-		handler.obtainMessage(MSG_SET_PLAY_WHEN_READY, playWhenReady ? 1 : 0, 0)
-				.sendToTarget();
-	}
-
-	public void seekTo(int positionMs) {
-		handler.obtainMessage(MSG_SEEK_TO, positionMs, 0).sendToTarget();
-	}
-
-	public void stop() {
-		handler.sendEmptyMessage(MSG_STOP);
-	}
-
-	public void setRendererEnabled(int index, boolean enabled) {
-		handler.obtainMessage(MSG_SET_RENDERER_ENABLED, index, enabled ? 1 : 0)
-				.sendToTarget();
-	}
-
-	public void sendMessage(ExoPlayerComponent target, int messageType,
-			Object message) {
-		customMessagesSent++;
-		handler.obtainMessage(MSG_CUSTOM, messageType, 0,
-				Pair.create(target, message)).sendToTarget();
-	}
-
 	public synchronized void blockingSendMessage(ExoPlayerComponent target,
 			int messageType, Object message) {
 		int messageNumber = customMessagesSent++;
@@ -175,227 +127,6 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 				Thread.currentThread().interrupt();
 			}
 		}
-	}
-
-	public synchronized void release() {
-		if (!released) {
-			handler.sendEmptyMessage(MSG_RELEASE);
-			while (!released) {
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-			}
-			internalPlayerThread.quit();
-		}
-	}
-
-	@Override
-	public boolean handleMessage(Message msg) {
-		try {
-			switch (msg.what) {
-			case MSG_PREPARE: {
-				prepareInternal((TrackRenderer[]) msg.obj);
-				return true;
-			}
-			case MSG_INCREMENTAL_PREPARE: {
-				incrementalPrepareInternal();
-				return true;
-			}
-			case MSG_SET_PLAY_WHEN_READY: {
-				setPlayWhenReadyInternal(msg.arg1 != 0);
-				return true;
-			}
-			case MSG_DO_SOME_WORK: {
-				doSomeWork();
-				return true;
-			}
-			case MSG_SEEK_TO: {
-				seekToInternal(msg.arg1);
-				return true;
-			}
-			case MSG_STOP: {
-				stopInternal();
-				return true;
-			}
-			case MSG_RELEASE: {
-				releaseInternal();
-				return true;
-			}
-			case MSG_CUSTOM: {
-				sendMessageInternal(msg.arg1, msg.obj);
-				return true;
-			}
-			case MSG_SET_RENDERER_ENABLED: {
-				setRendererEnabledInternal(msg.arg1, msg.arg2 != 0);
-				return true;
-			}
-			default:
-				return false;
-			}
-		} catch (ExoPlaybackException e) {
-			Log.e(TAG, "Internal track renderer error.", e);
-			eventHandler.obtainMessage(MSG_ERROR, e).sendToTarget();
-			stopInternal();
-			return true;
-		} catch (RuntimeException e) {
-			Log.e(TAG, "Internal runtime error.", e);
-			eventHandler.obtainMessage(MSG_ERROR, new ExoPlaybackException(e))
-					.sendToTarget();
-			stopInternal();
-			return true;
-		}
-	}
-
-	private void setState(int state) {
-		if (this.state != state) {
-			this.state = state;
-			eventHandler.obtainMessage(MSG_STATE_CHANGED, state, 0)
-					.sendToTarget();
-		}
-	}
-
-	private void prepareInternal(TrackRenderer[] renderers) {
-		rebuffering = false;
-		this.renderers = renderers;
-		for (int i = 0; i < renderers.length; i++) {
-			if (renderers[i].isTimeSource()) {
-				Assertions.checkState(timeSourceTrackRenderer == null);
-				timeSourceTrackRenderer = renderers[i];
-			}
-		}
-		setState(ExoPlayer.STATE_PREPARING);
-		handler.sendEmptyMessage(MSG_INCREMENTAL_PREPARE);
-	}
-
-	private void incrementalPrepareInternal() throws ExoPlaybackException {
-		long operationStartTimeMs = SystemClock.elapsedRealtime();
-		boolean prepared = true;
-		for (int i = 0; i < renderers.length; i++) {
-			if (renderers[i].getState() == TrackRenderer.STATE_UNPREPARED) {
-				int state = renderers[i].prepare();
-				if (state == TrackRenderer.STATE_UNPREPARED) {
-					prepared = false;
-				}
-			}
-		}
-
-		if (!prepared) {
-			// We're still waiting for some sources to be prepared.
-			scheduleNextOperation(MSG_INCREMENTAL_PREPARE,
-					operationStartTimeMs, PREPARE_INTERVAL_MS);
-			return;
-		}
-
-		long durationUs = 0;
-		boolean isEnded = true;
-		boolean allRenderersReadyOrEnded = true;
-		for (int i = 0; i < renderers.length; i++) {
-			TrackRenderer renderer = renderers[i];
-			if (rendererEnabledFlags[i]
-					&& renderer.getState() == TrackRenderer.STATE_PREPARED) {
-				renderer.enable(positionUs, false);
-				enabledRenderers.add(renderer);
-				isEnded = isEnded && renderer.isEnded();
-				allRenderersReadyOrEnded = allRenderersReadyOrEnded
-						&& rendererReadyOrEnded(renderer);
-				if (durationUs == TrackRenderer.UNKNOWN_TIME) {
-					// We've already encountered a track for which the duration
-					// is unknown, so the media
-					// duration is unknown regardless of the duration of this
-					// track.
-				} else {
-					long trackDurationUs = renderer.getDurationUs();
-					if (trackDurationUs == TrackRenderer.UNKNOWN_TIME) {
-						durationUs = TrackRenderer.UNKNOWN_TIME;
-					} else if (trackDurationUs == TrackRenderer.MATCH_LONGEST) {
-						// Do nothing.
-					} else {
-						durationUs = Math.max(durationUs, trackDurationUs);
-					}
-				}
-			}
-		}
-		this.durationUs = durationUs;
-
-		if (isEnded) {
-			// We don't expect this case, but handle it anyway.
-			setState(ExoPlayer.STATE_ENDED);
-		} else {
-			setState(allRenderersReadyOrEnded ? ExoPlayer.STATE_READY
-					: ExoPlayer.STATE_BUFFERING);
-			if (playWhenReady && state == ExoPlayer.STATE_READY) {
-				startRenderers();
-			}
-		}
-
-		handler.sendEmptyMessage(MSG_DO_SOME_WORK);
-	}
-
-	private boolean rendererReadyOrEnded(TrackRenderer renderer) {
-		if (renderer.isEnded()) {
-			return true;
-		}
-		if (!renderer.isReady()) {
-			return false;
-		}
-		if (state == ExoPlayer.STATE_READY) {
-			return true;
-		}
-		long rendererDurationUs = renderer.getDurationUs();
-		long rendererBufferedPositionUs = renderer.getBufferedPositionUs();
-		long minBufferDurationUs = rebuffering ? minRebufferUs : minBufferUs;
-		return minBufferDurationUs <= 0
-				|| rendererBufferedPositionUs == TrackRenderer.UNKNOWN_TIME
-				|| rendererBufferedPositionUs == TrackRenderer.END_OF_TRACK
-				|| rendererBufferedPositionUs >= positionUs
-						+ minBufferDurationUs
-				|| (rendererDurationUs != TrackRenderer.UNKNOWN_TIME
-						&& rendererDurationUs != TrackRenderer.MATCH_LONGEST && rendererBufferedPositionUs >= rendererDurationUs);
-	}
-
-	private void setPlayWhenReadyInternal(boolean playWhenReady)
-			throws ExoPlaybackException {
-		try {
-			rebuffering = false;
-			this.playWhenReady = playWhenReady;
-			if (!playWhenReady) {
-				stopRenderers();
-				updatePositionUs();
-			} else {
-				if (state == ExoPlayer.STATE_READY) {
-					startRenderers();
-					handler.sendEmptyMessage(MSG_DO_SOME_WORK);
-				} else if (state == ExoPlayer.STATE_BUFFERING) {
-					handler.sendEmptyMessage(MSG_DO_SOME_WORK);
-				}
-			}
-		} finally {
-			eventHandler.obtainMessage(MSG_SET_PLAY_WHEN_READY_ACK)
-					.sendToTarget();
-		}
-	}
-
-	private void startRenderers() throws ExoPlaybackException {
-		rebuffering = false;
-		mediaClock.start();
-		for (int i = 0; i < enabledRenderers.size(); i++) {
-			enabledRenderers.get(i).start();
-		}
-	}
-
-	private void stopRenderers() throws ExoPlaybackException {
-		mediaClock.stop();
-		for (int i = 0; i < enabledRenderers.size(); i++) {
-			ensureStopped(enabledRenderers.get(i));
-		}
-	}
-
-	private void updatePositionUs() {
-		positionUs = timeSourceTrackRenderer != null
-				&& enabledRenderers.contains(timeSourceTrackRenderer) ? timeSourceTrackRenderer
-				.getCurrentPositionUs() : mediaClock.getTimeUs();
 	}
 
 	private void doSomeWork() throws ExoPlaybackException {
@@ -469,38 +200,194 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		TraceUtil.endSection();
 	}
 
-	private void scheduleNextOperation(int operationType,
-			long thisOperationStartTimeMs, long intervalMs) {
-		long nextOperationStartTimeMs = thisOperationStartTimeMs + intervalMs;
-		long nextOperationDelayMs = nextOperationStartTimeMs
-				- SystemClock.elapsedRealtime();
-		if (nextOperationDelayMs <= 0) {
-			handler.sendEmptyMessage(operationType);
-		} else {
-			handler.sendEmptyMessageDelayed(operationType, nextOperationDelayMs);
+	private void ensureStopped(TrackRenderer renderer)
+			throws ExoPlaybackException {
+		if (renderer.getState() == TrackRenderer.STATE_STARTED) {
+			renderer.stop();
 		}
 	}
 
-	private void seekToInternal(int positionMs) throws ExoPlaybackException {
-		rebuffering = false;
-		positionUs = positionMs * 1000L;
-		mediaClock.stop();
-		mediaClock.setTimeUs(positionUs);
-		if (state == ExoPlayer.STATE_IDLE || state == ExoPlayer.STATE_PREPARING) {
+	public int getBufferedPosition() {
+		return bufferedPositionUs == TrackRenderer.UNKNOWN_TIME ? ExoPlayer.UNKNOWN_TIME
+				: (int) (bufferedPositionUs / 1000);
+	}
+
+	public int getCurrentPosition() {
+		return (int) (positionUs / 1000);
+	}
+
+	public int getDuration() {
+		return durationUs == TrackRenderer.UNKNOWN_TIME ? ExoPlayer.UNKNOWN_TIME
+				: (int) (durationUs / 1000);
+	}
+
+	public Looper getPlaybackLooper() {
+		return internalPlayerThread.getLooper();
+	}
+
+	public float getPlaybackRate() {
+		return timeSourceTrackRenderer.getPlaybackRate();
+	}
+
+	/*
+	 * additions
+	 */
+	public long getPositionUs() {
+		return timeSourceTrackRenderer != null
+				&& enabledRenderers.contains(timeSourceTrackRenderer) ? timeSourceTrackRenderer
+				.getCurrentPositionUs() : mediaClock.getTimeUs();
+	}
+
+	@Override
+	public boolean handleMessage(Message msg) {
+		try {
+			switch (msg.what) {
+			case MSG_PREPARE: {
+				prepareInternal((TrackRenderer[]) msg.obj);
+				return true;
+			}
+			case MSG_INCREMENTAL_PREPARE: {
+				incrementalPrepareInternal();
+				return true;
+			}
+			case MSG_SET_PLAY_WHEN_READY: {
+				setPlayWhenReadyInternal(msg.arg1 != 0);
+				return true;
+			}
+			case MSG_DO_SOME_WORK: {
+				doSomeWork();
+				return true;
+			}
+			case MSG_SEEK_TO: {
+				seekToInternal(msg.arg1);
+				return true;
+			}
+			case MSG_STOP: {
+				stopInternal();
+				return true;
+			}
+			case MSG_RELEASE: {
+				releaseInternal();
+				return true;
+			}
+			case MSG_CUSTOM: {
+				sendMessageInternal(msg.arg1, msg.obj);
+				return true;
+			}
+			case MSG_SET_RENDERER_ENABLED: {
+				setRendererEnabledInternal(msg.arg1, msg.arg2 != 0);
+				return true;
+			}
+			default:
+				return false;
+			}
+		} catch (ExoPlaybackException e) {
+			Log.e(TAG, "Internal track renderer error.", e);
+			eventHandler.obtainMessage(MSG_ERROR, e).sendToTarget();
+			stopInternal();
+			return true;
+		} catch (RuntimeException e) {
+			Log.e(TAG, "Internal runtime error.", e);
+			eventHandler.obtainMessage(MSG_ERROR, new ExoPlaybackException(e))
+					.sendToTarget();
+			stopInternal();
+			return true;
+		}
+	}
+
+	private void incrementalPrepareInternal() throws ExoPlaybackException {
+		long operationStartTimeMs = SystemClock.elapsedRealtime();
+		boolean prepared = true;
+		for (int i = 0; i < renderers.length; i++) {
+			if (renderers[i].getState() == TrackRenderer.STATE_UNPREPARED) {
+				int state = renderers[i].prepare();
+				if (state == TrackRenderer.STATE_UNPREPARED) {
+					prepared = false;
+				}
+			}
+		}
+
+		if (!prepared) {
+			// We're still waiting for some sources to be prepared.
+			scheduleNextOperation(MSG_INCREMENTAL_PREPARE,
+					operationStartTimeMs, PREPARE_INTERVAL_MS);
 			return;
 		}
-		for (int i = 0; i < enabledRenderers.size(); i++) {
-			TrackRenderer renderer = enabledRenderers.get(i);
-			ensureStopped(renderer);
-			renderer.seekTo(positionUs);
+
+		long durationUs = 0;
+		boolean isEnded = true;
+		boolean allRenderersReadyOrEnded = true;
+		for (int i = 0; i < renderers.length; i++) {
+			TrackRenderer renderer = renderers[i];
+			if (rendererEnabledFlags[i]
+					&& renderer.getState() == TrackRenderer.STATE_PREPARED) {
+				renderer.enable(positionUs, false);
+				enabledRenderers.add(renderer);
+				isEnded = isEnded && renderer.isEnded();
+				allRenderersReadyOrEnded = allRenderersReadyOrEnded
+						&& rendererReadyOrEnded(renderer);
+				if (durationUs == TrackRenderer.UNKNOWN_TIME) {
+					// We've already encountered a track for which the duration
+					// is unknown, so the media
+					// duration is unknown regardless of the duration of this
+					// track.
+				} else {
+					long trackDurationUs = renderer.getDurationUs();
+					if (trackDurationUs == TrackRenderer.UNKNOWN_TIME) {
+						durationUs = TrackRenderer.UNKNOWN_TIME;
+					} else if (trackDurationUs == TrackRenderer.MATCH_LONGEST) {
+						// Do nothing.
+					} else {
+						durationUs = Math.max(durationUs, trackDurationUs);
+					}
+				}
+			}
 		}
-		setState(ExoPlayer.STATE_BUFFERING);
+		this.durationUs = durationUs;
+
+		if (isEnded) {
+			// We don't expect this case, but handle it anyway.
+			setState(ExoPlayer.STATE_ENDED);
+		} else {
+			setState(allRenderersReadyOrEnded ? ExoPlayer.STATE_READY
+					: ExoPlayer.STATE_BUFFERING);
+			if (playWhenReady && state == ExoPlayer.STATE_READY) {
+				startRenderers();
+			}
+		}
+
 		handler.sendEmptyMessage(MSG_DO_SOME_WORK);
 	}
 
-	private void stopInternal() {
+	public void prepare(TrackRenderer... renderers) {
+		handler.obtainMessage(MSG_PREPARE, renderers).sendToTarget();
+	}
+
+	private void prepareInternal(TrackRenderer[] renderers) {
 		rebuffering = false;
-		resetInternal();
+		this.renderers = renderers;
+		for (int i = 0; i < renderers.length; i++) {
+			if (renderers[i].isTimeSource()) {
+				Assertions.checkState(timeSourceTrackRenderer == null);
+				timeSourceTrackRenderer = renderers[i];
+			}
+		}
+		setState(ExoPlayer.STATE_PREPARING);
+		handler.sendEmptyMessage(MSG_INCREMENTAL_PREPARE);
+	}
+
+	public synchronized void release() {
+		if (!released) {
+			handler.sendEmptyMessage(MSG_RELEASE);
+			while (!released) {
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			}
+			internalPlayerThread.quit();
+		}
 	}
 
 	private void releaseInternal() {
@@ -511,13 +398,31 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		}
 	}
 
+	private boolean rendererReadyOrEnded(TrackRenderer renderer) {
+		if (renderer.isEnded())
+			return true;
+		if (!renderer.isReady())
+			return false;
+		if (state == ExoPlayer.STATE_READY)
+			return true;
+		long rendererDurationUs = renderer.getDurationUs();
+		long rendererBufferedPositionUs = renderer.getBufferedPositionUs();
+		long minBufferDurationUs = rebuffering ? minRebufferUs : minBufferUs;
+		return minBufferDurationUs <= 0
+				|| rendererBufferedPositionUs == TrackRenderer.UNKNOWN_TIME
+				|| rendererBufferedPositionUs == TrackRenderer.END_OF_TRACK
+				|| rendererBufferedPositionUs >= positionUs
+						+ minBufferDurationUs
+				|| (rendererDurationUs != TrackRenderer.UNKNOWN_TIME
+						&& rendererDurationUs != TrackRenderer.MATCH_LONGEST && rendererBufferedPositionUs >= rendererDurationUs);
+	}
+
 	private void resetInternal() {
 		handler.removeMessages(MSG_DO_SOME_WORK);
 		handler.removeMessages(MSG_INCREMENTAL_PREPARE);
 		mediaClock.stop();
-		if (renderers == null) {
+		if (renderers == null)
 			return;
-		}
 		for (int i = 0; i < renderers.length; i++) {
 			try {
 				TrackRenderer renderer = renderers[i];
@@ -542,6 +447,45 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		setState(ExoPlayer.STATE_IDLE);
 	}
 
+	private void scheduleNextOperation(int operationType,
+			long thisOperationStartTimeMs, long intervalMs) {
+		long nextOperationStartTimeMs = thisOperationStartTimeMs + intervalMs;
+		long nextOperationDelayMs = nextOperationStartTimeMs
+				- SystemClock.elapsedRealtime();
+		if (nextOperationDelayMs <= 0) {
+			handler.sendEmptyMessage(operationType);
+		} else {
+			handler.sendEmptyMessageDelayed(operationType, nextOperationDelayMs);
+		}
+	}
+
+	public void seekTo(int positionMs) {
+		handler.obtainMessage(MSG_SEEK_TO, positionMs, 0).sendToTarget();
+	}
+
+	private void seekToInternal(int positionMs) throws ExoPlaybackException {
+		rebuffering = false;
+		positionUs = positionMs * 1000L;
+		mediaClock.stop();
+		mediaClock.setTimeUs(positionUs);
+		if (state == ExoPlayer.STATE_IDLE || state == ExoPlayer.STATE_PREPARING)
+			return;
+		for (int i = 0; i < enabledRenderers.size(); i++) {
+			TrackRenderer renderer = enabledRenderers.get(i);
+			ensureStopped(renderer);
+			renderer.seekTo(positionUs);
+		}
+		setState(ExoPlayer.STATE_BUFFERING);
+		handler.sendEmptyMessage(MSG_DO_SOME_WORK);
+	}
+
+	public void sendMessage(ExoPlayerComponent target, int messageType,
+			Object message) {
+		customMessagesSent++;
+		handler.obtainMessage(MSG_CUSTOM, messageType, 0,
+				Pair.create(target, message)).sendToTarget();
+	}
+
 	private <T> void sendMessageInternal(int what, Object obj)
 			throws ExoPlaybackException {
 		try {
@@ -561,24 +505,57 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		}
 	}
 
+	public void setPlaybackRate(float f) {
+		Assertions.checkNotNull(timeSourceTrackRenderer).setPlaybackRate(f);
+	}
+
+	public void setPlayWhenReady(boolean playWhenReady) {
+		handler.obtainMessage(MSG_SET_PLAY_WHEN_READY, playWhenReady ? 1 : 0, 0)
+				.sendToTarget();
+	}
+
+	private void setPlayWhenReadyInternal(boolean playWhenReady)
+			throws ExoPlaybackException {
+		try {
+			rebuffering = false;
+			this.playWhenReady = playWhenReady;
+			if (!playWhenReady) {
+				stopRenderers();
+				updatePositionUs();
+			} else {
+				if (state == ExoPlayer.STATE_READY) {
+					startRenderers();
+					handler.sendEmptyMessage(MSG_DO_SOME_WORK);
+				} else if (state == ExoPlayer.STATE_BUFFERING) {
+					handler.sendEmptyMessage(MSG_DO_SOME_WORK);
+				}
+			}
+		} finally {
+			eventHandler.obtainMessage(MSG_SET_PLAY_WHEN_READY_ACK)
+					.sendToTarget();
+		}
+	}
+
+	public void setRendererEnabled(int index, boolean enabled) {
+		handler.obtainMessage(MSG_SET_RENDERER_ENABLED, index, enabled ? 1 : 0)
+				.sendToTarget();
+	}
+
 	private void setRendererEnabledInternal(int index, boolean enabled)
 			throws ExoPlaybackException {
-		if (rendererEnabledFlags[index] == enabled) {
+		if (rendererEnabledFlags[index] == enabled)
 			return;
-		}
 
 		rendererEnabledFlags[index] = enabled;
-		if (state == ExoPlayer.STATE_IDLE || state == ExoPlayer.STATE_PREPARING) {
+		if (state == ExoPlayer.STATE_IDLE || state == ExoPlayer.STATE_PREPARING)
 			return;
-		}
 
 		TrackRenderer renderer = renderers[index];
 		int rendererState = renderer.getState();
 		if (rendererState != TrackRenderer.STATE_PREPARED
 				&& rendererState != TrackRenderer.STATE_ENABLED
-				&& rendererState != TrackRenderer.STATE_STARTED) {
+				&& rendererState != TrackRenderer.STATE_STARTED)
 			return;
-		}
 
 		if (enabled) {
 			boolean playing = playWhenReady && state == ExoPlayer.STATE_READY;
@@ -602,28 +579,42 @@ import mf.com.google.android.exoplayer.util.TraceUtil;
 		}
 	}
 
-	private void ensureStopped(TrackRenderer renderer)
-			throws ExoPlaybackException {
-		if (renderer.getState() == TrackRenderer.STATE_STARTED) {
-			renderer.stop();
+	private void setState(int state) {
+		if (this.state != state) {
+			this.state = state;
+			eventHandler.obtainMessage(MSG_STATE_CHANGED, state, 0)
+					.sendToTarget();
 		}
 	}
 
-	/*
-	 * additions
-	 */
-	public long getPositionUs() {
-		return timeSourceTrackRenderer != null
+	private void startRenderers() throws ExoPlaybackException {
+		rebuffering = false;
+		mediaClock.start();
+		for (int i = 0; i < enabledRenderers.size(); i++) {
+			enabledRenderers.get(i).start();
+		}
+	}
+
+	public void stop() {
+		handler.sendEmptyMessage(MSG_STOP);
+	}
+
+	private void stopInternal() {
+		rebuffering = false;
+		resetInternal();
+	}
+
+	private void stopRenderers() throws ExoPlaybackException {
+		mediaClock.stop();
+		for (int i = 0; i < enabledRenderers.size(); i++) {
+			ensureStopped(enabledRenderers.get(i));
+		}
+	}
+
+	private void updatePositionUs() {
+		positionUs = timeSourceTrackRenderer != null
 				&& enabledRenderers.contains(timeSourceTrackRenderer) ? timeSourceTrackRenderer
 				.getCurrentPositionUs() : mediaClock.getTimeUs();
-	}
-
-	public void setPlaybackRate(float f) {
-		timeSourceTrackRenderer.setPlaybackRate(f);
-	}
-
-	public float getPlaybackRate() {		
-		return timeSourceTrackRenderer.getPlaybackRate();
 	}
 
 }
