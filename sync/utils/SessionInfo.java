@@ -203,9 +203,13 @@ public class SessionInfo {
 
 	public void resetFSyncData() {
 		bloom = new BloomFilter(SyncI.BLOOM_FILTER_LEN_BYTE, SyncI.N_HASHES);
-		bloom.add(mySelf.getId());
-		bloomList.clear();
-		bloomList.add(bloom);
+		if (mySelf != null) {
+			bloom.add(mySelf.getId());
+		}
+		if (bloomList != null) {
+			bloomList.clear();
+			bloomList.add(bloom);
+		}
 	}
 
 	public void setCSynced() {
