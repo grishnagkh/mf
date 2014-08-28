@@ -28,7 +28,9 @@ import mf.player.gui.Samples.Sample;
 import mf.sync.net.MessageHandler;
 import mf.sync.utils.SessionInfo;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -36,7 +38,11 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.LinearLayout.LayoutParams;
 import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -46,6 +52,76 @@ public class MainActivity extends Activity {
 
 	public final static String TAG = "MainActivity";
 	public static Context c = null;
+
+	public void altMedia(View v) {
+
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+		alert.setTitle("Alternative media");
+		alert.setMessage("Enter an alternative media source");
+
+		final LinearLayout layout = new LinearLayout(this);
+
+		final LinearLayout r1 = new LinearLayout(this);
+		final LinearLayout r2 = new LinearLayout(this);
+
+		final EditText name = new EditText(this);
+		final EditText uri = new EditText(this);
+		final TextView mName = new TextView(this);
+		final TextView mUri = new TextView(this);
+
+		name.setLayoutParams(new LinearLayout.LayoutParams(
+				LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
+		uri.setLayoutParams(new LinearLayout.LayoutParams(
+				LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
+		mName.setLayoutParams(new LinearLayout.LayoutParams(
+				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+		mUri.setLayoutParams(new LinearLayout.LayoutParams(
+				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+		mName.setText("media name: ");
+		mUri.setText("uri: ");
+
+		layout.setOrientation(LinearLayout.VERTICAL);
+		r1.setOrientation(LinearLayout.HORIZONTAL);
+		r2.setOrientation(LinearLayout.HORIZONTAL);
+
+		layout.addView(r1);
+		layout.addView(r2);
+		r1.addView(mName);
+		r1.addView(name);
+		r2.addView(mUri);
+		r2.addView(uri);
+
+		alert.setView(layout);
+
+		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int whichButton) {
+				String value = uri.getText().toString();
+				String value1 = name.getText().toString();
+				Spinner fileSpinner = (Spinner) findViewById(R.id.fileChooser_main);
+				@SuppressWarnings("unchecked")
+				ArrayAdapter<Sample> adap = (ArrayAdapter<Sample>) fileSpinner
+						.getAdapter();
+				adap.add(new Sample(value1, value));
+				Toast.makeText(
+						layout.getContext(),
+						"you new media was added to the selectable videos for this session",
+						Toast.LENGTH_LONG).show();
+			}
+		});
+
+		alert.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int whichButton) {
+						// Canceled.
+					}
+				});
+
+		alert.show();
+	}
 
 	private void initChoosableVideos() {
 
@@ -88,12 +164,11 @@ public class MainActivity extends Activity {
 		EditText e1 = (EditText) findViewById(R.id.sessionKeyET_main);
 		String srv = e.getText().toString();
 		String sKey = e1.getText().toString();
+		boolean sD = ((CheckBox) findViewById(R.id.sDebug)).isChecked();
 
 		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri
 				+ "&session_key=" + sKey + "&ip="
 				+ SessionInfo.getWifiAddress(this).getHostAddress();
-
-		boolean sD = ((CheckBox) findViewById(R.id.sDebug)).isChecked();
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))
