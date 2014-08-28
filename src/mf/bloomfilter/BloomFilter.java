@@ -33,9 +33,11 @@ public class BloomFilter implements Serializable {
 	/** the actual data structure */
 	private byte[] bloom;
 	/** number of hashes per element */
-	private int nHashes;
+	public int nHashes;
 	/** number of added peers */
-	private int nPeers;
+	public int nElem;
+
+	public int length;
 
 	/**
 	 * Constructor
@@ -54,9 +56,10 @@ public class BloomFilter implements Serializable {
 	 * @throws NoSuchAlgorithmException
 	 */
 	public BloomFilter(int sizeBytes, int nHashes) {
-		bloom = new byte[sizeBytes];
+		length = sizeBytes;
+		bloom = new byte[length];
 		this.nHashes = nHashes;
-		nPeers = 0;
+		nElem = 0;
 	}
 
 	/**
@@ -65,9 +68,10 @@ public class BloomFilter implements Serializable {
 	 * @param toAdd
 	 */
 	public void add(int toAdd) {
-		for (int pos : getIndices(getBytes(toAdd), nHashes))
+		for (int pos : getIndices(getBytes(toAdd), nHashes)) {
 			bloom[pos / 8] |= (1 << (pos % 8));
-		nPeers++;
+		}
+		nElem++;
 	}
 
 	/**
@@ -78,8 +82,19 @@ public class BloomFilter implements Serializable {
 	 *            the bloom filter to apply the operation with
 	 */
 	public void and(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++)
+		for (int i = 0; i < bloom.length; i++) {
 			bloom[i] &= bbf.bloom[i];
+		}
+	}
+
+	/**
+	 * clears the bloom filter
+	 */
+	public void clear() {
+		for (int i = 0; i < length; i++) {
+			bloom[i] = 0;
+		}
+		nElem = 0;
 	}
 
 	@Override
@@ -177,10 +192,10 @@ public class BloomFilter implements Serializable {
 
 	}
 
-	/** @return the number of elements inserted so far */
-	public int getNElements() {
-		return nPeers;
-	}
+	// /** @return the number of elements inserted so far */
+	// public int getNElements() {
+	// return nElem;
+	// }
 
 	private byte[] hash(byte[] data, byte salt) {
 		SHA1 sha1 = new SHA1();
@@ -205,14 +220,14 @@ public class BloomFilter implements Serializable {
 
 	/**
 	 * merge a give bloom filter into this bloom filter. Does assume that the
-	 * bloom filters do not overlap (for number of peers calculation
+	 * bloom filters do not overlap (for number of peers calculation) if the
+	 * bloom filters do overlap, the nElem becomes an upper bound of elements
 	 *
 	 * @param bf
 	 *            the bloom filter which should be merged into this instance
 	 */
 	public void merge(BloomFilter bf) {
 		this.or(bf);
-		nPeers += bf.getNElements();
 	}
 
 	/**
@@ -223,15 +238,18 @@ public class BloomFilter implements Serializable {
 	 *            the bloom filter to apply the operation with
 	 */
 	public void or(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++)
+		for (int i = 0; i < bloom.length; i++) {
 			bloom[i] |= bbf.bloom[i];
+		}
+		nElem += bbf.nElem;
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < bloom.length; i++)
+		for (int i = 0; i < bloom.length; i++) {
 			sb.append(bloom[i] + ";");
+		}
 		return sb.toString();
 	}
 
@@ -243,8 +261,9 @@ public class BloomFilter implements Serializable {
 	 *            the bloom filter to apply the operation with
 	 */
 	public void xor(BloomFilter bbf) {
-		for (int i = 0; i < bloom.length; i++)
+		for (int i = 0; i < bloom.length; i++) {
 			bloom[i] ^= bbf.bloom[i];
+		}
 	}
 
 }
