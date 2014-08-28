@@ -38,14 +38,7 @@ package mf.player.gui;
 	}
 
 	public static final Sample[] DASH = new Sample[] {
-			// new Sample("tos",
-			// "https://demo-itec.aau.at/livelab/maiero/testCases/tos_mux_dash.mpd"),
-			// new Sample("bunny",
-			// "https://demo-itec.aau.at/livelab/maiero/testCases/bbb_mux_dash.mpd"),
-			// new Sample("demo",
-			// "http://demo.unified-streaming.com/video/ateam/ateam.ism/ateam.mpd"),
-			// new Sample("demo",
-			// "http://dash.edgesuite.net/envivio/dashpr/clear/Manifest.mpd"),
+
 			new Sample("Google Glasses",
 					"https://demo-itec.aau.at/livelab/mf/glass.mpd"),
 			new Sample("Google Play",
