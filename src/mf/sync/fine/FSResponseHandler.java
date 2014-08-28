@@ -61,6 +61,35 @@ public class FSResponseHandler extends Thread {
 		this.parent = parent;
 	}
 
+	public void adjustBFSize() {
+		BloomFilter test = bloom.clone();
+		while (true) {
+			test.clear();
+			/*
+			 * refill the new bloom filter with nElement values, which elements
+			 * we take , should be of no matter, because of the assumption that
+			 * the hash function is distributed uniformly
+			 */
+			for (int i = 0; i < bloom.nElem; i++) {
+				test.add(i);
+			}
+			/* test for number of peers */
+			int cnt = 0;
+			for (int i = 0; i < (maxId < msg.maxId ? msg.maxId : maxId); i++) {
+				if (test.contains(i)) {
+					cnt++;
+				}
+			}
+			if (cnt <= test.nElem) {
+				break;
+			}
+			test = new BloomFilter(test.length + 8, test.nHashes);
+		}
+		test.clear();
+		bloom = test;
+		reinsertPeers();
+	}
+
 	/**
 	 * check the sequence number, if the sequence number received is bigger than
 	 * the stored one, take the received sequence number and do a
@@ -72,6 +101,22 @@ public class FSResponseHandler extends Thread {
 			// TODO: implement resync hard
 		} else {
 		}
+	}
+
+	/**
+	 * reinserts peers to the last false positive free bloom filter
+	 */
+	public void reinsertPeers() {
+		bloom.clear();
+		BloomFilter lastSeen = SessionInfo.getInstance().getBloomList()
+				.get(SessionInfo.getInstance().getBloomList().size() - 1);
+		for (int i = 0; i < maxId; i++) {
+			if (lastSeen.contains(i)) {
+				bloom.add(i);
+			}
+		}
+
+		SessionInfo.getInstance().setBloom(bloom);
 	}
 
 	@Override
@@ -91,6 +136,14 @@ public class FSResponseHandler extends Thread {
 
 			bloom = SessionInfo.getInstance().getBloom();
 
+			/* check whether bloom filter received is longer than the one held */
+			if (bloom.length < msg.bloom.length) {
+				SessionInfo.getInstance().log(
+						"received a longer bloom filter, REBLOOM it ");
+				bloom = new BloomFilter(msg.bloom.length, msg.bloom.nHashes);
+				reinsertPeers();
+			}
+
 			// update(pi, ntpi), update(pj, ntpj)
 			long now = Clock.getTime();
 			long avgTs = SessionInfo.getInstance().alignedAvgTs(now);
@@ -108,30 +161,21 @@ public class FSResponseHandler extends Thread {
 				and.and(bloom);
 				if (and.isZero()) {
 					bloom.merge(msg.bloom);
-					SessionInfo
-							.getInstance()
-							.updateAvgTs(
-									(bloom.getNElements() * avgTs + msg.bloom
-											.getNElements() * msgAvgTs)
-											/ (bloom.getNElements() + msg.bloom
-													.getNElements()),
-									now);
+					SessionInfo.getInstance().updateAvgTs(
+							(bloom.nElem * avgTs + msg.bloom.nElem * msgAvgTs)
+									/ (bloom.nElem + msg.bloom.nElem), now);
 				} else if (!SessionInfo.getInstance().getBloomList()
 						.contains(msg.bloom)) {
-					if (msg.bloom.getNElements() >= bloom.getNElements()) {
+					if (msg.bloom.nElem >= bloom.nElem) {
 						if (msg.bloom.contains(SessionInfo.getInstance()
 								.getMySelf().getId())) {
 							SessionInfo.getInstance()
 									.updateAvgTs(msgAvgTs, now);
 							bloom = msg.bloom;
 						} else {
-							SessionInfo
-									.getInstance()
-									.updateAvgTs(
-											(avgTs + (msg.bloom.getNElements() * msgAvgTs))
-													/ (1 + msg.bloom
-															.getNElements()),
-											now);
+							SessionInfo.getInstance().updateAvgTs(
+									(avgTs + (msg.bloom.nElem * msgAvgTs))
+											/ (1 + msg.bloom.nElem), now);
 							bloom = msg.bloom;
 							bloom.add(SessionInfo.getInstance().getMySelf()
 									.getId());
@@ -139,8 +183,13 @@ public class FSResponseHandler extends Thread {
 					}
 				}
 			}
-			SessionInfo.getInstance().getBloomList().add(msg.bloom);
-			parent.setMaxId(maxId < msg.maxId ? msg.maxId : maxId);
+
+			maxId = maxId < msg.maxId ? msg.maxId : maxId;
+			adjustBFSize();
+			SessionInfo.getInstance().getBloomList().add(bloom);
+			// XXX used this before length adjustments of bfs
+			// SessionInfo.getInstance().getBloomList().add(msg.bloom);
+			parent.setMaxId(maxId);
 
 		}
 	}
