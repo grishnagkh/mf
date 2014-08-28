@@ -18,15 +18,16 @@
 
         <TextView
             android:id="@+id/videoTV_main"
-            android:layout_width="wrap_content"
+            android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:text="@string/title"
-            android:width="120dp" />
+            android:layout_weight="1"
+            android:text="@string/title" />
 
         <Spinner
             android:id="@+id/fileChooser_main"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content" />
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
     </LinearLayout>
 
     <LinearLayout
@@ -37,15 +38,16 @@
 
         <TextView
             android:id="@+id/sessionKeyTV_main"
-            android:layout_width="wrap_content"
+            android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:text="@string/s_key"
-            android:width="120dp" />
+            android:layout_weight="1"
+            android:text="@string/s_key" />
 
         <EditText
             android:id="@+id/sessionKeyET_main"
-            android:layout_width="fill_parent"
+            android:layout_width="0px"
             android:layout_height="wrap_content"
+            android:layout_weight="2"
             android:inputType="text"
             android:text="@string/default_sID" />
     </LinearLayout>
@@ -58,41 +60,82 @@
 
         <TextView
             android:id="@+id/serverAddressTV_main"
-            android:layout_width="wrap_content"
+            android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:text="@string/s_adr"
-            android:width="120dp" />
+            android:layout_weight="1"
+            android:text="@string/s_adr" />
 
         <EditText
             android:id="@+id/serverAddressET_main"
-            android:layout_width="fill_parent"
+            android:layout_width="0px"
             android:layout_height="wrap_content"
+            android:layout_weight="2"
             android:inputType="text"
             android:text="" />
     </LinearLayout>
 
-    <CheckBox
-        android:id="@+id/sDebug"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/row4_main"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="left"
-        android:text="show debug"
-        android:visibility="visible" />
-    <Button
-        android:id="@+id/altMedia"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="left"
-        android:text="add alternative media"
-        android:visibility="visible" 
-        android:onClick="altMedia"/>
+        android:orientation="horizontal" >
 
-    <Button
-        android:id="@+id/openButton_main"
-        android:layout_width="wrap_content"
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
+
+        <CheckBox
+            android:id="@+id/sDebug"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:layout_weight="1"
+            android:text="show debug"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row5_main"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:onClick="onOpenButtonClick"
-        android:text="@string/play_text" />
+        android:orientation="horizontal" >
+
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
+
+        <Button
+            android:id="@+id/altMedia"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_weight="1"
+            android:onClick="altMedia"
+            android:text="add alternative media"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row6_main"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
+
+        <Button
+            android:id="@+id/openButton_main"
+            android:layout_width="0px"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:onClick="onOpenButtonClick"
+            android:text="@string/play_text" />
+    </LinearLayout>
 
 </LinearLayout>
