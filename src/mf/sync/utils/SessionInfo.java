@@ -212,6 +212,10 @@ public class SessionInfo {
 		}
 	}
 
+	public void setBloom(BloomFilter bloom) {
+		this.bloom = bloom;
+	}
+
 	public void setCSynced() {
 		cSynced = true;
 		SessionInfo.getInstance().updateAvgTs(PlayerControl.getPlaybackTime(),

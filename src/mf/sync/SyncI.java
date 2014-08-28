@@ -38,7 +38,8 @@ public interface SyncI {
 	public static final int PERIOD_FS_MS = 250;
 
 	/** bloom filter length [byte] */
-	public static final int BLOOM_FILTER_LEN_BYTE = 8;
+	public static final int BLOOM_FILTER_LEN_BYTE = 1; // for testing the
+														// sliding length
 	/** number of used hash functions in the bloom filter */
 	public static final int N_HASHES = 3;
 
