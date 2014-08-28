@@ -72,10 +72,12 @@
     </LinearLayout>
 
     <CheckBox
+        android:id="@+id/sDebug"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="left"
-        android:visibility="invisible" />
+        android:text="show debug"
+        android:visibility="visible" />
 
     <Button
         android:id="@+id/openButton_main"

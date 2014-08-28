@@ -34,6 +34,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 
@@ -52,8 +53,9 @@ public class MainActivity extends Activity {
 
 		EditText e = (EditText) findViewById(R.id.serverAddressET_main);
 		e.setText(SERVER_ADDRESS);
-		for (Sample s : Samples.DASH)
+		for (Sample s : Samples.DASH) {
 			list.add(s);
+		}
 
 		ArrayAdapter<Sample> adap = new ArrayAdapter<Sample>(this,
 				android.R.layout.simple_spinner_item, list);
@@ -91,10 +93,13 @@ public class MainActivity extends Activity {
 				+ "&session_key=" + sKey + "&ip="
 				+ SessionInfo.getWifiAddress(this).getHostAddress();
 
+		boolean sD = ((CheckBox) findViewById(R.id.sDebug)).isChecked();
+
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
 				.setData(Uri.parse(uri))
 				.putExtra(DemoUtil.CONTENT_ID_EXTRA, "")
-				.putExtra(DemoUtil.CONTENT_TYPE_EXTRA, DemoUtil.TYPE_DASH_VOD);
+				.putExtra(DemoUtil.CONTENT_TYPE_EXTRA, DemoUtil.TYPE_DASH_VOD)
+				.putExtra("showDebug", sD);
 		startActivity(mpdIntent);
 
 	}

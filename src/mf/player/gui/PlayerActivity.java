@@ -106,6 +106,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	private String contentId;
 
 	public static final boolean DEBUG = true;
+	public static boolean showDebug = true;
 
 	public static final boolean DBOX_ONLY = false;
 
@@ -149,7 +150,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		if (DEBUG)
+		if (DEBUG) {
 			new Thread(new Runnable() {
 
 				@Override
@@ -173,12 +174,15 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 					}
 				}
 			}).start();
+		}
 
 		Intent intent = getIntent();
 		contentUri = intent.getData();
 		contentType = intent.getIntExtra(DemoUtil.CONTENT_TYPE_EXTRA,
 				TYPE_OTHER);
 		contentId = intent.getStringExtra(DemoUtil.CONTENT_ID_EXTRA);
+
+		showDebug = intent.getBooleanExtra("showDebug", false);
 
 		mainHandler = new Handler(getMainLooper());
 		builder = getRendererBuilder();
@@ -189,8 +193,9 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 			@SuppressLint("ClickableViewAccessibility")
 			@Override
 			public boolean onTouch(View arg0, MotionEvent arg1) {
-				if (arg1.getAction() == MotionEvent.ACTION_DOWN)
+				if (arg1.getAction() == MotionEvent.ACTION_DOWN) {
 					toggleControlsVisibility();
+				}
 				return true;
 			}
 		});
@@ -269,8 +274,9 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// Do nothing.
 
 		if (player.getPlayWhenReady()) {
-			if (CSync.getInstance().getState() != Thread.State.NEW)
+			if (CSync.getInstance().getState() != Thread.State.NEW) {
 				CSync.getInstance().interrupt();
+			}
 			CSync.getInstance().start();
 		} else {
 		}
@@ -312,6 +318,11 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		// at least, the parsing should have been initiated
 
 		PlayerControl.initPlayer(player);
+		if (showDebug) {
+			findViewById(R.id.debugpane).setVisibility(View.VISIBLE);
+		} else {
+			findViewById(R.id.debugpane).setVisibility(View.INVISIBLE);
+		}
 
 	}
 
@@ -336,9 +347,10 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
-		if (videoRenderer != null)
+		if (videoRenderer != null) {
 			player.blockingSendMessage(videoRenderer,
 					MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, null);
+		}
 	}
 
 	private void toggleControlsVisibility() {
@@ -388,10 +400,12 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 			if (map != null) {
 				Collection<Peer> l2 = map.values();
 				List<Peer> l1 = new ArrayList<Peer>();
-				for (Peer p : l2)
+				for (Peer p : l2) {
 					l1.add(p);
-				for (int i = l1.size(); i > 0; i--)
+				}
+				for (int i = l1.size(); i > 0; i--) {
 					peeStr += l1.get(i - 1).toString() + "\n";
+				}
 			}
 			dRcv.setText(rcvStr);
 			dSen.setText(senStr);

@@ -18,6 +18,7 @@
         android:background="@android:color/black" />
 
     <LinearLayout
+        android:id="@+id/debugpane"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#88000000"
