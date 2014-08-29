@@ -28,8 +28,7 @@
 		//format: PT31.32s
 		$duration = str_ireplace('PT','',$duration);
 		$duration = str_ireplace('s','',$duration);
-		$duration *= 1000;
-		$date = new DateTime();
+		$date = new DateTime(); //precision is seconds, not milliseconds!!!
 		
 		return round($duration*1.5) + $date->getTimestamp(); // time_millis();
 	}
