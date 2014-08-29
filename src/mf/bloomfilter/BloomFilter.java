@@ -136,6 +136,8 @@ public class BloomFilter implements Serializable {
 	public boolean equals(Object other) {
 		if (!(other instanceof BloomFilter))
 			return false;
+		if (((BloomFilter) other).length != length)
+			return false;
 
 		BloomFilter tmp = clone();
 		tmp.xor((BloomFilter) other);

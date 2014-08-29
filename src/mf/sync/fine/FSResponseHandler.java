@@ -21,6 +21,7 @@
 package mf.sync.fine;
 
 import mf.bloomfilter.BloomFilter;
+import mf.sync.SyncI;
 import mf.sync.net.FSyncMsg;
 import mf.sync.utils.Clock;
 import mf.sync.utils.SessionInfo;
@@ -47,6 +48,7 @@ public class FSResponseHandler extends Thread {
 
 	/** count steps without update */
 	static int noUpdateCtr = 0;
+	private BloomFilter lastAct;
 
 	/**
 	 * Constructor
@@ -59,10 +61,13 @@ public class FSResponseHandler extends Thread {
 		this.msg = fSyncMsg;
 		this.maxId = maxId;
 		this.parent = parent;
+		lastAct = SessionInfo.getInstance().getBloom().clone();
 	}
 
 	public void adjustBFSize() {
 		BloomFilter test = bloom.clone();
+		/* boolean indicating whether a false positive occured */
+		boolean fpOccured = false;
 		while (true) {
 			test.clear();
 			/*
@@ -82,12 +87,16 @@ public class FSResponseHandler extends Thread {
 			}
 			if (cnt <= test.nElem) {
 				break;
+			} else {
+				fpOccured = true;
 			}
-			test = new BloomFilter(test.length + 8, test.nHashes);
+			test = new BloomFilter(test.length + SyncI.BLOOM_FILTER_LEN_INC_BYTE, test.nHashes);
 		}
-		test.clear();
-		bloom = test;
-		reinsertPeers();
+		if (fpOccured) {
+			test.clear();
+			bloom = test;
+			reinsertPeers();
+		}
 	}
 
 	/**
@@ -107,11 +116,11 @@ public class FSResponseHandler extends Thread {
 	 * reinserts peers to the last false positive free bloom filter
 	 */
 	public void reinsertPeers() {
+
 		bloom.clear();
-		BloomFilter lastSeen = SessionInfo.getInstance().getBloomList()
-				.get(SessionInfo.getInstance().getBloomList().size() - 1);
+
 		for (int i = 0; i < maxId; i++) {
-			if (lastSeen.contains(i)) {
+			if (lastAct.contains(i)) {
 				bloom.add(i);
 			}
 		}
@@ -167,10 +176,12 @@ public class FSResponseHandler extends Thread {
 				} else if (!SessionInfo.getInstance().getBloomList()
 						.contains(msg.bloom)) {
 					if (msg.bloom.nElem >= bloom.nElem) {
+
 						if (msg.bloom.contains(SessionInfo.getInstance()
 								.getMySelf().getId())) {
 							SessionInfo.getInstance()
 									.updateAvgTs(msgAvgTs, now);
+
 							bloom = msg.bloom;
 						} else {
 							SessionInfo.getInstance().updateAvgTs(
@@ -186,9 +197,7 @@ public class FSResponseHandler extends Thread {
 
 			maxId = maxId < msg.maxId ? msg.maxId : maxId;
 			adjustBFSize();
-			SessionInfo.getInstance().getBloomList().add(bloom);
-			// XXX used this before length adjustments of bfs
-			// SessionInfo.getInstance().getBloomList().add(msg.bloom);
+			SessionInfo.getInstance().getBloomList().add(msg.bloom);
 			parent.setMaxId(maxId);
 
 		}
