@@ -41,6 +41,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -68,26 +69,28 @@ public class MainActivity extends Activity {
 		alert.setMessage("Enter an alternative media source");
 
 		final LinearLayout layout = new LinearLayout(this);
-
+		layout.setPadding(20, 0, 0, 20);
 		final LinearLayout r1 = new LinearLayout(this);
 		final LinearLayout r2 = new LinearLayout(this);
 
 		final EditText name = new EditText(this);
+		name.setInputType(InputType.TYPE_CLASS_TEXT);
 		final EditText uri = new EditText(this);
+		uri.setInputType(InputType.TYPE_TEXT_VARIATION_URI);
 		final TextView mName = new TextView(this);
 		final TextView mUri = new TextView(this);
 
-		name.setLayoutParams(new LinearLayout.LayoutParams(
-				LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		uri.setLayoutParams(new LinearLayout.LayoutParams(
-				LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		mName.setLayoutParams(new LinearLayout.LayoutParams(
-				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		mUri.setLayoutParams(new LinearLayout.LayoutParams(
-				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+		name.setLayoutParams(new LinearLayout.LayoutParams(0,
+				LayoutParams.WRAP_CONTENT, 3));
+		uri.setLayoutParams(new LinearLayout.LayoutParams(0,
+				LayoutParams.WRAP_CONTENT, 3));
+		mName.setLayoutParams(new LinearLayout.LayoutParams(0,
+				LayoutParams.WRAP_CONTENT, 1));
+		mUri.setLayoutParams(new LinearLayout.LayoutParams(0,
+				LayoutParams.WRAP_CONTENT, 1));
 
-		mName.setText("media name: ");
-		mUri.setText("uri: ");
+		mName.setText("media name");
+		mUri.setText("uri");
 
 		layout.setOrientation(LinearLayout.VERTICAL);
 		r1.setOrientation(LinearLayout.HORIZONTAL);
@@ -216,7 +219,8 @@ public class MainActivity extends Activity {
 		};
 		a.execute(((EditText) findViewById(R.id.serverAddressET_main))
 				.getText().toString());
-		/* TODO: do it the clean way... */
+		/* FIXME: do it the clean way... */
+
 		do {
 			try {
 				Thread.sleep(100);
@@ -233,7 +237,7 @@ public class MainActivity extends Activity {
 		final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
 				MainActivity.this, android.R.layout.select_dialog_singlechoice);
 		for (String s : sb.toString().split(";")) {
-			if (!"".equals(s)) {
+			if (!("".equals(s) || "null".equals(s))) {
 				arrayAdapter.add(s);
 			}
 		}
