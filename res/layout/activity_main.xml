@@ -75,27 +75,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/row4_main"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="2" />
-
-        <CheckBox
-            android:id="@+id/sDebug"
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_gravity="left"
-            android:layout_weight="1"
-            android:text="show debug"
-            android:visibility="visible" />
-    </LinearLayout>
-
-    <LinearLayout
         android:id="@+id/row5_main"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -104,7 +83,16 @@
         <TextView
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:layout_weight="2" />
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/listSessionButton"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:onClick="onSessionListClick"
+            android:text="pick session" />
 
         <Button
             android:id="@+id/altMedia"
@@ -126,16 +114,37 @@
         <TextView
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:layout_weight="2" />
+            android:layout_weight="1" />
 
         <Button
             android:id="@+id/openButton_main"
             android:layout_width="0px"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_weight="2"
             android:onClick="onOpenButtonClick"
             android:text="@string/play_text" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row4_main"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="2" />
+
+        <CheckBox
+            android:id="@+id/sDebug"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity=""
+            android:text="show debug"
+            android:visibility="visible" />
     </LinearLayout>
 
 </LinearLayout>

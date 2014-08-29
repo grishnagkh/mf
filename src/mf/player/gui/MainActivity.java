@@ -20,6 +20,12 @@
  */
 package mf.player.gui;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +39,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -48,7 +55,7 @@ public class MainActivity extends Activity {
 
 	Map<String, String> videos;
 
-	public static final String SERVER_ADDRESS = "https://demo-itec.uni-klu.ac.at/livelab/mf/session/simsServer.php";
+	public static final String SERVER_ADDRESS = "https://demo-itec.uni-klu.ac.at/livelab/mf/session/";
 
 	public final static String TAG = "MainActivity";
 	public static Context c = null;
@@ -166,8 +173,8 @@ public class MainActivity extends Activity {
 		String sKey = e1.getText().toString();
 		boolean sD = ((CheckBox) findViewById(R.id.sDebug)).isChecked();
 
-		uri = srv + "?port=" + MessageHandler.PORT + "&mediaSource=" + uri
-				+ "&session_key=" + sKey + "&ip="
+		uri = srv + "simsServer.php?port=" + MessageHandler.PORT
+				+ "&mediaSource=" + uri + "&session_key=" + sKey + "&ip="
 				+ SessionInfo.getWifiAddress(this).getHostAddress();
 
 		Intent mpdIntent = new Intent(this, PlayerActivity.class)
@@ -176,6 +183,78 @@ public class MainActivity extends Activity {
 				.putExtra(DemoUtil.CONTENT_TYPE_EXTRA, DemoUtil.TYPE_DASH_VOD)
 				.putExtra("showDebug", sD);
 		startActivity(mpdIntent);
+
+	}
+
+	public void onSessionListClick(View v) {
+		final StringBuffer sb = new StringBuffer(";");
+		AsyncTask<String, Void, String> a = new AsyncTask<String, Void, String>() {
+
+			@Override
+			protected String doInBackground(String... params) {
+				URL url;
+
+				try {
+					url = new URL(params[0] + "listSessions.php");
+
+					HttpURLConnection urlConnection = (HttpURLConnection) url
+							.openConnection();
+					InputStream in = new BufferedInputStream(
+							urlConnection.getInputStream());
+					BufferedReader br = new BufferedReader(
+							new InputStreamReader(in));
+					String sList = br.readLine();
+
+					sb.append(sList);
+					urlConnection.disconnect();
+					br.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				return null;
+			}
+		};
+		a.execute(((EditText) findViewById(R.id.serverAddressET_main))
+				.getText().toString());
+		/* TODO: do it the clean way... */
+		do {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		} while (";".equals(sb.toString()));
+
+		/* show dialog to choose the session */
+
+		AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+		alert.setTitle("Open Session");
+		final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
+				MainActivity.this, android.R.layout.select_dialog_singlechoice);
+		for (String s : sb.toString().split(";")) {
+			if (!"".equals(s)) {
+				arrayAdapter.add(s);
+			}
+		}
+		alert.setNegativeButton("cancel",
+				new DialogInterface.OnClickListener() {
+
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				});
+		alert.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				String sessionKey = arrayAdapter.getItem(which);
+				((EditText) findViewById(R.id.sessionKeyET_main))
+						.setText(sessionKey);
+			}
+		});
+		alert.show();
 
 	}
 }
