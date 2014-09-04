@@ -80,11 +80,6 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
 
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
         <Button
             android:id="@+id/listSessionButton"
             android:layout_width="0px"
@@ -93,6 +88,13 @@
             android:layout_weight="1"
             android:onClick="onSessionListClick"
             android:text="@string/session" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row123_main"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
 
         <Button
             android:id="@+id/altMedia"
@@ -110,11 +112,6 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
 
         <Button
             android:id="@+id/openButton_main"
@@ -145,6 +142,6 @@
             android:gravity=""
             android:text="show debug"
             android:visibility="visible" />
-    </LinearLayout> 
+    </LinearLayout>
 
 </LinearLayout>

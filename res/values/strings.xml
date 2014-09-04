@@ -39,5 +39,7 @@
     <string name="play_text">Play Video</string>
     <string name="title">Video</string>
     <string name="default_sID">13</string>
+    <string name="media">Add Media</string>
+    <string name="session">Pick Session</string>
 
 </resources>

@@ -80,11 +80,6 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
 
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
         <Button
             android:id="@+id/listSessionButton"
             android:layout_width="0px"
@@ -101,27 +96,15 @@
             android:layout_gravity="right"
             android:layout_weight="1"
             android:onClick="altMedia"
-            android:text="@string/media"
+           android:text="@string/media"
             android:visibility="visible" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/row6_main"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
 
         <Button
             android:id="@+id/openButton_main"
             android:layout_width="0px"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_weight="2"
+            android:layout_weight="1"
             android:onClick="onOpenButtonClick"
             android:text="@string/play_text" />
     </LinearLayout>
@@ -145,6 +128,6 @@
             android:gravity=""
             android:text="show debug"
             android:visibility="visible" />
-    </LinearLayout> 
+    </LinearLayout>
 
 </LinearLayout>
