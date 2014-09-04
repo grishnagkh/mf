@@ -128,19 +128,14 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="2" />
+ 
 
         <CheckBox
             android:id="@+id/sDebug"
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity=""
-            android:text="show debug"
+            android:layout_weight="2" 
+            android:text="@string/dbg"
             android:visibility="visible" />
     </LinearLayout>
 

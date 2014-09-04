@@ -41,5 +41,6 @@
     <string name="default_sID">13</string>
     <string name="media">Add Media</string>
     <string name="session">Pick Session</string>
+    <string name="dbg">Show Debug</string>
 
 </resources>

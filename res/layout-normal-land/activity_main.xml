@@ -96,7 +96,7 @@
             android:layout_gravity="right"
             android:layout_weight="1"
             android:onClick="altMedia"
-           android:text="@string/media"
+            android:text="@string/media"
             android:visibility="visible" />
 
         <Button
@@ -115,10 +115,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
 
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="2" />
+       
 
         <CheckBox
             android:id="@+id/sDebug"
@@ -126,7 +123,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity=""
-            android:text="show debug"
+            android:text="@string/dbg"
             android:visibility="visible" />
     </LinearLayout>
 
