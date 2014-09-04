@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
 		mUri.setLayoutParams(new LinearLayout.LayoutParams(0,
 				LayoutParams.WRAP_CONTENT, 1));
 
-		mName.setText("media name");
+		mName.setText("name");
 		mUri.setText("uri");
 
 		layout.setOrientation(LinearLayout.VERTICAL);
